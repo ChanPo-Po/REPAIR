@@ -1,5 +1,5 @@
 exports.handler = async function(event) {
-  const GAS_URL = process.env.GAS_REPAIR_URL || "DAN_LINK_APPS_SCRIPT_EXEC_VAO_DAY";
+  const GAS_URL = process.env.GAS_REPAIR_URL || "https://script.google.com/macros/s/AKfycbyHLnjGAnk5FcPLQ58Y3PtyFcWxzKaJj7aJ3l6_hkwvhhaoloELmBI_vJOGICLqLuVJVA/exec";
 
   const headers = {
     "Access-Control-Allow-Origin": "*",
