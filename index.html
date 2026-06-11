@@ -20,11 +20,12 @@
       </form>
 
       <div class="login-demo">
-        <b>Tài khoản mẫu:</b>
-        <span>tiepnhan / 123456</span>
-        <span>kythuat / 123456</span>
-        <span>quanly / 123456</span>
-        <span>admin / 123456</span>
+        <b>Tài khoản mẫu V4:</b>
+        <span>sale / 123456 — chỉ tiếp nhận máy</span>
+        <span>kythuat / 123456 — tiếp nhận + xử lý sửa chữa</span>
+        <span>qlcuahang / 123456 — xem tiến độ, số đơn, doanh thu; không thấy lợi nhuận</span>
+        <span>qlkythuat / 123456 — xử lý, chi phí, tra cứu, xem lợi nhuận</span>
+        <span>admin / 123456 — full quyền</span>
       </div>
     </div>
   </div>
@@ -256,7 +257,7 @@
 
             <div class="form-actions">
               <button class="ghost-btn" type="reset">Xóa form</button>
-              <button class="primary-btn" type="submit">Lưu phiếu tiếp nhận</button>
+              <button class="ghost-btn" type="button" onclick="saveReceiveAndPrint()">Lưu + In phiếu nhận</button><button class="primary-btn" type="submit">Lưu phiếu tiếp nhận</button>
             </div>
           </form>
         </div>
@@ -383,6 +384,15 @@
         </div>
       </section>
     </main>
+  </div>
+
+  
+  <div id="printModal" class="print-modal hidden">
+    <div class="print-toolbar no-print">
+      <button class="ghost-btn" onclick="closePrintModal()">Đóng</button>
+      <button class="primary-btn" onclick="window.print()">In phiếu</button>
+    </div>
+    <div id="repairReceipt" class="receipt-a4"></div>
   </div>
 
   <div id="toast" class="toast"></div>

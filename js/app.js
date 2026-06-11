@@ -173,3 +173,319 @@ function renderInfo(info){const items=[["Mã sửa",info.repairId],["IMEI",info.
 function formData(f){const o={};new FormData(f).forEach((v,k)=>o[k]=v);return o}function money(v){const n=Number(String(v||0).replace(/[^\d.-]/g,""));return isNaN(n)?0:n}function vnd(v){return money(v).toLocaleString("vi-VN")+"đ"}function shortMoney(v){v=money(v);return v>=1e6?(v/1e6).toFixed(v%1e6?1:0)+"tr":vnd(v)}function pct(a,b){a=money(a);b=money(b);return b?((a/b)*100).toFixed(1)+"%":"0%"}function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v??""}function toast(msg,type="ok"){const t=document.getElementById("toast");t.textContent=msg;t.className=`toast show ${type}`;setTimeout(()=>t.className="toast",3200)}function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}function jsesc(s){return String(s??"").replace(/\\/g,"\\\\").replace(/'/g,"\\'")}function fmtDate(v){if(!v)return"";const d=new Date(v);return isNaN(d)?v:d.toLocaleString("vi-VN")}function rank(i){return["🥇","🥈","🥉"][i]||`${i+1}.`}
 function mockWeekly(){return[{week:1,orders:45,revenue:16000000,cost:8000000,profit:8000000},{week:2,orders:58,revenue:22000000,cost:11000000,profit:11000000},{week:3,orders:62,revenue:27000000,cost:13000000,profit:14000000},{week:4,orders:53,revenue:21500000,cost:10300000,profit:11200000},{week:5,orders:0,revenue:0,cost:0,profit:0}]}function mockServices(){return[{name:"Thay pin",count:61,revenue:22000000,cost:10000000,profit:12000000},{name:"Ép kính",count:42,revenue:16000000,cost:6000000,profit:10000000},{name:"Thay màn",count:18,revenue:19000000,cost:14000000,profit:5000000},{name:"Vệ sinh máy",count:31,revenue:3100000,cost:400000,profit:2700000}]}function mockModels(){return[{model:"12 Pro Max",orders:58,topService:"Thay pin",topServiceQty:18,suggest:"Pin 12PM: tồn tối thiểu 25-30"},{model:"iPhone 11",orders:54,topService:"Thay pin",topServiceQty:15,suggest:"Pin iP11: tồn tối thiểu 20-25"},{model:"11 Pro Max",orders:28,topService:"Thay pin",topServiceQty:8,suggest:"Pin 11PM: tồn tối thiểu 10-15"},{model:"iPhone XR",orders:18,topService:"Ép kính",topServiceQty:7,suggest:"Kính XR: giữ tồn 10"},{model:"13 Pro Max",orders:12,topService:"Thay màn",topServiceQty:3,suggest:"Màn 13PM: nhập thận trọng"}]}function mockMatrix(){const services=["Thay pin","Ép kính","Thay màn","Vệ sinh","FaceID"],rows=[{model:"12 Pro Max",values:{"Thay pin":18,"Ép kính":11,"Thay màn":8,"Vệ sinh":4,"FaceID":2}},{model:"iPhone 11",values:{"Thay pin":15,"Ép kính":14,"Thay màn":6,"Vệ sinh":7,"FaceID":1}},{model:"11 Pro Max",values:{"Thay pin":8,"Ép kính":5,"Thay màn":3,"Vệ sinh":2,"FaceID":1}},{model:"iPhone XR",values:{"Thay pin":3,"Ép kính":7,"Thay màn":2,"Vệ sinh":2,"FaceID":0}},{model:"13 Pro Max",values:{"Thay pin":6,"Ép kính":4,"Thay màn":3,"Vệ sinh":1,"FaceID":0}}];return{services,rows}}function mockTech(){return[{technician:"Hùng",total:65,completed:60,overdue:1,revenue:32000000,profit:18000000},{technician:"Trường",total:58,completed:50,overdue:3,revenue:28000000,profit:15000000},{technician:"DK",total:42,completed:40,overdue:0,revenue:19000000,profit:11000000}]}
 function buildMaterialNeeds(){const matrix=mockMatrix();const pin=matrix.rows.map(r=>({name:`Pin ${r.model}`,need:r.values["Thay pin"]||0,minStock:Math.ceil((r.values["Thay pin"]||0)*1.4),note:"Dựa trên số đơn thay pin trong tháng"})).filter(x=>x.need>0).sort((a,b)=>b.need-a.need);const kinh=matrix.rows.map(r=>({name:`Kính ${r.model}`,need:r.values["Ép kính"]||0,minStock:Math.ceil((r.values["Ép kính"]||0)*1.3),note:"Dựa trên số đơn ép kính"})).filter(x=>x.need>0).sort((a,b)=>b.need-a.need);const man=matrix.rows.map(r=>({name:`Màn ${r.model}`,need:r.values["Thay màn"]||0,minStock:Math.ceil((r.values["Thay màn"]||0)*1.2),note:"Dựa trên số đơn thay màn"})).filter(x=>x.need>0).sort((a,b)=>b.need-a.need);return{pin,kinh,man,khac:[]}}
+
+
+
+/* ===================== V4 FINAL OVERRIDES ===================== */
+
+const V4_ACCOUNTS = {
+  sale:{password:"123456",name:"SALE / Tiếp nhận",role:"sale",permissions:["receive"]},
+  kythuat:{password:"123456",name:"Kỹ thuật",role:"tech",permissions:["receive","repair"]},
+  qlcuahang:{password:"123456",name:"QL cửa hàng",role:"store_manager",permissions:["dashboard_basic","search"],hideMoney:true,hideProfit:true},
+  qlkythuat:{password:"123456",name:"QL kỹ thuật",role:"tech_manager",permissions:["dashboard_full","repair","money","search"],hideMoney:false,hideProfit:false},
+  admin:{password:"123456",name:"Admin / Full quyền",role:"admin",permissions:["dashboard_full","dashboard_basic","receive","repair","money","search"],hideMoney:false,hideProfit:false}
+};
+
+try{
+  Object.keys(V4_ACCOUNTS).forEach(k=>ACCOUNTS[k]=V4_ACCOUNTS[k]);
+}catch(e){}
+
+let MASTER_DATA = {
+  statuses:[],
+  services:[],
+  materials:[],
+  technicians:[]
+};
+
+function can(permission){
+  if(!CURRENT_USER) return false;
+  if(permission==="dashboard"){
+    return CURRENT_USER.permissions.includes("dashboard_basic") || CURRENT_USER.permissions.includes("dashboard_full");
+  }
+  if(permission==="dashboard_basic"){
+    return CURRENT_USER.permissions.includes("dashboard_basic") || CURRENT_USER.permissions.includes("dashboard_full");
+  }
+  if(permission==="dashboard_full"){
+    return CURRENT_USER.permissions.includes("dashboard_full");
+  }
+  return CURRENT_USER.permissions.includes(permission);
+}
+
+function canSeeProfit(){
+  return CURRENT_USER && (CURRENT_USER.role==="admin" || CURRENT_USER.role==="tech_manager");
+}
+
+function canSeeFullMoney(){
+  return CURRENT_USER && (CURRENT_USER.role==="admin" || CURRENT_USER.role==="tech_manager");
+}
+
+function secureMoney(value){
+  return canSeeFullMoney() ? vnd(value) : "Ẩn";
+}
+
+function secureProfit(value){
+  return canSeeProfit() ? vnd(value) : "Ẩn";
+}
+
+function secureMargin(profit,revenue){
+  return canSeeProfit() ? pct(profit,revenue) : "Ẩn";
+}
+
+const oldLoginAsV4 = typeof loginAs === "function" ? loginAs : null;
+loginAs = function(username,save){
+  CURRENT_USER={username,...ACCOUNTS[username]};
+  if(save)localStorage.setItem("repairUser",username);
+  loginScreen.classList.add("hidden");
+  appRoot.classList.remove("hidden");
+  currentUserName.textContent=CURRENT_USER.name;
+  const roleLabel={
+    sale:"Chỉ tiếp nhận máy",
+    tech:"Tiếp nhận + xử lý sửa chữa",
+    store_manager:"Theo dõi tiến độ, số đơn, doanh thu; không thấy lợi nhuận",
+    tech_manager:"QL kỹ thuật: xử lý, chi phí, tra cứu, lợi nhuận",
+    admin:"Full quyền"
+  };
+  currentRoleName.textContent=roleLabel[CURRENT_USER.role] || CURRENT_USER.permissions.join(", ");
+  applyPermissions();
+  loadMasterData();
+  loadDashboard();
+};
+
+applyPermissions = function(){
+  document.querySelectorAll("[data-permission]").forEach(el=>{
+    const p=el.dataset.permission;
+    let allowed=can(p);
+    if(!allowed) el.classList.add("hidden");
+    else el.classList.remove("hidden");
+  });
+
+  let first=document.querySelector(".nav-btn:not(.hidden)");
+  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+
+  if(first){
+    first.classList.add("active");
+    const tab=first.dataset.tab;
+    document.getElementById(tab).classList.add("active");
+    if(typeof titles !== "undefined" && titles[tab]){
+      pageTitle.textContent=titles[tab][0];
+      pageSub.textContent=titles[tab][1];
+    }
+  }
+};
+
+async function loadMasterData(){
+  const res = await api("getMasterData");
+  if(res && res.ok){
+    MASTER_DATA = res.data || MASTER_DATA;
+    fillMasterDropdowns();
+  }
+}
+
+function fillMasterDropdowns(){
+  // Trạng thái trong form kỹ thuật
+  const techStatus = document.querySelector('#techForm select[name="status"]');
+  if(techStatus && MASTER_DATA.statuses?.length){
+    techStatus.innerHTML = MASTER_DATA.statuses.map(x=>`<option>${esc(x.name || x)}</option>`).join("");
+  }
+
+  // KTV gợi ý datalist
+  injectDatalist("dlTechnicians", (MASTER_DATA.technicians||[]).map(x=>x.name||x));
+  injectDatalist("dlServices", (MASTER_DATA.services||[]).map(x=>x.name||x));
+  injectDatalist("dlMaterials", (MASTER_DATA.materials||[]).map(x=>x.name||x));
+
+  const techInput = document.querySelector('#techForm input[name="technician"]');
+  if(techInput) techInput.setAttribute("list","dlTechnicians");
+
+  const serviceInput = document.getElementById("serviceName");
+  if(serviceInput) serviceInput.setAttribute("list","dlServices");
+
+  const materialInput = document.getElementById("materialName");
+  if(materialInput) materialInput.setAttribute("list","dlMaterials");
+}
+
+function injectDatalist(id, arr){
+  let dl = document.getElementById(id);
+  if(!dl){
+    dl = document.createElement("datalist");
+    dl.id=id;
+    document.body.appendChild(dl);
+  }
+  dl.innerHTML = (arr||[]).filter(Boolean).map(x=>`<option value="${esc(x)}"></option>`).join("");
+}
+
+const originalRenderDashboardV4 = typeof renderDashboard === "function" ? renderDashboard : null;
+renderDashboard = function(){
+  if(originalRenderDashboardV4) originalRenderDashboardV4();
+
+  if(typeof DASH === "undefined" || !DASH) return;
+  setText("ovProfit", secureProfit(DASH.profit));
+  setText("ovMargin", secureMargin(DASH.profit,DASH.revenue));
+
+  // Hide profit/cost numbers after old render for lower roles
+  if(!canSeeProfit()){
+    document.querySelectorAll("#overviewTechRows tr").forEach(tr=>{
+      const tds=tr.querySelectorAll("td");
+      if(tds[5]) tds[5].textContent="Ẩn";
+    });
+    document.querySelectorAll("#techRows tr").forEach(tr=>{
+      const tds=tr.querySelectorAll("td");
+      if(tds[5]) tds[5].textContent="Ẩn";
+      if(tds[6]) tds[6].textContent="-";
+    });
+  }
+};
+
+const oldRenderInfoV4 = typeof renderInfo === "function" ? renderInfo : null;
+renderInfo = function(info){
+  const items=[
+    ["Mã sửa",info.repairId],
+    ["IMEI",info.imei],
+    ["Khách",info.customer],
+    ["SĐT",info.phone],
+    ["Sản phẩm",info.product],
+    ["Loại DV",info.serviceType],
+    ["KTV",info.technician],
+    ["Trạng thái",info.status],
+    ["Hẹn trả",fmtDate(info.appointment)]
+  ];
+  items.push(["Doanh thu",vnd(info.actualRevenue)]);
+  if(canSeeFullMoney()) items.push(["Chi phí",vnd(info.totalCost)]);
+  if(canSeeProfit()) items.push(["Lợi nhuận",vnd(info.profit)]);
+  return `<div class="info-grid">${items.map(([k,v])=>`<div class="info-item"><span>${k}</span><b>${esc(v??"")}</b></div>`).join("")}</div>`;
+};
+
+async function saveReceiveAndPrint(){
+  if(!can("receive")) return toast("Không có quyền tiếp nhận","error");
+  const form = document.getElementById("receiveForm");
+  if(!form) return toast("Không thấy form tiếp nhận","error");
+
+  const data = formData(form);
+  if(!data.imei || !data.product || !data.customer || !data.phone){
+    return toast("Nhập đủ IMEI, sản phẩm, tên khách, số điện thoại trước khi in","error");
+  }
+
+  data.user = CURRENT_USER?.username || "";
+  const res = await api("createRepair",{data});
+  if(!res.ok) return toast(res.message || "Lỗi lưu phiếu", "error");
+
+  const detail = await api("getRepair",{repairId:res.repairId});
+  if(detail.ok){
+    toast(`Đã lưu phiếu ${res.repairId}`, "ok");
+    form.reset();
+    openPrintReceipt(detail.data.info);
+    loadDashboard();
+  }else{
+    toast(`Đã lưu phiếu ${res.repairId}, nhưng chưa tải được phiếu in`, "error");
+  }
+}
+
+function openPrintReceipt(info){
+  const wrap = document.getElementById("repairReceipt");
+  if(!wrap) return;
+  wrap.innerHTML = buildReceiptHtml(info);
+  document.getElementById("printModal").classList.remove("hidden");
+}
+
+function closePrintModal(){
+  document.getElementById("printModal").classList.add("hidden");
+}
+
+function receiptVal(v){
+  return esc(v || "");
+}
+
+function receiptDate(v){
+  if(!v) return "";
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? esc(v) : d.toLocaleString("vi-VN");
+}
+
+function buildReceiptHtml(info){
+  const receiveDate = receiptDate(info.receiveDate || info.createdAt);
+  const appointment = receiptDate(info.appointment);
+  const status = receiptVal(info.receiveStatus);
+  const request = receiptVal(info.request);
+  const note = receiptVal(info.receiveNote);
+
+  return `
+  <div class="receipt">
+    <div class="receipt-header">
+      <div class="receipt-logo"><div class="pmark">P</div></div>
+      <div class="receipt-shop">
+        <h1>POPO PHONE</h1>
+        <b>Chi nhánh: 113 Yersin, Phú Cường, Thủ Dầu Một, Bình Dương</b><br>
+        <b>POPO Phone &nbsp;&nbsp;&nbsp; popophonetdm &nbsp;&nbsp;&nbsp; POPO Phone &nbsp;&nbsp;&nbsp; popophone.vn</b><br>
+        <b>Tư vấn bán hàng - Trả góp: 0986.039.179</b>
+      </div>
+      <div class="receipt-title"><h2>THÔNG TIN SỬA CHỮA</h2></div>
+    </div>
+
+    <div class="r-section-title">I. THÔNG TIN KHÁCH HÀNG/ Customer information</div>
+    <div class="r-grid">
+      <div class="r-cell"><span class="r-label">Họ và tên:</span> ${receiptVal(info.customer)}</div>
+      <div class="r-cell"><span class="r-label">Số điện thoại:</span> ${receiptVal(info.phone)}</div>
+    </div>
+    <div class="r-grid">
+      <div class="r-cell"><span class="r-label">Địa chỉ khách hàng:</span></div>
+      <div class="r-cell"><span class="r-label">Loại khách:</span> ${receiptVal(info.serviceType)}</div>
+    </div>
+
+    <div class="r-section-title">II. THÔNG TIN SẢN PHẨM/ Product information</div>
+    <div class="r-grid">
+      <div class="r-cell"><span class="r-label">Tên máy:</span> ${receiptVal(info.product)}</div>
+      <div class="r-cell"><span class="r-label">Loại dịch vụ:</span> ${receiptVal(info.serviceType)}</div>
+    </div>
+    <div class="r-grid">
+      <div class="r-cell"><span class="r-label">IMEI:</span> ${receiptVal(info.imei)} <span class="r-check"></span></div>
+      <div class="r-cell"><span class="r-label">Ngày mua:</span></div>
+    </div>
+
+    <div class="r-full"><span class="r-label">Tình trạng máy:</span></div>
+    <div class="r-full r-tall">${status}</div>
+
+    <div class="r-grid-4">
+      <div class="r-cell"><span class="r-label">FaceID:</span> ${receiptVal(info.faceId || "Không test được")}</div>
+      <div class="r-cell"><span class="r-label">Camera:</span> ${receiptVal(info.cameraMic || "Không test được")}</div>
+      <div class="r-cell"><span class="r-label">Màn hình:</span> ${receiptVal(info.screen || "Không test được")}</div>
+      <div class="r-cell"><span class="r-label">Loa:</span> ${receiptVal(info.speaker || "Không test được")}</div>
+    </div>
+
+    <div class="r-full"><span class="r-label">Mô tả lỗi (nếu có):</span> ${status}</div>
+    <div class="r-grid">
+      <div class="r-cell"><span class="r-label">Yêu cầu sửa chữa:</span> ${request}</div>
+      <div class="r-cell"><span class="r-label">Ốp lưng/Sim:</span></div>
+    </div>
+    <div class="r-full"><span class="r-label">Giá dự kiến:</span> ${vnd(info.estimate)}</div>
+    <div class="r-full r-tall"><span class="r-label">Ghi chú cho Kỹ thuật:</span><br>${note}</div>
+
+    <div class="r-grid">
+      <div class="r-cell"><span class="r-label">Ngày nhận máy:</span> ${receiveDate}</div>
+      <div class="r-cell"><span class="r-label">Dự kiến trả máy:</span> ${appointment}</div>
+    </div>
+
+    <div class="r-section-title">III. THÔNG TIN XÁC NHẬN TÌNH TRẠNG SẢN PHẨM/ Products status confirmation information</div>
+    <div class="r-sign">
+      <div>Nhân viên nhận máy<br><em>(Ký, ghi rõ họ tên)</em><br><br><br>${receiptVal(info.staff)}</div>
+      <div>Quản lý<br><em>(Ký, ghi rõ họ tên)</em></div>
+      <div>Phần dành cho khách hàng<br><br>
+        <span class="r-muted">Tôi đã kiểm tra và đồng ý với tình trạng máy sửa chữa phía trên</span><br>
+        <b>Khách hàng</b><br><em>(Ký, ghi rõ họ tên)</em>
+      </div>
+    </div>
+
+    <div class="r-policy">
+      <div class="r-policy-text">
+        <b>Không bảo hành trong các trường hợp sau:</b><br>
+        - Máy không có hóa đơn, tem rách, máy bung<br>
+        - Máy bị vỡ, va đập, vào nước<br>
+        - Cửa hàng không chịu trách nhiệm các trường hợp quên iCloud, mật khẩu các loại
+      </div>
+      <div class="r-qr">
+        <div class="qr-box">${receiptVal(info.repairId)}</div>
+        <div>Quét mã tra cứu</div>
+      </div>
+    </div>
+    <div class="r-footer">Cảm ơn bạn đã tin tưởng POPO PHONE, chúng tôi luôn nỗ lực mang đến những trải nghiệm tốt với nhất!</div>
+  </div>`;
+}
