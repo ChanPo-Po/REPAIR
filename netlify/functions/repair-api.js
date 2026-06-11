@@ -1,5 +1,5 @@
 exports.handler = async function(event) {
-  const GAS_URL = process.env.GAS_REPAIR_URL || "https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnTxwKcr6a5p9GJPhdwcEgO9GlHdF6cn49ceXbaNtglbpb96sgcBCO3TGs9uyCjB92-MqyYSR5Q6tFZnJxH7geZWH24796QOLeOfYNAGIrOEuZF-Euip-QjBW-1jx_Z_8DcYWrKHpsd6cCW4oFoaNlwptACBF7xL87PlTeRJERNv9UvNY6May7nYFrxHXCdsayd-UFvYr-GhMqQkjFaMtGY_ujkugVDYgxdV0KJminIDKy4zal0jFS6ui1V617MysxKa-4mQC9X4h988qL0xGN86-4txUw&lib=M_uGOmSivXgM1zcADwnUjLhurfQGjr4wS";
+  const GAS_URL = process.env.GAS_REPAIR_URL || "https://script.google.com/macros/s/AKfycbyHLnjGAnk5FcPLQ58Y3PtyFcWxzKaJj7aJ3l6_hkwvhhaoloELmBI_vJOGICLqLuVJVA/exec";
 
   const headers = {
     "Access-Control-Allow-Origin": "*",
