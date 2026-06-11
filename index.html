@@ -243,6 +243,43 @@
             <label><span>Giá dự kiến</span><input name="estimate" placeholder="Nhập giá dự kiến nếu có" /></label>
             <label><span>Nhân viên tiếp nhận *</span><input name="staff" placeholder="Tên nhân viên tiếp nhận" /></label>
 
+            <label><span>FaceID *</span>
+              <select name="faceId">
+                <option value="">Chọn tình trạng FaceID</option>
+                <option>Bình thường</option>
+                <option>Lỗi</option>
+                <option>Không test được</option>
+              </select>
+            </label>
+
+            <label><span>Màn hình *</span>
+              <select name="screen">
+                <option value="">Chọn tình trạng màn hình</option>
+                <option>Bình thường</option>
+                <option>Lỗi</option>
+                <option>Không test được</option>
+              </select>
+            </label>
+
+            <label><span>Camera/Mic *</span>
+              <select name="cameraMic">
+                <option value="">Chọn tình trạng Camera/Mic</option>
+                <option>Bình thường</option>
+                <option>Lỗi</option>
+                <option>Không test được</option>
+              </select>
+            </label>
+
+            <label><span>Loa *</span>
+              <select name="speaker">
+                <option value="">Chọn tình trạng loa</option>
+                <option>Bình thường</option>
+                <option>Lỗi</option>
+                <option>Không test được</option>
+              </select>
+            </label>
+
+
             <label class="span-3"><span>Tình trạng khi nhận máy *</span><textarea name="receiveStatus" placeholder="Mô tả chi tiết tình trạng máy khi khách mang đến"></textarea></label>
             <label class="span-3"><span>Yêu cầu sửa chữa *</span><textarea name="request" placeholder="Khách yêu cầu sửa gì? VD: thay pin, ép kính, lỗi nguồn..."></textarea></label>
             <label class="span-3"><span>Ghi chú tiếp nhận</span><textarea name="receiveNote" placeholder="Ghi chú thêm nếu có"></textarea></label>
