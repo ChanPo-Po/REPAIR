@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POPOPHONE Repair Center</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">P</div>
+        <div>
+          <h1>POPOPHONE</h1>
+          <p>Repair Center 2026</p>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-btn active" data-tab="dashboard">📊 Dashboard</button>
+        <button class="nav-btn" data-tab="receive">📥 Tiếp nhận</button>
+        <button class="nav-btn" data-tab="tech">🔧 Kỹ thuật</button>
+        <button class="nav-btn" data-tab="money">💰 Chi phí</button>
+        <button class="nav-btn" data-tab="search">🔍 Tra cứu</button>
+      </nav>
+
+      <div class="side-note">
+        <b>Luồng chuẩn</b>
+        <span>Sale nhận máy → KTV xử lý → Quản lý chốt tiền</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2 id="pageTitle">Dashboard vận hành</h2>
+          <p id="pageSub">Theo dõi sửa chữa, vật tư, công thợ và lợi nhuận.</p>
+        </div>
+        <button class="primary-btn" onclick="loadDashboard()">Làm mới</button>
+      </header>
+
+      <section id="dashboard" class="tab-page active">
+        <div class="metric-grid">
+          <div class="metric"><span>📥 Nhận hôm nay</span><b id="mTodayReceived">0</b></div>
+          <div class="metric"><span>✅ Hoàn thành</span><b id="mTodayCompleted">0</b></div>
+          <div class="metric"><span>📤 Bàn giao</span><b id="mTodayDelivered">0</b></div>
+          <div class="metric danger"><span>⚠️ Quá hẹn</span><b id="mOverdue">0</b></div>
+          <div class="metric"><span>🧩 Chờ linh kiện</span><b id="mWaitingParts">0</b></div>
+          <div class="metric"><span>🔁 Bảo hành lại</span><b id="mWarrantyBack">0</b></div>
+        </div>
+
+        <div class="metric-grid money-grid">
+          <div class="metric money"><span>💰 Doanh thu</span><b id="mRevenue">0đ</b></div>
+          <div class="metric money"><span>📦 Giá vốn VT</span><b id="mMaterialCost">0đ</b></div>
+          <div class="metric money"><span>👨‍🔧 Công thợ</span><b id="mLaborCost">0đ</b></div>
+          <div class="metric money"><span>📈 Lợi nhuận</span><b id="mProfit">0đ</b></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Hiệu suất kỹ thuật</h3>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Kỹ thuật</th>
+                  <th>Tổng đơn</th>
+                  <th>Hoàn thành</th>
+                  <th>Quá hẹn</th>
+                  <th>Doanh thu</th>
+                  <th>Lợi nhuận</th>
+                </tr>
+              </thead>
+              <tbody id="techDashboardRows">
+                <tr><td colspan="6">Chưa có dữ liệu</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="receive" class="tab-page">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>📥 Tạo phiếu tiếp nhận máy</h3>
+            <p>Nhân viên chỉ nhập phần tiếp nhận, không nhập chi phí.</p>
+          </div>
+
+          <form id="receiveForm" class="form-grid">
+            <input name="imei" placeholder="IMEI / Serial" required />
+            <input name="product" placeholder="Sản phẩm VD: iPhone 11 128GB" required />
+            <input name="customer" placeholder="Tên khách hàng" required />
+            <input name="phone" placeholder="Số điện thoại" required />
+
+            <select name="branch" required>
+              <option value="">Chi nhánh nhận</option>
+              <option>113</option>
+              <option>1/48</option>
+            </select>
+
+            <select name="serviceType">
+              <option value="">Loại dịch vụ</option>
+              <option>Sửa chữa</option>
+              <option>Bảo hành</option>
+              <option>Kiểm tra máy</option>
+              <option>Vệ sinh máy</option>
+            </select>
+
+            <input name="appointment" type="datetime-local" placeholder="Hẹn trả" />
+            <input name="estimate" placeholder="Giá dự kiến" />
+            <input name="staff" placeholder="Nhân viên tiếp nhận" />
+
+            <select name="faceId">
+              <option value="">FaceID</option><option>OK</option><option>Lỗi</option><option>Không test</option>
+            </select>
+            <select name="screen">
+              <option value="">Màn hình</option><option>OK</option><option>Lỗi</option><option>Không test</option>
+            </select>
+            <select name="cameraMic">
+              <option value="">Camera/Mic</option><option>OK</option><option>Lỗi</option><option>Không test</option>
+            </select>
+            <select name="speaker">
+              <option value="">Loa</option><option>OK</option><option>Lỗi</option><option>Không test</option>
+            </select>
+
+            <textarea name="receiveStatus" placeholder="Tình trạng khi nhận máy"></textarea>
+            <textarea name="request" placeholder="Yêu cầu sửa chữa"></textarea>
+            <textarea name="receiveNote" placeholder="Ghi chú tiếp nhận"></textarea>
+
+            <div class="form-actions">
+              <button class="primary-btn" type="submit">Lưu phiếu sửa</button>
+              <button class="ghost-btn" type="reset">Xóa form</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="tech" class="tab-page">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>🔧 Kỹ thuật xử lý</h3>
+            <p>Tìm phiếu, cập nhật trạng thái và thêm nhiều dịch vụ.</p>
+          </div>
+
+          <div class="search-line">
+            <input id="techKeyword" placeholder="Nhập mã sửa chữa / IMEI / SĐT" />
+            <button class="primary-btn" onclick="searchForTech()">Tìm</button>
+          </div>
+
+          <div id="techResult" class="result-box hidden"></div>
+
+          <form id="techForm" class="form-grid hidden">
+            <input name="repairId" placeholder="Mã sửa chữa" readonly />
+            <textarea name="actualStatus" placeholder="Tình trạng thực tế"></textarea>
+            <input name="processPlace" placeholder="Nơi xử lý VD: Nội bộ / Bên ngoài" />
+            <input name="technician" placeholder="Kỹ thuật xử lý" />
+
+            <select name="status">
+              <option>1. Đã tiếp nhận</option>
+              <option>2. Đang kiểm tra</option>
+              <option>3. Chờ báo giá</option>
+              <option>4. Chờ khách duyệt</option>
+              <option>5. Đang sửa</option>
+              <option>6. Chờ linh kiện</option>
+              <option>7. Đã hoàn thành</option>
+              <option>8. Đã bàn giao</option>
+              <option>9. Back lại khách</option>
+              <option>10. Bảo hành lại</option>
+              <option>11. Hủy sửa</option>
+            </select>
+
+            <textarea name="techNote" placeholder="Ghi chú kỹ thuật"></textarea>
+
+            <div class="form-actions">
+              <button class="primary-btn" type="submit">Cập nhật kỹ thuật</button>
+            </div>
+          </form>
+
+          <div id="serviceBox" class="sub-panel hidden">
+            <h4>Thêm dịch vụ sửa chữa</h4>
+            <div class="inline-form">
+              <input id="serviceName" placeholder="Tên dịch vụ VD: Thay pin" />
+              <input id="servicePrice" placeholder="Giá bán" />
+              <input id="serviceNote" placeholder="Ghi chú" />
+              <button class="primary-btn" onclick="addServiceUI()">+ Dịch vụ</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Dịch vụ</th><th>Giá bán</th><th>KTV</th><th>Ghi chú</th></tr></thead>
+                <tbody id="serviceRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="money" class="tab-page">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>💰 Chi phí & Lợi nhuận</h3>
+            <p>Quản lý thêm nhiều vật tư, công thợ, thực thu và trạng thái thanh toán.</p>
+          </div>
+
+          <div class="search-line">
+            <input id="moneyKeyword" placeholder="Nhập mã sửa chữa / IMEI / SĐT" />
+            <button class="primary-btn" onclick="searchForMoney()">Tìm</button>
+          </div>
+
+          <div id="moneyResult" class="result-box hidden"></div>
+
+          <div id="materialBox" class="sub-panel hidden">
+            <h4>Thêm vật tư</h4>
+            <div class="inline-form">
+              <input id="materialName" placeholder="Tên vật tư VD: Pin JK iP11" />
+              <input id="materialQty" placeholder="SL" value="1" />
+              <input id="materialUnitPrice" placeholder="Đơn giá" />
+              <input id="materialSupplier" placeholder="NCC" />
+              <button class="primary-btn" onclick="addMaterialUI()">+ Vật tư</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Vật tư</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>NCC</th></tr></thead>
+                <tbody id="materialRows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <form id="moneyForm" class="form-grid hidden">
+            <input name="repairId" placeholder="Mã sửa chữa" readonly />
+            <input name="totalLabor" placeholder="Tổng công thợ" />
+            <input name="extraCost" placeholder="Chi phí phát sinh" />
+            <input name="actualRevenue" placeholder="Thực thu" />
+            <select name="paymentStatus">
+              <option>Chưa thanh toán</option>
+              <option>Đã thanh toán</option>
+              <option>Cọc trước</option>
+              <option>Không thu tiền</option>
+            </select>
+            <input name="user" placeholder="Người cập nhật" />
+            <textarea name="extraNote" placeholder="Nội dung phát sinh / ghi chú tiền"></textarea>
+
+            <div class="summary-card">
+              <div><span>Tổng tiền dịch vụ</span><b id="sumService">0đ</b></div>
+              <div><span>Tổng vốn vật tư</span><b id="sumMaterial">0đ</b></div>
+              <div><span>Tổng chi phí</span><b id="sumCost">0đ</b></div>
+              <div><span>Lợi nhuận</span><b id="sumProfit">0đ</b></div>
+            </div>
+
+            <div class="form-actions">
+              <button class="primary-btn" type="submit">Chốt chi phí</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="search" class="tab-page">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>🔍 Tra cứu phiếu sửa</h3>
+            <p>Tìm theo IMEI, SĐT, khách hàng hoặc mã sửa chữa.</p>
+          </div>
+          <div class="search-line">
+            <input id="globalKeyword" placeholder="Nhập từ khóa..." />
+            <button class="primary-btn" onclick="globalSearch()">Tìm kiếm</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mã</th><th>IMEI</th><th>Khách</th><th>SĐT</th><th>Máy</th><th>Trạng thái</th><th>KTV</th><th>Lợi nhuận</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="searchRows">
+                <tr><td colspan="9">Nhập từ khóa để tìm.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="detailBox" class="detail-box hidden"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
