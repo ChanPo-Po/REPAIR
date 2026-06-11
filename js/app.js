@@ -129,13 +129,43 @@ async function loadDashboard(){
 }
 
 function normalize(raw){
-  const byTech=raw.byTech||[],byStatus=raw.byStatus||{},topServices=raw.topServices||[];
-  return{
-    orders:raw.totalOrders||Object.values(byStatus).reduce((a,b)=>a+b,0)||raw.todayReceived||218,
-    revenue:raw.revenue||86500000,materialCost:raw.materialCost||22300000,laborCost:raw.laborCost||10200000,totalCost:raw.totalCost||42300000,profit:raw.profit||44200000,
-    completed:raw.todayCompleted||178,overdue:raw.overdue||12,waitingParts:raw.waitingParts||8,warranty:raw.warrantyBack||(byStatus["10. Bảo hành lại"]||35),
-    byTech:byTech.length?byTech:mockTech(),byStatus:Object.keys(byStatus).length?byStatus:{"5. Đang sửa":15,"6. Chờ linh kiện":8,"4. Chờ khách duyệt":5,"7. Đã hoàn thành":12},
-    topServices:topServices.length?topServices:mockServices(),weekly:raw.weekly||mockWeekly(),modelStats:raw.modelStats||mockModels(),matrix:raw.matrix||mockMatrix(),materialNeeds:raw.materialNeeds||buildMaterialNeeds()
+  raw = raw || {};
+
+  const byTech = raw.byTech || [];
+  const byStatus = raw.byStatus || {};
+  const topServices = raw.topServices || [];
+
+  return {
+    orders: raw.totalOrders || 0,
+    revenue: raw.revenue || 0,
+    materialCost: raw.materialCost || 0,
+    laborCost: raw.laborCost || 0,
+    totalCost: raw.totalCost || 0,
+    profit: raw.profit || 0,
+
+    completed: raw.todayCompleted || 0,
+    overdue: raw.overdue || 0,
+    waitingParts: raw.waitingParts || 0,
+    warranty: raw.warrantyBack || 0,
+
+    byTech: byTech,
+    byStatus: byStatus,
+    topServices: topServices,
+
+    weekly: raw.weekly || [],
+    modelStats: raw.modelStats || [],
+
+    matrix: raw.matrix || {
+      services: [],
+      rows: []
+    },
+
+    materialNeeds: raw.materialNeeds || {
+      pin: [],
+      kinh: [],
+      man: [],
+      khac: []
+    }
   };
 }
 
@@ -171,8 +201,6 @@ async function viewDetail(id){const r=await api("getRepair",{repairId:id});if(!r
 function renderInfo(info){const items=[["Mã sửa",info.repairId],["IMEI",info.imei],["Khách",info.customer],["SĐT",info.phone],["Sản phẩm",info.product],["Loại DV",info.serviceType],["KTV",info.technician],["Trạng thái",info.status],["Doanh thu",vnd(info.actualRevenue)],["Chi phí",vnd(info.totalCost)],["Lợi nhuận",vnd(info.profit)],["Hẹn trả",fmtDate(info.appointment)]];return`<div class="info-grid">${items.map(([k,v])=>`<div class="info-item"><span>${k}</span><b>${esc(v??"")}</b></div>`).join("")}</div>`}
 
 function formData(f){const o={};new FormData(f).forEach((v,k)=>o[k]=v);return o}function money(v){const n=Number(String(v||0).replace(/[^\d.-]/g,""));return isNaN(n)?0:n}function vnd(v){return money(v).toLocaleString("vi-VN")+"đ"}function shortMoney(v){v=money(v);return v>=1e6?(v/1e6).toFixed(v%1e6?1:0)+"tr":vnd(v)}function pct(a,b){a=money(a);b=money(b);return b?((a/b)*100).toFixed(1)+"%":"0%"}function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v??""}function toast(msg,type="ok"){const t=document.getElementById("toast");t.textContent=msg;t.className=`toast show ${type}`;setTimeout(()=>t.className="toast",3200)}function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}function jsesc(s){return String(s??"").replace(/\\/g,"\\\\").replace(/'/g,"\\'")}function fmtDate(v){if(!v)return"";const d=new Date(v);return isNaN(d)?v:d.toLocaleString("vi-VN")}function rank(i){return["🥇","🥈","🥉"][i]||`${i+1}.`}
-function mockWeekly(){return[{week:1,orders:45,revenue:16000000,cost:8000000,profit:8000000},{week:2,orders:58,revenue:22000000,cost:11000000,profit:11000000},{week:3,orders:62,revenue:27000000,cost:13000000,profit:14000000},{week:4,orders:53,revenue:21500000,cost:10300000,profit:11200000},{week:5,orders:0,revenue:0,cost:0,profit:0}]}function mockServices(){return[{name:"Thay pin",count:61,revenue:22000000,cost:10000000,profit:12000000},{name:"Ép kính",count:42,revenue:16000000,cost:6000000,profit:10000000},{name:"Thay màn",count:18,revenue:19000000,cost:14000000,profit:5000000},{name:"Vệ sinh máy",count:31,revenue:3100000,cost:400000,profit:2700000}]}function mockModels(){return[{model:"12 Pro Max",orders:58,topService:"Thay pin",topServiceQty:18,suggest:"Pin 12PM: tồn tối thiểu 25-30"},{model:"iPhone 11",orders:54,topService:"Thay pin",topServiceQty:15,suggest:"Pin iP11: tồn tối thiểu 20-25"},{model:"11 Pro Max",orders:28,topService:"Thay pin",topServiceQty:8,suggest:"Pin 11PM: tồn tối thiểu 10-15"},{model:"iPhone XR",orders:18,topService:"Ép kính",topServiceQty:7,suggest:"Kính XR: giữ tồn 10"},{model:"13 Pro Max",orders:12,topService:"Thay màn",topServiceQty:3,suggest:"Màn 13PM: nhập thận trọng"}]}function mockMatrix(){const services=["Thay pin","Ép kính","Thay màn","Vệ sinh","FaceID"],rows=[{model:"12 Pro Max",values:{"Thay pin":18,"Ép kính":11,"Thay màn":8,"Vệ sinh":4,"FaceID":2}},{model:"iPhone 11",values:{"Thay pin":15,"Ép kính":14,"Thay màn":6,"Vệ sinh":7,"FaceID":1}},{model:"11 Pro Max",values:{"Thay pin":8,"Ép kính":5,"Thay màn":3,"Vệ sinh":2,"FaceID":1}},{model:"iPhone XR",values:{"Thay pin":3,"Ép kính":7,"Thay màn":2,"Vệ sinh":2,"FaceID":0}},{model:"13 Pro Max",values:{"Thay pin":6,"Ép kính":4,"Thay màn":3,"Vệ sinh":1,"FaceID":0}}];return{services,rows}}function mockTech(){return[{technician:"Hùng",total:65,completed:60,overdue:1,revenue:32000000,profit:18000000},{technician:"Trường",total:58,completed:50,overdue:3,revenue:28000000,profit:15000000},{technician:"DK",total:42,completed:40,overdue:0,revenue:19000000,profit:11000000}]}
-function buildMaterialNeeds(){const matrix=mockMatrix();const pin=matrix.rows.map(r=>({name:`Pin ${r.model}`,need:r.values["Thay pin"]||0,minStock:Math.ceil((r.values["Thay pin"]||0)*1.4),note:"Dựa trên số đơn thay pin trong tháng"})).filter(x=>x.need>0).sort((a,b)=>b.need-a.need);const kinh=matrix.rows.map(r=>({name:`Kính ${r.model}`,need:r.values["Ép kính"]||0,minStock:Math.ceil((r.values["Ép kính"]||0)*1.3),note:"Dựa trên số đơn ép kính"})).filter(x=>x.need>0).sort((a,b)=>b.need-a.need);const man=matrix.rows.map(r=>({name:`Màn ${r.model}`,need:r.values["Thay màn"]||0,minStock:Math.ceil((r.values["Thay màn"]||0)*1.2),note:"Dựa trên số đơn thay màn"})).filter(x=>x.need>0).sort((a,b)=>b.need-a.need);return{pin,kinh,man,khac:[]}}
 
 
 
