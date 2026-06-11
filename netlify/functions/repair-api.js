@@ -1,5 +1,5 @@
 exports.handler = async function(event) {
-  const GAS_URL = process.env.GAS_REPAIR_URL || "https://script.google.com/macros/s/AKfycbyHLnjGAnk5FcPLQ58Y3PtyFcWxzKaJj7aJ3l6_hkwvhhaoloELmBI_vJOGICLqLuVJVA/exec";
+  const GAS_URL = process.env.GAS_REPAIR_URL || "DAN_LINK_APPS_SCRIPT_EXEC_VAO_DAY";
 
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -13,23 +13,12 @@ exports.handler = async function(event) {
   }
 
   if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ ok: false, message: "Method not allowed" })
-    };
+    return { statusCode: 405, headers, body: JSON.stringify({ ok: false, message: "Method not allowed" }) };
   }
 
   try {
     if (!GAS_URL || GAS_URL.includes("DAN_LINK_APPS_SCRIPT")) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({
-          ok: false,
-          message: "Chưa cấu hình GAS_REPAIR_URL trong Netlify Environment Variables hoặc repair-api.js"
-        })
-      };
+      return { statusCode: 500, headers, body: JSON.stringify({ ok: false, message: "Chưa cấu hình GAS_REPAIR_URL" }) };
     }
 
     const gasRes = await fetch(GAS_URL, {
@@ -40,34 +29,13 @@ exports.handler = async function(event) {
 
     const text = await gasRes.text();
 
-    try {
-      JSON.parse(text);
-    } catch (e) {
-      return {
-        statusCode: 502,
-        headers,
-        body: JSON.stringify({
-          ok: false,
-          message: "Apps Script không trả JSON",
-          response: text.slice(0, 500)
-        })
-      };
+    try { JSON.parse(text); }
+    catch (e) {
+      return { statusCode: 502, headers, body: JSON.stringify({ ok:false, message:"Apps Script không trả JSON", response:text.slice(0,500) }) };
     }
 
-    return {
-      statusCode: 200,
-      headers,
-      body: text
-    };
-
+    return { statusCode: 200, headers, body: text };
   } catch (err) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({
-        ok: false,
-        message: String(err)
-      })
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ ok:false, message:String(err) }) };
   }
 };

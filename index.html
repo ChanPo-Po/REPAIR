@@ -3,278 +3,380 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POPOPHONE Repair Center</title>
+  <title>POPOPHONE Repair Center V3</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <div class="app-shell">
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">P</div>
+      <h1>POPOPHONE REPAIR</h1>
+      <p>Đăng nhập hệ thống vận hành sửa chữa</p>
+
+      <form id="loginForm" class="login-form">
+        <input id="loginUser" placeholder="Tài khoản" autocomplete="username" />
+        <input id="loginPass" type="password" placeholder="Mật khẩu" autocomplete="current-password" />
+        <button class="primary-btn" type="submit">Đăng nhập</button>
+      </form>
+
+      <div class="login-demo">
+        <b>Tài khoản mẫu:</b>
+        <span>tiepnhan / 123456</span>
+        <span>kythuat / 123456</span>
+        <span>quanly / 123456</span>
+        <span>admin / 123456</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="appRoot" class="app hidden">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-logo">P</div>
+        <div class="brand-mark">P</div>
         <div>
           <h1>POPOPHONE</h1>
-          <p>Repair Center 2026</p>
+          <p>Repair Center V3</p>
         </div>
       </div>
 
       <nav class="nav">
-        <button class="nav-btn active" data-tab="dashboard">📊 Dashboard</button>
-        <button class="nav-btn" data-tab="receive">📥 Tiếp nhận</button>
-        <button class="nav-btn" data-tab="tech">🔧 Kỹ thuật</button>
-        <button class="nav-btn" data-tab="money">💰 Chi phí</button>
-        <button class="nav-btn" data-tab="search">🔍 Tra cứu</button>
+        <button class="nav-btn active" data-tab="overview" data-permission="dashboard">📊 Tổng quan</button>
+        <button class="nav-btn" data-tab="weekly" data-permission="dashboard">📅 Theo tuần</button>
+        <button class="nav-btn" data-tab="services" data-permission="dashboard">🔧 Dịch vụ</button>
+        <button class="nav-btn" data-tab="models" data-permission="dashboard">📱 Dòng máy</button>
+        <button class="nav-btn" data-tab="materials" data-permission="dashboard">📦 Nhu cầu vật tư</button>
+        <button class="nav-btn" data-tab="techs" data-permission="dashboard">👨‍🔧 KTV</button>
+
+        <button class="nav-btn" data-tab="receive" data-permission="receive">📥 Tiếp nhận máy</button>
+        <button class="nav-btn" data-tab="repair" data-permission="repair">🔨 Xử lý sửa chữa</button>
+        <button class="nav-btn" data-tab="money" data-permission="money">💰 Chi phí</button>
+        <button class="nav-btn" data-tab="search" data-permission="search">🔍 Tra cứu</button>
       </nav>
 
-      <div class="side-note">
-        <b>Luồng chuẩn</b>
-        <span>Sale nhận máy → KTV xử lý → Quản lý chốt tiền</span>
+      <div class="sidebar-card">
+        <b id="currentUserName">Người dùng</b>
+        <span id="currentRoleName">Vai trò</span>
+        <button class="logout-btn" onclick="logout()">Đăng xuất</button>
       </div>
     </aside>
 
     <main class="main">
       <header class="topbar">
         <div>
-          <h2 id="pageTitle">Dashboard vận hành</h2>
-          <p id="pageSub">Theo dõi sửa chữa, vật tư, công thợ và lợi nhuận.</p>
+          <h2 id="pageTitle">Tổng quan sửa chữa</h2>
+          <p id="pageSub">Dashboard quản trị sửa chữa theo tháng, tuần, dịch vụ, dòng máy và vật tư.</p>
         </div>
-        <button class="primary-btn" onclick="loadDashboard()">Làm mới</button>
+        <div class="top-actions">
+          <select id="branchFilter">
+            <option value="">Tất cả chi nhánh</option>
+            <option>113</option>
+            <option>1/48</option>
+          </select>
+          <input id="monthFilter" type="month" />
+          <button class="primary-btn" onclick="loadDashboard()">Làm mới</button>
+        </div>
       </header>
 
-      <section id="dashboard" class="tab-page active">
-        <div class="metric-grid">
-          <div class="metric"><span>📥 Nhận hôm nay</span><b id="mTodayReceived">0</b></div>
-          <div class="metric"><span>✅ Hoàn thành</span><b id="mTodayCompleted">0</b></div>
-          <div class="metric"><span>📤 Bàn giao</span><b id="mTodayDelivered">0</b></div>
-          <div class="metric danger"><span>⚠️ Quá hẹn</span><b id="mOverdue">0</b></div>
-          <div class="metric"><span>🧩 Chờ linh kiện</span><b id="mWaitingParts">0</b></div>
-          <div class="metric"><span>🔁 Bảo hành lại</span><b id="mWarrantyBack">0</b></div>
-        </div>
-
-        <div class="metric-grid money-grid">
-          <div class="metric money"><span>💰 Doanh thu</span><b id="mRevenue">0đ</b></div>
-          <div class="metric money"><span>📦 Giá vốn VT</span><b id="mMaterialCost">0đ</b></div>
-          <div class="metric money"><span>👨‍🔧 Công thợ</span><b id="mLaborCost">0đ</b></div>
-          <div class="metric money"><span>📈 Lợi nhuận</span><b id="mProfit">0đ</b></div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <h3>Hiệu suất kỹ thuật</h3>
+      <section id="overview" class="tab active" data-permission="dashboard">
+        <div class="hero-kpi">
+          <div>
+            <span class="eyebrow">TỔNG QUAN THÁNG</span>
+            <h3 id="heroMonth">Tháng hiện tại</h3>
+            <p>Nhìn 5 giây biết tiệm sửa đang lời/lỗ và kẹt ở đâu.</p>
           </div>
-          <div class="table-wrap">
+          <div class="hero-numbers">
+            <div><span>Đơn sửa</span><b id="ovOrders">0</b></div>
+            <div><span>Doanh thu</span><b id="ovRevenue">0đ</b></div>
+            <div><span>Lợi nhuận</span><b id="ovProfit">0đ</b></div>
+            <div><span>Biên LN</span><b id="ovMargin">0%</b></div>
+          </div>
+        </div>
+
+        <div class="quick-grid">
+          <div class="quick-card danger"><span>⚠️ Quá hẹn</span><b id="ovOverdue">0</b><small>Máy cần xử lý</small></div>
+          <div class="quick-card warn"><span>🧩 Chờ linh kiện</span><b id="ovWaitingParts">0</b><small>Kẹt vật tư</small></div>
+          <div class="quick-card"><span>🔁 Bảo hành</span><b id="ovWarranty">0</b><small>Theo loại dịch vụ</small></div>
+          <div class="quick-card"><span>✅ Hoàn thành</span><b id="ovCompleted">0</b><small>Máy sửa xong</small></div>
+        </div>
+
+        <div class="week-strip" id="overviewWeeks"></div>
+
+        <div class="dashboard-grid-3">
+          <div class="panel">
+            <div class="panel-head"><h3>🏆 Top dịch vụ</h3><p>Dịch vụ mạnh/yếu theo số lượng và lợi nhuận.</p></div>
+            <div id="topServiceCards" class="rank-list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>📱 Top dòng máy</h3><p>Dòng máy sửa nhiều để chuẩn bị vật tư.</p></div>
+            <div id="topModelCards" class="rank-list"></div>
+          </div>
+          <div class="panel alert-panel">
+            <div class="panel-head"><h3>🚨 Cảnh báo</h3><p>Điểm cần xử lý trong vận hành.</p></div>
+            <div id="alertCards" class="alert-list"></div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid-2">
+          <div class="panel">
+            <div class="panel-head"><h3>👨‍🔧 KPI kỹ thuật</h3><p>Đơn, quá hẹn, doanh thu và lợi nhuận theo KTV.</p></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>KTV</th><th>Đơn</th><th>Hoàn thành</th><th>Quá hẹn</th><th>Doanh thu</th><th>Lợi nhuận</th></tr></thead>
+                <tbody id="overviewTechRows"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>📌 Tồn máy theo trạng thái</h3><p>Biết máy đang kẹt ở bước nào.</p></div>
+            <div id="statusCards" class="status-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="weekly" class="tab" data-permission="dashboard">
+        <div class="panel">
+          <div class="panel-head"><h3>📅 Hiệu suất 4 tuần trong tháng</h3><p>So sánh tuần này với tuần trước để nắm nhịp doanh thu/chi phí/lợi nhuận.</p></div>
+          <div id="weeklyCards" class="weekly-grid"></div>
+          <div class="table-wrap mt">
             <table>
-              <thead>
-                <tr>
-                  <th>Kỹ thuật</th>
-                  <th>Tổng đơn</th>
-                  <th>Hoàn thành</th>
-                  <th>Quá hẹn</th>
-                  <th>Doanh thu</th>
-                  <th>Lợi nhuận</th>
-                </tr>
-              </thead>
-              <tbody id="techDashboardRows">
-                <tr><td colspan="6">Chưa có dữ liệu</td></tr>
-              </tbody>
+              <thead><tr><th>Chỉ tiêu</th><th>Tuần 1</th><th>Tuần 2</th><th>Tuần 3</th><th>Tuần 4</th><th>Tuần 5</th></tr></thead>
+              <tbody id="weeklyTable"></tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <section id="receive" class="tab-page">
+      <section id="services" class="tab" data-permission="dashboard">
         <div class="panel">
-          <div class="panel-head">
-            <h3>📥 Tạo phiếu tiếp nhận máy</h3>
-            <p>Nhân viên chỉ nhập phần tiếp nhận, không nhập chi phí.</p>
+          <div class="panel-head"><h3>🔧 Phân tích theo dịch vụ</h3><p>Biết dịch vụ nào lời, lỗ, mạnh, yếu.</p></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Dịch vụ</th><th>SL</th><th>Doanh thu</th><th>Giá vốn ước tính</th><th>Lợi nhuận ước tính</th><th>Biên LN</th></tr></thead>
+              <tbody id="serviceRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="models" class="tab" data-permission="dashboard">
+        <div class="panel">
+          <div class="panel-head"><h3>📱 Dịch vụ theo dòng máy</h3><p>Ví dụ: Thay pin 12 Pro Max bao nhiêu cục để đặt SL phù hợp.</p></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Dòng máy</th><th>Tổng đơn</th><th>Dịch vụ nhiều nhất</th><th>SL</th><th>Gợi ý nhập</th></tr></thead>
+              <tbody id="modelRows"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>🔎 Ma trận dịch vụ × dòng máy</h3><p>Nhìn thẳng nhu cầu sửa chữa theo từng model.</p></div>
+          <div class="table-wrap">
+            <table>
+              <thead id="matrixHead"></thead>
+              <tbody id="matrixRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="materials" class="tab" data-permission="dashboard">
+        <div class="panel">
+          <div class="panel-head"><h3>📦 Nhu cầu vật tư</h3><p>Quy đổi từ dịch vụ + dòng máy để ra số lượng cần nhập.</p></div>
+          <div class="material-tabs">
+            <button class="pill active" data-material="pin" onclick="setMaterialView('pin')">Pin</button>
+            <button class="pill" data-material="kinh" onclick="setMaterialView('kinh')">Kính</button>
+            <button class="pill" data-material="man" onclick="setMaterialView('man')">Màn</button>
+            <button class="pill" data-material="khac" onclick="setMaterialView('khac')">Khác</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Vật tư/Dòng máy</th><th>Nhu cầu tháng</th><th>Đề xuất tồn tối thiểu</th><th>Ghi chú</th></tr></thead>
+              <tbody id="materialNeedRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="techs" class="tab" data-permission="dashboard">
+        <div class="panel">
+          <div class="panel-head"><h3>👨‍🔧 KPI kỹ thuật</h3><p>Theo dõi năng suất, quá hẹn và lợi nhuận.</p></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>KTV</th><th>Số đơn</th><th>Hoàn thành</th><th>Quá hẹn</th><th>Doanh thu</th><th>Lợi nhuận</th><th>Điểm</th></tr></thead>
+              <tbody id="techRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="receive" class="tab" data-permission="receive">
+        <div class="page-hero">
+          <div class="page-icon">📥</div>
+          <div>
+            <h2>TIẾP NHẬN MÁY SỬA CHỮA</h2>
+            <p>Ghi nhận thông tin máy, khách hàng, lỗi ban đầu và yêu cầu sửa chữa.</p>
+          </div>
+          <div class="page-note">
+            <b>Nhắc nhân viên:</b>
+            <span>Nhập đủ IMEI, SĐT, tình trạng máy và hẹn trả.</span>
+            <span>Không nhập chi phí ở màn hình này.</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head section-title">
+            <h3>📋 THÔNG TIN TIẾP NHẬN</h3>
+            <p>Các ô có dấu * là thông tin nên nhập đầy đủ để tránh thiếu dữ liệu báo cáo.</p>
           </div>
 
-          <form id="receiveForm" class="form-grid">
-            <input name="imei" placeholder="IMEI / Serial" required />
-            <input name="product" placeholder="Sản phẩm VD: iPhone 11 128GB" required />
-            <input name="customer" placeholder="Tên khách hàng" required />
-            <input name="phone" placeholder="Số điện thoại" required />
+          <form id="receiveForm" class="form-grid labelled-form">
+            <label><span>IMEI / Serial *</span><input name="imei" placeholder="Nhập IMEI hoặc Serial máy" required /></label>
+            <label><span>Sản phẩm / Dòng máy *</span><input name="product" placeholder="VD: iPhone 12 Pro Max" required /></label>
+            <label><span>Tên khách hàng *</span><input name="customer" placeholder="Nhập họ và tên khách hàng" required /></label>
 
-            <select name="branch" required>
-              <option value="">Chi nhánh nhận</option>
-              <option>113</option>
-              <option>1/48</option>
-            </select>
+            <label><span>Số điện thoại *</span><input name="phone" placeholder="Nhập số điện thoại khách hàng" required /></label>
+            <label><span>Chi nhánh *</span><select name="branch"><option value="">Chọn chi nhánh</option><option>113</option><option>1/48</option></select></label>
+            <label><span>Loại dịch vụ *</span><select name="serviceType"><option>Sửa chữa</option><option>Bảo hành</option><option>Làm mới</option><option>Vệ sinh</option><option>Kiểm tra</option></select></label>
 
-            <select name="serviceType">
-              <option value="">Loại dịch vụ</option>
-              <option>Sửa chữa</option>
-              <option>Bảo hành</option>
-              <option>Kiểm tra máy</option>
-              <option>Vệ sinh máy</option>
-            </select>
+            <label><span>Hẹn trả</span><input name="appointment" type="datetime-local" /></label>
+            <label><span>Giá dự kiến</span><input name="estimate" placeholder="Nhập giá dự kiến nếu có" /></label>
+            <label><span>Nhân viên tiếp nhận *</span><input name="staff" placeholder="Tên nhân viên tiếp nhận" /></label>
 
-            <input name="appointment" type="datetime-local" placeholder="Hẹn trả" />
-            <input name="estimate" placeholder="Giá dự kiến" />
-            <input name="staff" placeholder="Nhân viên tiếp nhận" />
+            <label class="span-3"><span>Tình trạng khi nhận máy *</span><textarea name="receiveStatus" placeholder="Mô tả chi tiết tình trạng máy khi khách mang đến"></textarea></label>
+            <label class="span-3"><span>Yêu cầu sửa chữa *</span><textarea name="request" placeholder="Khách yêu cầu sửa gì? VD: thay pin, ép kính, lỗi nguồn..."></textarea></label>
+            <label class="span-3"><span>Ghi chú tiếp nhận</span><textarea name="receiveNote" placeholder="Ghi chú thêm nếu có"></textarea></label>
 
-            <select name="faceId">
-              <option value="">FaceID</option><option>OK</option><option>Lỗi</option><option>Không test</option>
-            </select>
-            <select name="screen">
-              <option value="">Màn hình</option><option>OK</option><option>Lỗi</option><option>Không test</option>
-            </select>
-            <select name="cameraMic">
-              <option value="">Camera/Mic</option><option>OK</option><option>Lỗi</option><option>Không test</option>
-            </select>
-            <select name="speaker">
-              <option value="">Loa</option><option>OK</option><option>Lỗi</option><option>Không test</option>
-            </select>
-
-            <textarea name="receiveStatus" placeholder="Tình trạng khi nhận máy"></textarea>
-            <textarea name="request" placeholder="Yêu cầu sửa chữa"></textarea>
-            <textarea name="receiveNote" placeholder="Ghi chú tiếp nhận"></textarea>
+            <div class="guide-strip span-3">
+              <div><b>1</b><span>Kiểm tra hình thức máy</span></div>
+              <div><b>2</b><span>Ghi nhận tình trạng</span></div>
+              <div><b>3</b><span>Xác nhận yêu cầu</span></div>
+              <div><b>4</b><span>Báo giá dự kiến</span></div>
+              <div><b>5</b><span>Lưu phiếu tiếp nhận</span></div>
+            </div>
 
             <div class="form-actions">
-              <button class="primary-btn" type="submit">Lưu phiếu sửa</button>
               <button class="ghost-btn" type="reset">Xóa form</button>
+              <button class="primary-btn" type="submit">Lưu phiếu tiếp nhận</button>
             </div>
           </form>
         </div>
       </section>
 
-      <section id="tech" class="tab-page">
+      <section id="repair" class="tab" data-permission="repair">
+        <div class="page-hero">
+          <div class="page-icon">🔨</div>
+          <div>
+            <h2>XỬ LÝ SỬA CHỮA</h2>
+            <p>Kỹ thuật cập nhật tình trạng thực tế, trạng thái máy và thêm dịch vụ sửa chữa.</p>
+          </div>
+          <div class="page-note"><b>Lưu ý:</b><span>Kỹ thuật không nhập vật tư, công thợ hoặc thực thu.</span></div>
+        </div>
+
         <div class="panel">
-          <div class="panel-head">
-            <h3>🔧 Kỹ thuật xử lý</h3>
-            <p>Tìm phiếu, cập nhật trạng thái và thêm nhiều dịch vụ.</p>
-          </div>
-
           <div class="search-line">
-            <input id="techKeyword" placeholder="Nhập mã sửa chữa / IMEI / SĐT" />
-            <button class="primary-btn" onclick="searchForTech()">Tìm</button>
+            <input id="repairKeyword" placeholder="Nhập mã sửa / IMEI / SĐT" />
+            <button class="primary-btn" onclick="searchForRepair()">Tìm phiếu</button>
           </div>
 
-          <div id="techResult" class="result-box hidden"></div>
+          <div id="repairInfo" class="info-box hidden"></div>
 
           <form id="techForm" class="form-grid hidden">
-            <input name="repairId" placeholder="Mã sửa chữa" readonly />
-            <textarea name="actualStatus" placeholder="Tình trạng thực tế"></textarea>
-            <input name="processPlace" placeholder="Nơi xử lý VD: Nội bộ / Bên ngoài" />
-            <input name="technician" placeholder="Kỹ thuật xử lý" />
-
-            <select name="status">
-              <option>1. Đã tiếp nhận</option>
-              <option>2. Đang kiểm tra</option>
-              <option>3. Chờ báo giá</option>
-              <option>4. Chờ khách duyệt</option>
-              <option>5. Đang sửa</option>
-              <option>6. Chờ linh kiện</option>
-              <option>7. Đã hoàn thành</option>
-              <option>8. Đã bàn giao</option>
-              <option>9. Back lại khách</option>
-              <option>10. Bảo hành lại</option>
-              <option>11. Hủy sửa</option>
-            </select>
-
-            <textarea name="techNote" placeholder="Ghi chú kỹ thuật"></textarea>
-
-            <div class="form-actions">
-              <button class="primary-btn" type="submit">Cập nhật kỹ thuật</button>
-            </div>
+            <label><span>Mã sửa chữa</span><input name="repairId" readonly /></label>
+            <label class="span-3"><span>Tình trạng thực tế</span><textarea name="actualStatus" placeholder="KTV kiểm tra thực tế ghi tại đây"></textarea></label>
+            <label><span>Nơi xử lý</span><input name="processPlace" placeholder="Nội bộ / Bên ngoài" /></label>
+            <label><span>Kỹ thuật xử lý</span><input name="technician" placeholder="Tên kỹ thuật" /></label>
+            <label><span>Trạng thái máy</span><select name="status">
+              <option>1. Đã tiếp nhận</option><option>2. Đang kiểm tra</option><option>3. Chờ báo giá</option>
+              <option>4. Chờ khách duyệt</option><option>5. Đang sửa</option><option>6. Chờ linh kiện</option>
+              <option>7. Đã hoàn thành</option><option>8. Đã bàn giao</option><option>9. Back lại khách</option>
+              <option>10. Bảo hành lại</option><option>11. Hủy sửa</option>
+            </select></label>
+            <label class="span-3"><span>Ghi chú kỹ thuật</span><textarea name="techNote"></textarea></label>
+            <div class="form-actions"><button class="primary-btn" type="submit">Cập nhật kỹ thuật</button></div>
           </form>
 
-          <div id="serviceBox" class="sub-panel hidden">
+          <div id="serviceAddBox" class="sub-panel hidden">
             <h4>Thêm dịch vụ sửa chữa</h4>
             <div class="inline-form">
               <input id="serviceName" placeholder="Tên dịch vụ VD: Thay pin" />
               <input id="servicePrice" placeholder="Giá bán" />
               <input id="serviceNote" placeholder="Ghi chú" />
-              <button class="primary-btn" onclick="addServiceUI()">+ Dịch vụ</button>
+              <button class="primary-btn" onclick="addServiceUI()">+ Thêm</button>
             </div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Dịch vụ</th><th>Giá bán</th><th>KTV</th><th>Ghi chú</th></tr></thead>
-                <tbody id="serviceRows"></tbody>
-              </table>
-            </div>
+            <div class="table-wrap"><table><thead><tr><th>Dịch vụ</th><th>Giá</th><th>KTV</th><th>Ghi chú</th></tr></thead><tbody id="currentServices"></tbody></table></div>
           </div>
         </div>
       </section>
 
-      <section id="money" class="tab-page">
+      <section id="money" class="tab" data-permission="money">
+        <div class="page-hero">
+          <div class="page-icon">💰</div>
+          <div>
+            <h2>CHI PHÍ & LỢI NHUẬN</h2>
+            <p>Quản lý cập nhật vật tư, công thợ, thực thu và trạng thái thanh toán.</p>
+          </div>
+          <div class="page-note"><b>Lưu ý:</b><span>Chỉ quản lý được nhập chi phí và chốt lợi nhuận.</span></div>
+        </div>
+
         <div class="panel">
-          <div class="panel-head">
-            <h3>💰 Chi phí & Lợi nhuận</h3>
-            <p>Quản lý thêm nhiều vật tư, công thợ, thực thu và trạng thái thanh toán.</p>
-          </div>
-
           <div class="search-line">
-            <input id="moneyKeyword" placeholder="Nhập mã sửa chữa / IMEI / SĐT" />
-            <button class="primary-btn" onclick="searchForMoney()">Tìm</button>
+            <input id="moneyKeyword" placeholder="Nhập mã sửa / IMEI / SĐT" />
+            <button class="primary-btn" onclick="searchForMoney()">Tìm phiếu</button>
           </div>
 
-          <div id="moneyResult" class="result-box hidden"></div>
+          <div id="moneyInfo" class="info-box hidden"></div>
 
-          <div id="materialBox" class="sub-panel hidden">
+          <div id="materialAddBox" class="sub-panel hidden">
             <h4>Thêm vật tư</h4>
-            <div class="inline-form">
-              <input id="materialName" placeholder="Tên vật tư VD: Pin JK iP11" />
+            <div class="inline-form material-inline">
+              <input id="materialName" placeholder="Tên vật tư VD: Pin 12 Pro Max" />
               <input id="materialQty" placeholder="SL" value="1" />
               <input id="materialUnitPrice" placeholder="Đơn giá" />
               <input id="materialSupplier" placeholder="NCC" />
-              <button class="primary-btn" onclick="addMaterialUI()">+ Vật tư</button>
+              <button class="primary-btn" onclick="addMaterialUI()">+ Thêm</button>
             </div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Vật tư</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>NCC</th></tr></thead>
-                <tbody id="materialRows"></tbody>
-              </table>
-            </div>
+            <div class="table-wrap"><table><thead><tr><th>Vật tư</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>NCC</th></tr></thead><tbody id="currentMaterials"></tbody></table></div>
           </div>
 
           <form id="moneyForm" class="form-grid hidden">
-            <input name="repairId" placeholder="Mã sửa chữa" readonly />
-            <input name="totalLabor" placeholder="Tổng công thợ" />
-            <input name="extraCost" placeholder="Chi phí phát sinh" />
-            <input name="actualRevenue" placeholder="Thực thu" />
-            <select name="paymentStatus">
-              <option>Chưa thanh toán</option>
-              <option>Đã thanh toán</option>
-              <option>Cọc trước</option>
-              <option>Không thu tiền</option>
-            </select>
-            <input name="user" placeholder="Người cập nhật" />
-            <textarea name="extraNote" placeholder="Nội dung phát sinh / ghi chú tiền"></textarea>
+            <label><span>Mã sửa chữa</span><input name="repairId" readonly /></label>
+            <label><span>Tổng công thợ</span><input name="totalLabor" placeholder="Tổng công thợ" /></label>
+            <label><span>Chi phí phát sinh</span><input name="extraCost" placeholder="Chi phí phát sinh" /></label>
+            <label><span>Thực thu</span><input name="actualRevenue" placeholder="Thực thu" /></label>
+            <label><span>Trạng thái thanh toán</span><select name="paymentStatus"><option>Chưa thanh toán</option><option>Đã thanh toán</option><option>Cọc trước</option><option>Không thu tiền</option></select></label>
+            <label><span>Người cập nhật</span><input name="user" placeholder="Người cập nhật" /></label>
+            <label class="span-3"><span>Nội dung phát sinh</span><textarea name="extraNote"></textarea></label>
 
-            <div class="summary-card">
-              <div><span>Tổng tiền dịch vụ</span><b id="sumService">0đ</b></div>
-              <div><span>Tổng vốn vật tư</span><b id="sumMaterial">0đ</b></div>
-              <div><span>Tổng chi phí</span><b id="sumCost">0đ</b></div>
+            <div class="summary-strip span-3">
+              <div><span>Dịch vụ</span><b id="sumService">0đ</b></div>
+              <div><span>Vật tư</span><b id="sumMaterial">0đ</b></div>
+              <div><span>Chi phí</span><b id="sumCost">0đ</b></div>
               <div><span>Lợi nhuận</span><b id="sumProfit">0đ</b></div>
             </div>
 
-            <div class="form-actions">
-              <button class="primary-btn" type="submit">Chốt chi phí</button>
-            </div>
+            <div class="form-actions"><button class="primary-btn" type="submit">Chốt chi phí</button></div>
           </form>
         </div>
       </section>
 
-      <section id="search" class="tab-page">
-        <div class="panel">
-          <div class="panel-head">
-            <h3>🔍 Tra cứu phiếu sửa</h3>
-            <p>Tìm theo IMEI, SĐT, khách hàng hoặc mã sửa chữa.</p>
+      <section id="search" class="tab" data-permission="search">
+        <div class="page-hero">
+          <div class="page-icon">🔍</div>
+          <div>
+            <h2>TRA CỨU PHIẾU SỬA</h2>
+            <p>Tìm theo mã sửa, IMEI, số điện thoại hoặc tên khách hàng.</p>
           </div>
+        </div>
+
+        <div class="panel">
           <div class="search-line">
             <input id="globalKeyword" placeholder="Nhập từ khóa..." />
             <button class="primary-btn" onclick="globalSearch()">Tìm kiếm</button>
           </div>
           <div class="table-wrap">
             <table>
-              <thead>
-                <tr>
-                  <th>Mã</th><th>IMEI</th><th>Khách</th><th>SĐT</th><th>Máy</th><th>Trạng thái</th><th>KTV</th><th>Lợi nhuận</th><th></th>
-                </tr>
-              </thead>
-              <tbody id="searchRows">
-                <tr><td colspan="9">Nhập từ khóa để tìm.</td></tr>
-              </tbody>
+              <thead><tr><th>Mã</th><th>IMEI</th><th>Khách</th><th>SĐT</th><th>Máy</th><th>Trạng thái</th><th>KTV</th><th>LN</th><th></th></tr></thead>
+              <tbody id="searchRows"><tr><td colspan="9">Nhập từ khóa để tìm.</td></tr></tbody>
             </table>
           </div>
           <div id="detailBox" class="detail-box hidden"></div>
@@ -284,7 +386,6 @@
   </div>
 
   <div id="toast" class="toast"></div>
-
   <script src="js/app.js"></script>
 </body>
 </html>
