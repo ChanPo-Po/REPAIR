@@ -5,32 +5,28 @@ const ACCOUNTS = {
     password:"123456",
     name:"SALE / Tiếp nhận",
     role:"sale",
-    permissions:["receive"]
+    permissions:["receive","search"]
   },
 
   kythuat:{
     password:"123456",
     name:"Kỹ thuật",
     role:"tech",
-    permissions:["receive","repair"]
+    permissions:["receive","repair","search","worklog"]
   },
 
   qlcuahang:{
     password:"123456",
     name:"QL cửa hàng",
     role:"store_manager",
-    permissions:["dashboard_basic","search"],
-    hideMoney:true,
-    hideProfit:true
+    permissions:["dashboard_basic","receive","search"]
   },
 
   qlkythuat:{
     password:"123456",
     name:"QL kỹ thuật",
     role:"tech_manager",
-    permissions:["dashboard_full","repair","money","search"],
-    hideMoney:false,
-    hideProfit:false
+    permissions:["dashboard_full","repair","money","search","worklog","worklog_manage"]
   },
 
   admin:{
@@ -43,16 +39,16 @@ const ACCOUNTS = {
       "receive",
       "repair",
       "money",
-      "search"
-    ],
-    hideMoney:false,
-    hideProfit:false
+      "search",
+      "worklog",
+      "worklog_manage"
+    ]
   }
 };
 
 let CURRENT_USER=null,DASH=null,currentRepair=null,currentMoney=null,currentMaterialView="pin";
 
-const titles={overview:["Tổng quan sửa chữa","Dashboard quản trị sửa chữa theo tháng, tuần, dịch vụ, dòng máy và vật tư."],weekly:["Theo tuần","So sánh tuần 1-4/5 trong tháng để nắm nhịp tăng giảm."],services:["Dịch vụ","Biết dịch vụ nào mạnh, yếu, lời hoặc lỗ."],models:["Dòng máy","Xem dịch vụ theo model để đặt vật tư phù hợp."],materials:["Nhu cầu vật tư","Quy đổi dịch vụ theo dòng máy thành số lượng vật tư cần nhập."],techs:["KPI kỹ thuật","Theo dõi hiệu suất từng kỹ thuật."],receive:["Tiếp nhận máy","Tạo phiếu sửa chữa mới."],repair:["Xử lý sửa chữa","Cập nhật trạng thái và dịch vụ."],money:["Chi phí & lợi nhuận","Quản lý vật tư, công thợ và thực thu."],search:["Tra cứu","Tìm và xem chi tiết phiếu sửa."]};
+const titles={overview:["Tổng quan sửa chữa","Dashboard quản trị sửa chữa theo tháng, tuần, dịch vụ, dòng máy và vật tư."],weekly:["Theo tuần","So sánh tuần 1-4/5 trong tháng để nắm nhịp tăng giảm."],services:["Dịch vụ","Biết dịch vụ nào mạnh, yếu, lời hoặc lỗ."],models:["Dòng máy","Xem dịch vụ theo model để đặt vật tư phù hợp."],materials:["Nhu cầu vật tư","Quy đổi dịch vụ theo dòng máy thành số lượng vật tư cần nhập."],techs:["KPI kỹ thuật","Theo dõi hiệu suất từng kỹ thuật."],receive:["Tiếp nhận máy","Tạo phiếu sửa chữa mới."],repair:["Xử lý sửa chữa","Cập nhật trạng thái và dịch vụ."],money:["Chi phí & lợi nhuận","Quản lý vật tư, công thợ và thực thu."],search:["Tra cứu","Tìm và xem chi tiết phiếu sửa."],worklog:["Công sửa chữa","Kỹ thuật ghi công sửa chữa và hoa hồng."]};
 
 document.addEventListener("DOMContentLoaded",()=>{
   const saved = localStorage.getItem("repairUser");
@@ -65,6 +61,14 @@ document.addEventListener("DOMContentLoaded",()=>{
   const d=new Date();
   monthFilter.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   bindLogin();bindTabs();bindForms();
+  if(window.worklogForm && worklogForm.date) worklogForm.date.value = new Date().toISOString().slice(0,10);
+  if(window.worklogForm){
+    ["model","serviceName","technician"].forEach(n=>{
+      const el = worklogForm.querySelector(`[name="${n}"]`);
+      if(el) el.addEventListener("change", calculateCommissionUI);
+      if(el) el.addEventListener("blur", calculateCommissionUI);
+    });
+  }
 });
 
 function bindLogin(){
@@ -101,7 +105,19 @@ function logout(){
   location.reload();
 }
 
-function can(permission){return CURRENT_USER&&CURRENT_USER.permissions.includes(permission)}
+function can(permission){
+  if(!CURRENT_USER) return false;
+  if(permission==="dashboard"){
+    return CURRENT_USER.permissions.includes("dashboard_basic") || CURRENT_USER.permissions.includes("dashboard_full");
+  }
+  if(permission==="dashboard_basic"){
+    return CURRENT_USER.permissions.includes("dashboard_basic") || CURRENT_USER.permissions.includes("dashboard_full");
+  }
+  if(permission==="dashboard_full"){
+    return CURRENT_USER.permissions.includes("dashboard_full");
+  }
+  return CURRENT_USER.permissions.includes(permission);
+}
 
 function applyPermissions(){
   document.querySelectorAll("[data-permission]").forEach(el=>{
@@ -153,6 +169,18 @@ function bindForms(){
     const r=await api("updateTech",{data});
     r.ok?(toast("Đã cập nhật kỹ thuật","ok"),currentRepair?.info?.repairId&&loadRepairDetail(currentRepair.info.repairId),loadDashboard()):toast(r.message||"Lỗi cập nhật","error");
   });
+
+  if(window.worklogForm){
+    worklogForm.addEventListener("submit",async e=>{
+      e.preventDefault();
+      if(!can("worklog")) return toast("Không có quyền ghi công sửa chữa","error");
+      const data=formData(e.target);
+      data.user=CURRENT_USER.username;
+      if(!data.technician) data.technician = CURRENT_USER.name || CURRENT_USER.username;
+      const r=await api("addWorklog",{data});
+      r.ok?(toast("Đã ghi công sửa chữa","ok"),e.target.reset(),worklogForm.date.value=new Date().toISOString().slice(0,10),loadWorklogs(),loadWorklogSummary()):toast(r.message||"Lỗi ghi công","error");
+    });
+  }
 
   moneyForm.addEventListener("submit",async e=>{
     e.preventDefault();
@@ -320,9 +348,47 @@ async function searchForMoney(){if(!can("money"))return toast("Không có quyề
 async function loadMoneyDetail(id){const r=await api("getRepair",{repairId:id});if(!r.ok)return toast(r.message||"Không tải được phiếu","error");currentMoney=r.data;const info=r.data.info;moneyInfo.classList.remove("hidden");moneyForm.classList.remove("hidden");materialAddBox.classList.remove("hidden");moneyInfo.innerHTML=renderInfo(info);moneyForm.repairId.value=info.repairId||"";moneyForm.totalLabor.value=info.totalLabor||"";moneyForm.extraCost.value=info.extraCost||"";moneyForm.actualRevenue.value=info.actualRevenue||"";moneyForm.paymentStatus.value=info.paymentStatus||"Chưa thanh toán";moneyForm.extraNote.value=info.extraNote||"";setText("sumService",vnd(info.totalService));setText("sumMaterial",vnd(info.totalMaterial));setText("sumCost",vnd(info.totalCost));setText("sumProfit",vnd(info.profit));currentMaterials.innerHTML=(r.data.materials||[]).map(x=>`<tr><td>${esc(x.materialName)}</td><td>${x.qty}</td><td>${vnd(x.unitPrice)}</td><td>${vnd(x.amount)}</td><td>${esc(x.supplier)}</td></tr>`).join("")||`<tr><td colspan="5">Chưa có vật tư</td></tr>`}
 async function addMaterialUI(){if(!can("money"))return toast("Không có quyền","error");if(!currentMoney)return toast("Chưa chọn phiếu","error");const data={repairId:currentMoney.info.repairId,materialName:materialName.value,qty:materialQty.value,unitPrice:materialUnitPrice.value,supplier:materialSupplier.value,user:CURRENT_USER.username};if(!data.materialName)return toast("Nhập tên vật tư","error");const r=await api("addMaterial",{data});r.ok?(toast("Đã thêm vật tư","ok"),materialName.value=materialUnitPrice.value=materialSupplier.value="",materialQty.value="1",loadMoneyDetail(data.repairId),loadDashboard()):toast(r.message||"Lỗi thêm vật tư","error")}
 
-async function globalSearch(){if(!can("search"))return toast("Không có quyền tra cứu","error");const r=await api("searchRepair",{keyword:globalKeyword.value.trim()});if(!r.ok)return toast(r.message||"Lỗi tìm kiếm","error");searchRows.innerHTML=(r.results||[]).map(x=>`<tr><td><b>${esc(x.repairId)}</b></td><td>${esc(x.imei)}</td><td>${esc(x.customer)}</td><td>${esc(x.phone)}</td><td>${esc(x.product)}</td><td>${esc(x.status)}</td><td>${esc(x.technician)}</td><td>${canSeeProfit()?vnd(x.profit):"Ẩn"}</td><td><button class="small-btn" onclick="viewDetail('${jsesc(x.repairId)}')">Xem</button></td></tr>`).join("")||`<tr><td colspan="9">Không có kết quả</td></tr>`}
+async function globalSearch(){
+  if(!can("search")) return toast("Không có quyền tra cứu","error");
+
+  const r = await api("searchRepair",{keyword:globalKeyword.value.trim()});
+  if(!r.ok) return toast(r.message || "Lỗi tìm kiếm","error");
+
+  searchRows.innerHTML = (r.results || []).map(x => `
+    <tr>
+      <td><b>${esc(x.repairId)}</b></td>
+      <td>${esc(x.imei)}</td>
+      <td>${esc(x.customer)}</td>
+      <td>${esc(x.phone)}</td>
+      <td>${esc(x.product)}</td>
+      <td>${esc(x.status)}</td>
+      <td>${esc(x.technician)}</td>
+      <td>${esc(x.serviceType || "")}</td>
+      <td>${vnd(x.revenue || 0)}</td>
+      <td><button class="small-btn" onclick="viewDetail('${jsesc(x.repairId)}')">Xem</button></td>
+    </tr>
+  `).join("") || `<tr><td colspan="10">Không có kết quả</td></tr>`;
+}
 async function viewDetail(id){const r=await api("getRepair",{repairId:id});if(!r.ok)return toast(r.message||"Không tải được chi tiết","error");detailBox.classList.remove("hidden");detailBox.innerHTML=`<h3>Phiếu ${esc(id)}</h3>${renderInfo(r.data.info)}`}
-function renderInfo(info){const items=[["Mã sửa",info.repairId],["IMEI",info.imei],["Khách",info.customer],["SĐT",info.phone],["Sản phẩm",info.product],["Loại DV",info.serviceType],["KTV",info.technician],["Trạng thái",info.status],["Doanh thu",vnd(info.actualRevenue)],["Chi phí",vnd(info.totalCost)],["Lợi nhuận",vnd(info.profit)],["Hẹn trả",fmtDate(info.appointment)]];return`<div class="info-grid">${items.map(([k,v])=>`<div class="info-item"><span>${k}</span><b>${esc(v??"")}</b></div>`).join("")}</div>`}
+function renderInfo(info){
+  const items=[
+    ["Mã sửa",info.repairId],
+    ["IMEI",info.imei],
+    ["Khách",info.customer],
+    ["SĐT",info.phone],
+    ["Sản phẩm",info.product],
+    ["Loại DV",info.serviceType],
+    ["KTV",info.technician],
+    ["Trạng thái",info.status],
+    ["Hẹn trả",fmtDate(info.appointment)],
+    ["Báo giá / Thực thu",vnd(info.actualRevenue || info.estimate || 0)]
+  ];
+
+  if(canSeeFullMoney()) items.push(["Chi phí",vnd(info.totalCost)]);
+  if(canSeeProfit()) items.push(["Lợi nhuận",vnd(info.profit)]);
+
+  return `<div class="info-grid">${items.map(([k,v])=>`<div class="info-item"><span>${k}</span><b>${esc(v??"")}</b></div>`).join("")}</div>`;
+}
 
 function formData(f){const o={};new FormData(f).forEach((v,k)=>o[k]=v);return o}function money(v){const n=Number(String(v||0).replace(/[^\d.-]/g,""));return isNaN(n)?0:n}function vnd(v){return money(v).toLocaleString("vi-VN")+"đ"}function shortMoney(v){v=money(v);return v>=1e6?(v/1e6).toFixed(v%1e6?1:0)+"tr":vnd(v)}function pct(a,b){a=money(a);b=money(b);return b?((a/b)*100).toFixed(1)+"%":"0%"}function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v??""}function toast(msg,type="ok"){const t=document.getElementById("toast");t.textContent=msg;t.className=`toast show ${type}`;setTimeout(()=>t.className="toast",3200)}function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}function jsesc(s){return String(s??"").replace(/\\/g,"\\\\").replace(/'/g,"\\'")}function fmtDate(v){if(!v)return"";const d=new Date(v);return isNaN(d)?v:d.toLocaleString("vi-VN")}function rank(i){return["🥇","🥈","🥉"][i]||`${i+1}.`}
 
@@ -379,10 +445,10 @@ loginAs = function(username,save){
   appRoot.classList.remove("hidden");
   currentUserName.textContent=CURRENT_USER.name;
   const roleLabel={
-    sale:"Chỉ tiếp nhận máy",
-    tech:"Tiếp nhận + xử lý sửa chữa",
-    store_manager:"Theo dõi tiến độ, số đơn, doanh thu; không thấy lợi nhuận",
-    tech_manager:"QL kỹ thuật: xử lý, chi phí, tra cứu, lợi nhuận",
+    sale:"Tiếp nhận máy, in phiếu và tra cứu trạng thái",
+    tech:"Tiếp nhận + xử lý sửa chữa + ghi công sửa chữa",
+    store_manager:"Nhập phiếu, tra cứu, danh sách đơn; không thấy chi phí/lợi nhuận",
+    tech_manager:"QL kỹ thuật: xử lý, chi phí, KPI, công sửa chữa",
     admin:"Full quyền"
   };
   currentRoleName.textContent=roleLabel[CURRENT_USER.role] || CURRENT_USER.permissions.join(", ");
@@ -509,11 +575,13 @@ renderInfo = function(info){
     ["Loại DV",info.serviceType],
     ["KTV",info.technician],
     ["Trạng thái",info.status],
-    ["Hẹn trả",fmtDate(info.appointment)]
+    ["Hẹn trả",fmtDate(info.appointment)],
+    ["Báo giá / Thực thu",vnd(info.actualRevenue || info.estimate || 0)]
   ];
-  items.push(["Doanh thu",vnd(info.actualRevenue)]);
+
   if(canSeeFullMoney()) items.push(["Chi phí",vnd(info.totalCost)]);
   if(canSeeProfit()) items.push(["Lợi nhuận",vnd(info.profit)]);
+
   return `<div class="info-grid">${items.map(([k,v])=>`<div class="info-item"><span>${k}</span><b>${esc(v??"")}</b></div>`).join("")}</div>`;
 };
 
@@ -650,4 +718,63 @@ function buildReceiptHtml(info){
     </div>
     <div class="r-footer">Cảm ơn bạn đã tin tưởng POPO PHONE, chúng tôi luôn nỗ lực mang đến những trải nghiệm tốt với nhất!</div>
   </div>`;
+}
+
+
+/* ===================== V6 WORKLOG ===================== */
+async function loadWorklogs(){
+  if(!can("worklog") && !can("worklog_manage")) return toast("Không có quyền xem công sửa chữa","error");
+
+  const keyword = window.worklogKeyword ? worklogKeyword.value.trim() : "";
+  const r = await api("getWorklogs",{keyword});
+  loadWorklogSummary();
+
+  if(!r.ok) return toast(r.message || "Không tải được công sửa chữa","error");
+
+  const rows = r.results || [];
+  if(window.worklogRows){
+    worklogRows.innerHTML = rows.map(x=>`
+      <tr>
+        <td>${fmtDate(x.date).split(" ")[0]}</td>
+        <td><b>${esc(x.technician)}</b></td>
+        <td>${esc(x.model)}</td>
+        <td>${esc(x.imei)}</td>
+        <td>${esc(x.serviceName)}</td>
+        <td>${esc(x.qty || 1)}</td>
+        <td>${vnd(x.commission || 0)}</td>
+        <td>${esc(x.note || "")}</td>
+      </tr>
+    `).join("") || `<tr><td colspan="8">Chưa có dữ liệu.</td></tr>`;
+  }
+}
+
+
+
+/* ===================== V6.2 AUTO COMMISSION + SALARY SUMMARY ===================== */
+async function calculateCommissionUI(){
+  if(!window.worklogForm) return;
+  const model = worklogForm.model?.value || "";
+  const serviceName = worklogForm.serviceName?.value || "";
+  if(!model || !serviceName) return;
+
+  const r = await api("getCommission",{model,serviceName});
+  if(r && r.ok && worklogForm.commission){
+    worklogForm.commission.value = r.commission || 0;
+  }
+}
+
+async function loadWorklogSummary(){
+  if(!can("worklog") && !can("worklog_manage")) return;
+
+  const technician = window.worklogForm?.technician?.value || "";
+  const month = window.monthFilter?.value || "";
+
+  const r = await api("getWorklogSummary",{technician,month});
+  if(!r || !r.ok) return;
+
+  setText("wlTotalRows", r.totalRows || 0);
+  setText("wlTotalCommission", vnd(r.totalCommission || 0));
+  setText("wlBaseSalary", vnd(r.baseSalary || 0));
+  setText("wlMealSupport", vnd(r.mealSupport || 0));
+  setText("wlGrandTotal", vnd(r.grandTotal || 0));
 }
