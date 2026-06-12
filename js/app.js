@@ -1,10 +1,53 @@
 const API_URL="/.netlify/functions/repair-api";
 
-const ACCOUNTS={
-  tiepnhan:{password:"123456",name:"Tài khoản tiếp nhận",role:"receive",permissions:["receive"]},
-  kythuat:{password:"123456",name:"Tài khoản kỹ thuật",role:"repair",permissions:["repair"]},
-  quanly:{password:"123456",name:"Tài khoản quản lý",role:"money_search",permissions:["money","search"]},
-  admin:{password:"123456",name:"Admin",role:"admin",permissions:["dashboard","receive","repair","money","search"]}
+const ACCOUNTS = {
+  sale:{
+    password:"123456",
+    name:"SALE / Tiếp nhận",
+    role:"sale",
+    permissions:["receive"]
+  },
+
+  kythuat:{
+    password:"123456",
+    name:"Kỹ thuật",
+    role:"tech",
+    permissions:["receive","repair"]
+  },
+
+  qlcuahang:{
+    password:"123456",
+    name:"QL cửa hàng",
+    role:"store_manager",
+    permissions:["dashboard_basic","search"],
+    hideMoney:true,
+    hideProfit:true
+  },
+
+  qlkythuat:{
+    password:"123456",
+    name:"QL kỹ thuật",
+    role:"tech_manager",
+    permissions:["dashboard_full","repair","money","search"],
+    hideMoney:false,
+    hideProfit:false
+  },
+
+  admin:{
+    password:"123456",
+    name:"Admin / Full quyền",
+    role:"admin",
+    permissions:[
+      "dashboard_full",
+      "dashboard_basic",
+      "receive",
+      "repair",
+      "money",
+      "search"
+    ],
+    hideMoney:false,
+    hideProfit:false
+  }
 };
 
 let CURRENT_USER=null,DASH=null,currentRepair=null,currentMoney=null,currentMaterialView="pin";
@@ -12,8 +55,13 @@ let CURRENT_USER=null,DASH=null,currentRepair=null,currentMoney=null,currentMate
 const titles={overview:["Tổng quan sửa chữa","Dashboard quản trị sửa chữa theo tháng, tuần, dịch vụ, dòng máy và vật tư."],weekly:["Theo tuần","So sánh tuần 1-4/5 trong tháng để nắm nhịp tăng giảm."],services:["Dịch vụ","Biết dịch vụ nào mạnh, yếu, lời hoặc lỗ."],models:["Dòng máy","Xem dịch vụ theo model để đặt vật tư phù hợp."],materials:["Nhu cầu vật tư","Quy đổi dịch vụ theo dòng máy thành số lượng vật tư cần nhập."],techs:["KPI kỹ thuật","Theo dõi hiệu suất từng kỹ thuật."],receive:["Tiếp nhận máy","Tạo phiếu sửa chữa mới."],repair:["Xử lý sửa chữa","Cập nhật trạng thái và dịch vụ."],money:["Chi phí & lợi nhuận","Quản lý vật tư, công thợ và thực thu."],search:["Tra cứu","Tìm và xem chi tiết phiếu sửa."]};
 
 document.addEventListener("DOMContentLoaded",()=>{
-  const saved=localStorage.getItem("repairUser");
-  if(saved&&ACCOUNTS[saved]) loginAs(saved,false);
+  const saved = localStorage.getItem("repairUser");
+
+  if(saved && ACCOUNTS[saved]){
+    loginAs(saved,false);
+  }else{
+    localStorage.removeItem("repairUser");
+  }
   const d=new Date();
   monthFilter.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   bindLogin();bindTabs();bindForms();
@@ -35,8 +83,16 @@ function loginAs(username,save){
   loginScreen.classList.add("hidden");
   appRoot.classList.remove("hidden");
   currentUserName.textContent=CURRENT_USER.name;
-  currentRoleName.textContent="Quyền: "+CURRENT_USER.permissions.join(", ");
+  const roleLabel = {
+    sale:"Chỉ tiếp nhận máy",
+    tech:"Tiếp nhận + xử lý sửa chữa",
+    store_manager:"Theo dõi tiến độ, số đơn, doanh thu; không thấy lợi nhuận",
+    tech_manager:"QL kỹ thuật: xử lý, chi phí, tra cứu, lợi nhuận",
+    admin:"Full quyền"
+  };
+  currentRoleName.textContent=roleLabel[CURRENT_USER.role] || CURRENT_USER.permissions.join(", ");
   applyPermissions();
+  if(typeof loadMasterData === "function") loadMasterData();
   loadDashboard();
 }
 
@@ -172,17 +228,85 @@ function normalize(raw){
 function renderDashboard(){
   if(!DASH)return;
   const [y,m]=(monthFilter.value||"2026-06").split("-");
-  setText("heroMonth",`Tháng ${m}/${y}`);setText("ovOrders",DASH.orders);setText("ovRevenue",vnd(DASH.revenue));setText("ovProfit",vnd(DASH.profit));setText("ovMargin",pct(DASH.profit,DASH.revenue));setText("ovOverdue",DASH.overdue);setText("ovWaitingParts",DASH.waitingParts);setText("ovWarranty",DASH.warranty);setText("ovCompleted",DASH.completed);
+  setText("heroMonth",`Tháng ${m}/${y}`);setText("ovOrders",DASH.orders);setText("ovRevenue",vnd(DASH.revenue));setText("ovProfit",secureProfit(DASH.profit));setText("ovMargin",secureMargin(DASH.profit,DASH.revenue));setText("ovOverdue",DASH.overdue);setText("ovWaitingParts",DASH.waitingParts);setText("ovWarranty",DASH.warranty);setText("ovCompleted",DASH.completed);
   renderWeeks();renderTopServices();renderTopModels();renderAlerts();renderTechTables();renderStatuses();renderServicesTable();renderModelsTable();renderMatrix();renderMaterialNeeds();
 }
 
-function renderWeeks(){const html=DASH.weekly.map(w=>`<div class="week-card"><strong>Tuần ${w.week}</strong><div class="row"><span>Đơn</span><b>${w.orders}</b></div><div class="row"><span>Doanh thu</span><b>${shortMoney(w.revenue)}</b></div><div class="row"><span>Chi phí</span><b>${shortMoney(w.cost)}</b></div><div class="row"><span>Lợi nhuận</span><b>${shortMoney(w.profit)}</b></div></div>`).join("");if(window.overviewWeeks)overviewWeeks.innerHTML=html;if(window.weeklyCards)weeklyCards.innerHTML=html;if(window.weeklyTable){const rows=[["Đơn sửa",...DASH.weekly.map(w=>w.orders)],["Doanh thu",...DASH.weekly.map(w=>shortMoney(w.revenue))],["Chi phí",...DASH.weekly.map(w=>shortMoney(w.cost))],["Lợi nhuận",...DASH.weekly.map(w=>shortMoney(w.profit))]];weeklyTable.innerHTML=rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}}
-function renderTopServices(){if(!window.topServiceCards)return;topServiceCards.innerHTML=DASH.topServices.slice(0,5).map((x,i)=>`<div class="rank-item"><div class="rank-meta"><span>${rank(i)} ${esc(x.name||x.serviceName)}</span><small>${x.count||x.qty||0} đơn • ${vnd(x.revenue||0)}</small></div><b>${shortMoney(x.profit||x.revenue||0)}</b></div>`).join("")}
+function renderWeeks(){
+  const html = DASH.weekly.map(w=>`
+    <div class="week-card">
+      <strong>Tuần ${w.week}</strong>
+      <div class="row"><span>Đơn</span><b>${w.orders}</b></div>
+      <div class="row"><span>Doanh thu</span><b>${shortMoney(w.revenue)}</b></div>
+      <div class="row"><span>Chi phí</span><b>${canSeeFullMoney()?shortMoney(w.cost):"Ẩn"}</b></div>
+      <div class="row"><span>Lợi nhuận</span><b>${canSeeProfit()?shortMoney(w.profit):"Ẩn"}</b></div>
+    </div>`).join("");
+
+  if(window.overviewWeeks) overviewWeeks.innerHTML = html;
+  if(window.weeklyCards) weeklyCards.innerHTML = html;
+
+  if(window.weeklyTable){
+    const rows = [
+      ["Đơn sửa", ...DASH.weekly.map(w=>w.orders)],
+      ["Doanh thu", ...DASH.weekly.map(w=>shortMoney(w.revenue))],
+      ["Chi phí", ...DASH.weekly.map(w=>canSeeFullMoney()?shortMoney(w.cost):"Ẩn")],
+      ["Lợi nhuận", ...DASH.weekly.map(w=>canSeeProfit()?shortMoney(w.profit):"Ẩn")]
+    ];
+    weeklyTable.innerHTML = rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("");
+  }
+}
+function renderTopServices(){
+  if(!window.topServiceCards) return;
+  topServiceCards.innerHTML = DASH.topServices.slice(0,5).map((x,i)=>{
+    const mainValue = canSeeProfit() ? shortMoney(x.profit||0) : shortMoney(x.revenue||0);
+    const label = canSeeProfit() ? "LN" : "DT";
+    return `<div class="rank-item">
+      <div class="rank-meta">
+        <span>${rank(i)} ${esc(x.name||x.serviceName)}</span>
+        <small>${x.count||x.qty||0} đơn • ${vnd(x.revenue||0)}</small>
+      </div>
+      <b>${label}: ${mainValue}</b>
+    </div>`;
+  }).join("");
+}
 function renderTopModels(){if(!window.topModelCards)return;topModelCards.innerHTML=DASH.modelStats.slice(0,5).map((x,i)=>`<div class="rank-item"><div class="rank-meta"><span>${rank(i)} ${esc(x.model)}</span><small>Dịch vụ mạnh: ${esc(x.topService)}</small></div><b>${x.orders} đơn</b></div>`).join("")}
 function renderAlerts(){if(!window.alertCards)return;const a=[];if(DASH.overdue>0)a.push(`${DASH.overdue} máy quá hẹn cần xử lý`);if(DASH.waitingParts>0)a.push(`${DASH.waitingParts} máy đang chờ linh kiện`);if(DASH.warranty>0)a.push(`Bảo hành/bảo hành lại: ${DASH.warranty} đơn`);const n=(DASH.materialNeeds.pin||[])[0];if(n)a.push(`Kiểm tra tồn ${n.name}: nhu cầu ${n.need}/tháng`);alertCards.innerHTML=a.map(x=>`<div class="alert-item">🚨 <b>${esc(x)}</b></div>`).join("")}
-function renderTechTables(){const rows=DASH.byTech.map(x=>{const score=Math.max(0,Math.round((x.completed||0)*2+(x.profit||0)/100000-(x.overdue||0)*3));return`<tr><td><b>${esc(x.technician)}</b></td><td>${x.total}</td><td>${x.completed}</td><td>${x.overdue}</td><td>${vnd(x.revenue)}</td><td>${vnd(x.profit)}</td><td><span class="badge">${score}</span></td></tr>`}).join("");if(window.overviewTechRows)overviewTechRows.innerHTML=rows.replace(/<td><span class="badge">.*?<\/span><\/td><\/tr>/g,"</tr>");if(window.techRows)techRows.innerHTML=rows}
+function renderTechTables(){
+  const rows = DASH.byTech.map(x=>{
+    const score = canSeeProfit() ? Math.max(0,Math.round((x.completed||0)*2+(x.profit||0)/100000-(x.overdue||0)*3)) : "-";
+    return `<tr>
+      <td><b>${esc(x.technician)}</b></td>
+      <td>${x.total}</td>
+      <td>${x.completed}</td>
+      <td>${x.overdue}</td>
+      <td>${vnd(x.revenue)}</td>
+      <td>${canSeeProfit()?vnd(x.profit):"Ẩn"}</td>
+      <td><span class="badge">${score}</span></td>
+    </tr>`;
+  }).join("");
+
+  if(window.overviewTechRows){
+    overviewTechRows.innerHTML = rows.replace(/<td><span class="badge">.*?<\/span><\/td>\s*<\/tr>/g,"</tr>");
+  }
+  if(window.techRows) techRows.innerHTML = rows;
+}
 function renderStatuses(){if(!window.statusCards)return;statusCards.innerHTML=Object.entries(DASH.byStatus).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="status-item"><span>${esc(k)}</span><b>${v}</b></div>`).join("")}
-function renderServicesTable(){if(!window.serviceRows)return;serviceRows.innerHTML=DASH.topServices.map(x=>{const rev=x.revenue||0,cost=x.cost||Math.round(rev*.48),p=x.profit??rev-cost;return`<tr><td><b>${esc(x.name)}</b></td><td>${x.count||0}</td><td>${vnd(rev)}</td><td>${vnd(cost)}</td><td>${vnd(p)}</td><td>${pct(p,rev)}</td></tr>`}).join("")}
+function renderServicesTable(){
+  if(!window.serviceRows) return;
+  serviceRows.innerHTML = DASH.topServices.map(x=>{
+    const rev = x.revenue || 0;
+    const cost = x.cost || Math.round(rev*.48);
+    const p = x.profit ?? rev-cost;
+    return `<tr>
+      <td><b>${esc(x.name)}</b></td>
+      <td>${x.count||0}</td>
+      <td>${vnd(rev)}</td>
+      <td>${canSeeFullMoney()?vnd(cost):"Ẩn"}</td>
+      <td>${canSeeProfit()?vnd(p):"Ẩn"}</td>
+      <td>${canSeeProfit()?pct(p,rev):"Ẩn"}</td>
+    </tr>`;
+  }).join("");
+}
 function renderModelsTable(){if(!window.modelRows)return;modelRows.innerHTML=DASH.modelStats.map(x=>`<tr><td><b>${esc(x.model)}</b></td><td>${x.orders}</td><td>${esc(x.topService)}</td><td>${x.topServiceQty}</td><td>${esc(x.suggest)}</td></tr>`).join("")}
 function renderMatrix(){if(!window.matrixHead)return;matrixHead.innerHTML=`<tr><th>Dòng máy</th>${DASH.matrix.services.map(s=>`<th>${esc(s)}</th>`).join("")}</tr>`;matrixRows.innerHTML=DASH.matrix.rows.map(r=>`<tr><td><b>${esc(r.model)}</b></td>${DASH.matrix.services.map(s=>`<td>${r.values[s]||0}</td>`).join("")}</tr>`).join("")}
 function setMaterialView(t){currentMaterialView=t;document.querySelectorAll(".pill").forEach(p=>p.classList.toggle("active",p.dataset.material===t));renderMaterialNeeds()}
@@ -196,7 +320,7 @@ async function searchForMoney(){if(!can("money"))return toast("Không có quyề
 async function loadMoneyDetail(id){const r=await api("getRepair",{repairId:id});if(!r.ok)return toast(r.message||"Không tải được phiếu","error");currentMoney=r.data;const info=r.data.info;moneyInfo.classList.remove("hidden");moneyForm.classList.remove("hidden");materialAddBox.classList.remove("hidden");moneyInfo.innerHTML=renderInfo(info);moneyForm.repairId.value=info.repairId||"";moneyForm.totalLabor.value=info.totalLabor||"";moneyForm.extraCost.value=info.extraCost||"";moneyForm.actualRevenue.value=info.actualRevenue||"";moneyForm.paymentStatus.value=info.paymentStatus||"Chưa thanh toán";moneyForm.extraNote.value=info.extraNote||"";setText("sumService",vnd(info.totalService));setText("sumMaterial",vnd(info.totalMaterial));setText("sumCost",vnd(info.totalCost));setText("sumProfit",vnd(info.profit));currentMaterials.innerHTML=(r.data.materials||[]).map(x=>`<tr><td>${esc(x.materialName)}</td><td>${x.qty}</td><td>${vnd(x.unitPrice)}</td><td>${vnd(x.amount)}</td><td>${esc(x.supplier)}</td></tr>`).join("")||`<tr><td colspan="5">Chưa có vật tư</td></tr>`}
 async function addMaterialUI(){if(!can("money"))return toast("Không có quyền","error");if(!currentMoney)return toast("Chưa chọn phiếu","error");const data={repairId:currentMoney.info.repairId,materialName:materialName.value,qty:materialQty.value,unitPrice:materialUnitPrice.value,supplier:materialSupplier.value,user:CURRENT_USER.username};if(!data.materialName)return toast("Nhập tên vật tư","error");const r=await api("addMaterial",{data});r.ok?(toast("Đã thêm vật tư","ok"),materialName.value=materialUnitPrice.value=materialSupplier.value="",materialQty.value="1",loadMoneyDetail(data.repairId),loadDashboard()):toast(r.message||"Lỗi thêm vật tư","error")}
 
-async function globalSearch(){if(!can("search"))return toast("Không có quyền tra cứu","error");const r=await api("searchRepair",{keyword:globalKeyword.value.trim()});if(!r.ok)return toast(r.message||"Lỗi tìm kiếm","error");searchRows.innerHTML=(r.results||[]).map(x=>`<tr><td><b>${esc(x.repairId)}</b></td><td>${esc(x.imei)}</td><td>${esc(x.customer)}</td><td>${esc(x.phone)}</td><td>${esc(x.product)}</td><td>${esc(x.status)}</td><td>${esc(x.technician)}</td><td>${vnd(x.profit)}</td><td><button class="small-btn" onclick="viewDetail('${jsesc(x.repairId)}')">Xem</button></td></tr>`).join("")||`<tr><td colspan="9">Không có kết quả</td></tr>`}
+async function globalSearch(){if(!can("search"))return toast("Không có quyền tra cứu","error");const r=await api("searchRepair",{keyword:globalKeyword.value.trim()});if(!r.ok)return toast(r.message||"Lỗi tìm kiếm","error");searchRows.innerHTML=(r.results||[]).map(x=>`<tr><td><b>${esc(x.repairId)}</b></td><td>${esc(x.imei)}</td><td>${esc(x.customer)}</td><td>${esc(x.phone)}</td><td>${esc(x.product)}</td><td>${esc(x.status)}</td><td>${esc(x.technician)}</td><td>${canSeeProfit()?vnd(x.profit):"Ẩn"}</td><td><button class="small-btn" onclick="viewDetail('${jsesc(x.repairId)}')">Xem</button></td></tr>`).join("")||`<tr><td colspan="9">Không có kết quả</td></tr>`}
 async function viewDetail(id){const r=await api("getRepair",{repairId:id});if(!r.ok)return toast(r.message||"Không tải được chi tiết","error");detailBox.classList.remove("hidden");detailBox.innerHTML=`<h3>Phiếu ${esc(id)}</h3>${renderInfo(r.data.info)}`}
 function renderInfo(info){const items=[["Mã sửa",info.repairId],["IMEI",info.imei],["Khách",info.customer],["SĐT",info.phone],["Sản phẩm",info.product],["Loại DV",info.serviceType],["KTV",info.technician],["Trạng thái",info.status],["Doanh thu",vnd(info.actualRevenue)],["Chi phí",vnd(info.totalCost)],["Lợi nhuận",vnd(info.profit)],["Hẹn trả",fmtDate(info.appointment)]];return`<div class="info-grid">${items.map(([k,v])=>`<div class="info-item"><span>${k}</span><b>${esc(v??"")}</b></div>`).join("")}</div>`}
 
@@ -205,18 +329,6 @@ function formData(f){const o={};new FormData(f).forEach((v,k)=>o[k]=v);return o}
 
 
 /* ===================== V4 FINAL OVERRIDES ===================== */
-
-const V4_ACCOUNTS = {
-  sale:{password:"123456",name:"SALE / Tiếp nhận",role:"sale",permissions:["receive"]},
-  kythuat:{password:"123456",name:"Kỹ thuật",role:"tech",permissions:["receive","repair"]},
-  qlcuahang:{password:"123456",name:"QL cửa hàng",role:"store_manager",permissions:["dashboard_basic","search"],hideMoney:true,hideProfit:true},
-  qlkythuat:{password:"123456",name:"QL kỹ thuật",role:"tech_manager",permissions:["dashboard_full","repair","money","search"],hideMoney:false,hideProfit:false},
-  admin:{password:"123456",name:"Admin / Full quyền",role:"admin",permissions:["dashboard_full","dashboard_basic","receive","repair","money","search"],hideMoney:false,hideProfit:false}
-};
-
-try{
-  Object.keys(V4_ACCOUNTS).forEach(k=>ACCOUNTS[k]=V4_ACCOUNTS[k]);
-}catch(e){}
 
 let MASTER_DATA = {
   statuses:[],
@@ -311,25 +423,47 @@ async function loadMasterData(){
 }
 
 function fillMasterDropdowns(){
-  // Trạng thái trong form kỹ thuật
-  const techStatus = document.querySelector('#techForm select[name="status"]');
-  if(techStatus && MASTER_DATA.statuses?.length){
-    techStatus.innerHTML = MASTER_DATA.statuses.map(x=>`<option>${esc(x.name || x)}</option>`).join("");
+  fillSelectByName("serviceType", MASTER_DATA.serviceTypes || MASTER_DATA.services || []);
+  fillSelectByName("status", MASTER_DATA.statuses || []);
+
+  fillInputList("technician", "dlTechnicians", MASTER_DATA.technicians || []);
+  fillInputList("serviceName", "dlServices", MASTER_DATA.services || []);
+  fillInputList("materialName", "dlMaterials", MASTER_DATA.materials || []);
+  fillInputList("materialSupplier", "dlSuppliers", MASTER_DATA.suppliers || []);
+}
+
+function getMasterName(x){
+  return x?.name || x?.["Tên"] || x?.["Tên dịch vụ"] || x?.["Tên vật tư"] || x?.["Tên kỹ thuật"] || x?.["Trạng thái"] || x?.["Tên NCC"] || x || "";
+}
+
+function fillSelectByName(name, list){
+  document.querySelectorAll(`[name="${name}"]`).forEach(select=>{
+    if(!select || select.tagName !== "SELECT") return;
+    const first = select.querySelector('option[value=""]')?.outerHTML || `<option value="">Chọn</option>`;
+    select.innerHTML = first + (list||[]).map(x=>{
+      const n = getMasterName(x);
+      return n ? `<option value="${esc(n)}">${esc(n)}</option>` : "";
+    }).join("");
+  });
+}
+
+function fillInputList(inputId, datalistId, list){
+  const input = document.getElementById(inputId) || document.querySelector(`[name="${inputId}"]`);
+  if(!input) return;
+
+  let dl = document.getElementById(datalistId);
+  if(!dl){
+    dl = document.createElement("datalist");
+    dl.id = datalistId;
+    document.body.appendChild(dl);
   }
 
-  // KTV gợi ý datalist
-  injectDatalist("dlTechnicians", (MASTER_DATA.technicians||[]).map(x=>x.name||x));
-  injectDatalist("dlServices", (MASTER_DATA.services||[]).map(x=>x.name||x));
-  injectDatalist("dlMaterials", (MASTER_DATA.materials||[]).map(x=>x.name||x));
+  dl.innerHTML = (list||[]).map(x=>{
+    const n = getMasterName(x);
+    return n ? `<option value="${esc(n)}"></option>` : "";
+  }).join("");
 
-  const techInput = document.querySelector('#techForm input[name="technician"]');
-  if(techInput) techInput.setAttribute("list","dlTechnicians");
-
-  const serviceInput = document.getElementById("serviceName");
-  if(serviceInput) serviceInput.setAttribute("list","dlServices");
-
-  const materialInput = document.getElementById("materialName");
-  if(materialInput) materialInput.setAttribute("list","dlMaterials");
+  input.setAttribute("list", datalistId);
 }
 
 function injectDatalist(id, arr){

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POPOPHONE Repair Center V3</title>
+  <title>POPOPHONE Repair Center V5</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -36,7 +36,7 @@
         <div class="brand-mark">P</div>
         <div>
           <h1>POPOPHONE</h1>
-          <p>Repair Center V3</p>
+          <p>Repair Center V5</p>
         </div>
       </div>
 
@@ -48,10 +48,11 @@
         <button class="nav-btn" data-tab="materials" data-permission="dashboard">📦 Nhu cầu vật tư</button>
         <button class="nav-btn" data-tab="techs" data-permission="dashboard">👨‍🔧 KTV</button>
 
+        <button class="nav-btn" data-tab="search" data-permission="search">🔍 Tra cứu</button>
         <button class="nav-btn" data-tab="receive" data-permission="receive">📥 Tiếp nhận máy</button>
         <button class="nav-btn" data-tab="repair" data-permission="repair">🔨 Xử lý sửa chữa</button>
         <button class="nav-btn" data-tab="money" data-permission="money">💰 Chi phí</button>
-        <button class="nav-btn" data-tab="search" data-permission="search">🔍 Tra cứu</button>
+
       </nav>
 
       <div class="sidebar-card">
@@ -64,8 +65,8 @@
     <main class="main">
       <header class="topbar">
         <div>
-          <h2 id="pageTitle">Tổng quan sửa chữa</h2>
-          <p id="pageSub">Dashboard quản trị sửa chữa theo tháng, tuần, dịch vụ, dòng máy và vật tư.</p>
+          <h2 id="pageTitle">TỔNG QUAN SỬA CHỮA</h2>
+          <p id="pageSub">Dashboard quản trị sửa chữa theo tháng, tuần, dịch vụ, dòng máy và vật tư</p>
         </div>
         <div class="top-actions">
           <select id="branchFilter">
@@ -83,7 +84,6 @@
           <div>
             <span class="eyebrow">TỔNG QUAN THÁNG</span>
             <h3 id="heroMonth">Tháng hiện tại</h3>
-            <p>Nhìn 5 giây biết tiệm sửa đang lời/lỗ và kẹt ở đâu.</p>
           </div>
           <div class="hero-numbers">
             <div><span>Đơn sửa</span><b id="ovOrders">0</b></div>
@@ -104,22 +104,22 @@
 
         <div class="dashboard-grid-3">
           <div class="panel">
-            <div class="panel-head"><h3>🏆 Top dịch vụ</h3><p>Dịch vụ mạnh/yếu theo số lượng và lợi nhuận.</p></div>
+            <div class="panel-head"><h3>🏆 TOP DỊCH VỤ</h3></div>
             <div id="topServiceCards" class="rank-list"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h3>📱 Top dòng máy</h3><p>Dòng máy sửa nhiều để chuẩn bị vật tư.</p></div>
+            <div class="panel-head"><h3>📱 TOP DÒNG MÁY</h3></div>
             <div id="topModelCards" class="rank-list"></div>
           </div>
           <div class="panel alert-panel">
-            <div class="panel-head"><h3>🚨 Cảnh báo</h3><p>Điểm cần xử lý trong vận hành.</p></div>
+            <div class="panel-head"><h3>🚨 CẢNH BÁO</h3></div>
             <div id="alertCards" class="alert-list"></div>
           </div>
         </div>
 
         <div class="dashboard-grid-2">
           <div class="panel">
-            <div class="panel-head"><h3>👨‍🔧 KPI kỹ thuật</h3><p>Đơn, quá hẹn, doanh thu và lợi nhuận theo KTV.</p></div>
+            <div class="panel-head"><h3>👨‍🔧 KPI KỸ THUẬT</h3></div>
             <div class="table-wrap">
               <table>
                 <thead><tr><th>KTV</th><th>Đơn</th><th>Hoàn thành</th><th>Quá hẹn</th><th>Doanh thu</th><th>Lợi nhuận</th></tr></thead>
@@ -128,7 +128,7 @@
             </div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h3>📌 Tồn máy theo trạng thái</h3><p>Biết máy đang kẹt ở bước nào.</p></div>
+            <div class="panel-head"><h3>📌 Tồn máy theo trạng thái</h3></div>
             <div id="statusCards" class="status-list"></div>
           </div>
         </div>
@@ -136,7 +136,7 @@
 
       <section id="weekly" class="tab" data-permission="dashboard">
         <div class="panel">
-          <div class="panel-head"><h3>📅 Hiệu suất 4 tuần trong tháng</h3><p>So sánh tuần này với tuần trước để nắm nhịp doanh thu/chi phí/lợi nhuận.</p></div>
+          <div class="panel-head"><h3>📅 HIỆU SUẤT TRONG THÁNG</h3><p>So sánh tuần này với tuần trước để nắm nhịp doanh thu/chi phí/lợi nhuận.</p></div>
           <div id="weeklyCards" class="weekly-grid"></div>
           <div class="table-wrap mt">
             <table>
@@ -149,7 +149,7 @@
 
       <section id="services" class="tab" data-permission="dashboard">
         <div class="panel">
-          <div class="panel-head"><h3>🔧 Phân tích theo dịch vụ</h3><p>Biết dịch vụ nào lời, lỗ, mạnh, yếu.</p></div>
+          <div class="panel-head"><h3>🔧 PHÂN TÍCH THEO DỊCH VỤ</h3></div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>Dịch vụ</th><th>SL</th><th>Doanh thu</th><th>Giá vốn ước tính</th><th>Lợi nhuận ước tính</th><th>Biên LN</th></tr></thead>
@@ -161,7 +161,7 @@
 
       <section id="models" class="tab" data-permission="dashboard">
         <div class="panel">
-          <div class="panel-head"><h3>📱 Dịch vụ theo dòng máy</h3><p>Ví dụ: Thay pin 12 Pro Max bao nhiêu cục để đặt SL phù hợp.</p></div>
+          <div class="panel-head"><h3>📱 DỊCH VỤ THEO DÒNG MÁY</h3></div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>Dòng máy</th><th>Tổng đơn</th><th>Dịch vụ nhiều nhất</th><th>SL</th><th>Gợi ý nhập</th></tr></thead>
@@ -170,7 +170,7 @@
           </div>
         </div>
         <div class="panel">
-          <div class="panel-head"><h3>🔎 Ma trận dịch vụ × dòng máy</h3><p>Nhìn thẳng nhu cầu sửa chữa theo từng model.</p></div>
+          <div class="panel-head"><h3>🔎 DANH SÁCH</h3></div>
           <div class="table-wrap">
             <table>
               <thead id="matrixHead"></thead>
@@ -182,10 +182,9 @@
 
       <section id="materials" class="tab" data-permission="dashboard">
         <div class="panel">
-          <div class="panel-head"><h3>📦 Nhu cầu vật tư</h3><p>Quy đổi từ dịch vụ + dòng máy để ra số lượng cần nhập.</p></div>
+          <div class="panel-head"><h3>📦 NHU CẦU VẬT TƯ</h3></div>
           <div class="material-tabs">
             <button class="pill active" data-material="pin" onclick="setMaterialView('pin')">Pin</button>
-            <button class="pill" data-material="kinh" onclick="setMaterialView('kinh')">Kính</button>
             <button class="pill" data-material="man" onclick="setMaterialView('man')">Màn</button>
             <button class="pill" data-material="khac" onclick="setMaterialView('khac')">Khác</button>
           </div>
@@ -220,7 +219,7 @@
           <div class="page-note">
             <b>Nhắc nhân viên:</b>
             <span>Nhập đủ IMEI, SĐT, tình trạng máy và hẹn trả.</span>
-            <span>Không nhập chi phí ở màn hình này.</span>
+       
           </div>
         </div>
 
@@ -231,13 +230,13 @@
           </div>
 
           <form id="receiveForm" class="form-grid labelled-form">
-            <label><span>IMEI / Serial *</span><input name="imei" placeholder="Nhập IMEI hoặc Serial máy" required /></label>
+            <label><span>IMEI / Serial *</span><input name="imei" placeholder="Nhập IMEI" required /></label>
             <label><span>Sản phẩm / Dòng máy *</span><input name="product" placeholder="VD: iPhone 12 Pro Max" required /></label>
             <label><span>Tên khách hàng *</span><input name="customer" placeholder="Nhập họ và tên khách hàng" required /></label>
 
             <label><span>Số điện thoại *</span><input name="phone" placeholder="Nhập số điện thoại khách hàng" required /></label>
             <label><span>Chi nhánh *</span><select name="branch"><option value="">Chọn chi nhánh</option><option>113</option><option>1/48</option></select></label>
-            <label><span>Loại dịch vụ *</span><select name="serviceType"><option>Sửa chữa</option><option>Bảo hành</option><option>Làm mới</option><option>Vệ sinh</option><option>Kiểm tra</option></select></label>
+            <label><span>Loại dịch vụ *</span><select name="serviceType"><option>Khách cũ lấy phí</option><option>Sửa chữa mới</option><option>Bảo hành</option><option>Thay pin miễn phí</option><option>Đặc quyền tối thượng</option></select></label>
 
             <label><span>Hẹn trả</span><input name="appointment" type="datetime-local" /></label>
             <label><span>Giá dự kiến</span><input name="estimate" placeholder="Nhập giá dự kiến nếu có" /></label>
@@ -294,7 +293,7 @@
 
             <div class="form-actions">
               <button class="ghost-btn" type="reset">Xóa form</button>
-              <button class="ghost-btn" type="button" onclick="saveReceiveAndPrint()">Lưu + In phiếu nhận</button><button class="primary-btn" type="submit">Lưu phiếu tiếp nhận</button>
+              <button class="ghost-btn" type="button" onclick="saveReceiveAndPrint()">Lưu và in phiếu nhận</button><button class="primary-btn" type="submit">Lưu phiếu tiếp nhận</button>
             </div>
           </form>
         </div>
@@ -307,7 +306,7 @@
             <h2>XỬ LÝ SỬA CHỮA</h2>
             <p>Kỹ thuật cập nhật tình trạng thực tế, trạng thái máy và thêm dịch vụ sửa chữa.</p>
           </div>
-          <div class="page-note"><b>Lưu ý:</b><span>Kỹ thuật không nhập vật tư, công thợ hoặc thực thu.</span></div>
+          <div class="page-note"><b>Lưu ý:</b><span>Kỹ thuật phải cập nhật liên tục và chính xác trạng thái máy</span></div>
         </div>
 
         <div class="panel">
@@ -321,7 +320,8 @@
           <form id="techForm" class="form-grid hidden">
             <label><span>Mã sửa chữa</span><input name="repairId" readonly /></label>
             <label class="span-3"><span>Tình trạng thực tế</span><textarea name="actualStatus" placeholder="KTV kiểm tra thực tế ghi tại đây"></textarea></label>
-            <label><span>Nơi xử lý</span><input name="processPlace" placeholder="Nội bộ / Bên ngoài" /></label>
+            <label><span>Nơi xử lý</span><select name="processPlace"> <option>Nội bộ </option><option>Bên ngoài</option></select></label>
+
             <label><span>Kỹ thuật xử lý</span><input name="technician" placeholder="Tên kỹ thuật" /></label>
             <label><span>Trạng thái máy</span><select name="status">
               <option>1. Đã tiếp nhận</option><option>2. Đang kiểm tra</option><option>3. Chờ báo giá</option>
@@ -351,9 +351,9 @@
           <div class="page-icon">💰</div>
           <div>
             <h2>CHI PHÍ & LỢI NHUẬN</h2>
-            <p>Quản lý cập nhật vật tư, công thợ, thực thu và trạng thái thanh toán.</p>
+            <p>Cập nhật vật tư, công thợ, thực thu và trạng thái thanh toán.</p>
           </div>
-          <div class="page-note"><b>Lưu ý:</b><span>Chỉ quản lý được nhập chi phí và chốt lợi nhuận.</span></div>
+          <div class="page-note"><b>Lưu ý:</b><span>Cập nhật hàng ngày trước 12h00</span></div>
         </div>
 
         <div class="panel">
@@ -392,7 +392,7 @@
               <div><span>Lợi nhuận</span><b id="sumProfit">0đ</b></div>
             </div>
 
-            <div class="form-actions"><button class="primary-btn" type="submit">Chốt chi phí</button></div>
+            <div class="form-actions"><button class="primary-btn" type="submit">Lưu chi phí</button></div>
           </form>
         </div>
       </section>
@@ -413,7 +413,7 @@
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Mã</th><th>IMEI</th><th>Khách</th><th>SĐT</th><th>Máy</th><th>Trạng thái</th><th>KTV</th><th>LN</th><th></th></tr></thead>
+              <thead><tr><th>Mã</th><th>IMEI</th><th>Khách</th><th>SĐT</th><th>Máy</th><th>Trạng thái</th><th>KTV</th><th>Dịch vụ sửa chữa</th><th>Báo giá</th></tr></thead>
               <tbody id="searchRows"><tr><td colspan="9">Nhập từ khóa để tìm.</td></tr></tbody>
             </table>
           </div>
