@@ -354,21 +354,27 @@ async function globalSearch(){
   const r = await api("searchRepair",{keyword:globalKeyword.value.trim()});
   if(!r.ok) return toast(r.message || "Lỗi tìm kiếm","error");
 
-  searchRows.innerHTML = (r.results || []).map(x => `
-    <tr>
-      <td><b>${esc(x.repairId)}</b></td>
-      <td>${esc(x.imei)}</td>
-      <td>${esc(x.customer)}</td>
-      <td>${esc(x.phone)}</td>
-      <td>${esc(x.product)}</td>
-      <td>${esc(x.status)}</td>
-      <td>${esc(x.technician)}</td>
-      <td>${esc(x.serviceType || "")}</td>
-      <td>${vnd(x.revenue || 0)}</td>
-      <td><button class="small-btn" onclick="viewDetail('${jsesc(x.repairId)}')">Xem</button></td>
-    </tr>
-  `).join("") || `<tr><td colspan="10">Không có kết quả</td></tr>`;
+  searchRows.innerHTML = (r.results || []).map(x => {
+    const serviceText = x.serviceType || x.serviceName || "";
+    const priceText = vnd(x.revenue || x.estimate || 0);
+
+    return `
+      <tr>
+        <td><b>${esc(x.repairId)}</b></td>
+        <td>${esc(x.imei)}</td>
+        <td>${esc(x.customer)}</td>
+        <td>${esc(x.phone)}</td>
+        <td>${esc(x.product)}</td>
+        <td>${esc(x.status)}</td>
+        <td>${esc(x.technician)}</td>
+        <td>${esc(serviceText)}</td>
+        <td>${priceText}</td>
+        <td><button class="small-btn" onclick="viewDetail('${jsesc(x.repairId)}')">Xem</button></td>
+      </tr>
+    `;
+  }).join("") || `<tr><td colspan="10">Không có kết quả</td></tr>`;
 }
+
 async function viewDetail(id){const r=await api("getRepair",{repairId:id});if(!r.ok)return toast(r.message||"Không tải được chi tiết","error");detailBox.classList.remove("hidden");detailBox.innerHTML=`<h3>Phiếu ${esc(id)}</h3>${renderInfo(r.data.info)}`}
 function renderInfo(info){
   const items=[
@@ -566,21 +572,24 @@ renderDashboard = function(){
 
 const oldRenderInfoV4 = typeof renderInfo === "function" ? renderInfo : null;
 renderInfo = function(info){
-  const items=[
-    ["Mã sửa",info.repairId],
-    ["IMEI",info.imei],
-    ["Khách",info.customer],
-    ["SĐT",info.phone],
-    ["Sản phẩm",info.product],
-    ["Loại DV",info.serviceType],
-    ["KTV",info.technician],
-    ["Trạng thái",info.status],
-    ["Hẹn trả",fmtDate(info.appointment)],
-    ["Báo giá / Thực thu",vnd(info.actualRevenue || info.estimate || 0)]
+  const items = [
+    ["Mã sửa", info.repairId],
+    ["IMEI", info.imei],
+    ["Khách", info.customer],
+    ["SĐT", info.phone],
+    ["Sản phẩm", info.product],
+    ["Loại DV", info.serviceType],
+    ["KTV", info.technician],
+    ["Trạng thái", info.status],
+    ["Hẹn trả", fmtDate(info.appointment)]
   ];
 
-  if(canSeeFullMoney()) items.push(["Chi phí",vnd(info.totalCost)]);
-  if(canSeeProfit()) items.push(["Lợi nhuận",vnd(info.profit)]);
+  // QL cửa hàng / sale / kỹ thuật chỉ thấy báo giá hoặc thực thu để báo khách
+  items.push(["Báo giá / Thực thu", vnd(info.actualRevenue || info.estimate || 0)]);
+
+  // Chỉ QL kỹ thuật và admin mới thấy chi phí/lợi nhuận
+  if(canSeeFullMoney()) items.push(["Chi phí", vnd(info.totalCost)]);
+  if(canSeeProfit()) items.push(["Lợi nhuận", vnd(info.profit)]);
 
   return `<div class="info-grid">${items.map(([k,v])=>`<div class="info-item"><span>${k}</span><b>${esc(v??"")}</b></div>`).join("")}</div>`;
 };
