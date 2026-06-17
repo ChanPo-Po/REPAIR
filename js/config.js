@@ -1,4 +1,4 @@
-const API_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyHLnjGAnk5FcPLQ58Y3PtyFcWxzKaJj7aJ3l6_hkwvhhaoloELmBI_vJOGICLqLuVJVA/exec';
 const DEMO_MODE = true;
 const DM_LOAI_DICH_VU = ['Sửa chữa','Bảo hành','Đặc quyền','Thay pin miễn phí','Khách nội bộ','Khách đối tác'];
 const DM_DICH_VU = [
