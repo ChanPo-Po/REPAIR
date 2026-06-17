@@ -49,8 +49,8 @@
         <button class="nav-btn" data-tab="techs" data-permission="dashboard">👨‍🔧 KTV</button>
 
         <button class="nav-btn" data-tab="search" data-permission="search">🔍 Tra cứu</button>
-        <button class="nav-btn" data-tab="receive" data-permission="receive">📥 Tiếp nhận máy</button>
-        <button class="nav-btn" data-tab="repair" data-permission="repair">🔨 Xử lý sửa chữa</button>
+        <button class="nav-btn" data-tab="receive" data-permission="receive">📥 Nhận máy</button>
+        <button class="nav-btn" data-tab="repair" data-permission="repair">🔨 Cập nhật trạng thái sữa chữa</button>
         <button class="nav-btn" data-tab="worklog" data-permission="worklog">🧾 Công sửa chữa</button>
         <button class="nav-btn" data-tab="money" data-permission="money">💰 Chi phí</button>
 
@@ -58,7 +58,6 @@
 
       <div class="sidebar-card">
         <b id="currentUserName">Người dùng</b>
-        <span id="currentRoleName">Vai trò</span>
         <button class="logout-btn" onclick="logout()">Đăng xuất</button>
       </div>
     </aside>
@@ -73,7 +72,7 @@
           <select id="branchFilter">
             <option value="">Tất cả chi nhánh</option>
             <option>113</option>
-            <option>1/48</option>
+            <option>148</option>
           </select>
           <input id="monthFilter" type="month" />
           <button class="primary-btn" onclick="loadDashboard()">Làm mới</button>
