@@ -36,7 +36,7 @@
         <div class="brand-mark">P</div>
         <div>
           <h1>POPOPHONE</h1>
-          <p>Repair Center V7</p>
+          <p>Repair Center</p>
         </div>
       </div>
 
@@ -50,9 +50,8 @@
 
         <button class="nav-btn" data-tab="search" data-permission="search">🔍 Tra cứu</button>
         <button class="nav-btn" data-tab="receive" data-permission="receive">📥 Nhận máy</button>
-        <button class="nav-btn" data-tab="repair" data-permission="repair">🔨 Cập nhật trạng thái sữa chữa</button>
-        <button class="nav-btn" data-tab="worklog" data-permission="worklog">🧾 Công sửa chữa</button>
-        <button class="nav-btn" data-tab="money" data-permission="money">💰 Chi phí</button>
+        <button class="nav-btn" data-tab="repair" data-permission="repair">🔨 Cập nhật trạng thái</button>
+        <button class="nav-btn" data-tab="money" data-permission="money">💰 Cập nhật chi phí</button>
 
       </nav>
 
@@ -217,7 +216,7 @@
             <p>Ghi nhận thông tin máy, khách hàng, lỗi ban đầu và yêu cầu sửa chữa.</p>
           </div>
           <div class="page-note">
-            <b>Nhắc nhân viên:</b>
+            <b>LƯU Ý:</b>
             <span>Nhập đủ IMEI, SĐT, tình trạng máy và hẹn trả.</span>
        
           </div>
@@ -225,7 +224,7 @@
 
         <div class="panel">
           <div class="panel-head section-title">
-            <h3>📋 THÔNG TIN TIẾP NHẬN</h3>
+            <h3>📋 PHIẾU TIẾP NHẬN SỬA CHỮA</h3>
             <p>Các ô có dấu * là thông tin nên nhập đầy đủ để tránh thiếu dữ liệu báo cáo.</p>
           </div>
 
@@ -288,12 +287,12 @@
               <div><b>2</b><span>Ghi nhận tình trạng</span></div>
               <div><b>3</b><span>Xác nhận yêu cầu</span></div>
               <div><b>4</b><span>Báo giá dự kiến</span></div>
-              <div><b>5</b><span>Lưu phiếu tiếp nhận</span></div>
+              <div><b>5</b><span>Lưu phiếu</span></div>
             </div>
 
             <div class="form-actions">
               <button class="ghost-btn" type="reset">Xóa form</button>
-              <button class="ghost-btn" type="button" onclick="saveReceiveAndPrint()">Lưu và in phiếu nhận</button><button class="primary-btn" type="submit">Lưu phiếu tiếp nhận</button>
+              <button class="ghost-btn" type="button" onclick="saveReceiveAndPrint()">Lưu và in phiếu nhận</button><button class="primary-btn" type="submit">Lưu</button>
             </div>
           </form>
         </div>
@@ -303,7 +302,7 @@
         <div class="page-hero">
           <div class="page-icon">🔨</div>
           <div>
-            <h2>XỬ LÝ SỬA CHỮA</h2>
+            <h2>CẬP NHẬT TRẠNG THÁI</h2>
             <p>Kỹ thuật cập nhật tình trạng thực tế, trạng thái máy và thêm dịch vụ sửa chữa.</p>
           </div>
           <div class="page-note"><b>Lưu ý:</b><span>Kỹ thuật phải cập nhật liên tục và chính xác trạng thái máy</span></div>
@@ -330,7 +329,6 @@
               <option>10. Bảo hành lại</option><option>11. Hủy sửa</option>
             </select></label>
             <label class="span-3"><span>Ghi chú kỹ thuật</span><textarea name="techNote"></textarea></label>
-            <div class="form-actions"><button class="primary-btn" type="submit">Cập nhật kỹ thuật</button></div>
           </form>
 
           <div id="serviceAddBox" class="sub-panel hidden">
@@ -343,74 +341,16 @@
             </div>
             <div class="table-wrap"><table><thead><tr><th>Dịch vụ</th><th>Giá</th><th>KTV</th><th>Ghi chú</th></tr></thead><tbody id="currentServices"></tbody></table></div>
           </div>
+             <div class="form-actions"><button class="primary-btn" type="submit">Cập nhật kỹ thuật</button></div>
         </div>
       </section>
 
-
-      <section id="worklog" class="tab" data-permission="worklog">
-        <div class="page-hero">
-          <div class="page-icon">🧾</div>
-          <div>
-            <h2>CÔNG SỬA CHỮA KỸ THUẬT</h2>
-            <p>Kỹ thuật tự ghi công sửa chữa theo IMEI/dịch vụ để quản lý kỹ thuật kiểm tra và chốt hoa hồng.</p>
-          </div>
-          <div class="page-note"><b>Lưu ý:</b><span>Nhập đúng IMEI, dòng máy, dịch vụ và hoa hồng theo thực tế.</span></div>
-        </div>
-
-        <div id="worklogSummary" class="summary-strip worklog-summary">
-          <div><span>Số dòng công</span><b id="wlTotalRows">0</b></div>
-          <div><span>Hoa hồng tháng</span><b id="wlTotalCommission">0đ</b></div>
-          <div><span>Lương cứng</span><b id="wlBaseSalary">0đ</b></div>
-          <div><span>Cơm</span><b id="wlMealSupport">0đ</b></div>
-          <div><span>Tổng tạm tính</span><b id="wlGrandTotal">0đ</b></div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head section-title">
-            <h3>🧾 GHI CÔNG SỬA CHỮA</h3>
-            <p>Dữ liệu sẽ lưu vào sheet KPI_KY_THUAT. Hoa hồng tự lấy từ DM_HOA_HONG theo Dòng máy + Dịch vụ.</p>
-          </div>
-
-          <form id="worklogForm" class="form-grid labelled-form">
-            <label><span>Ngày *</span><input name="date" type="date" required /></label>
-            <label><span>Kỹ thuật *</span><input name="technician" placeholder="Tên kỹ thuật" required /></label>
-            <label><span>IMEI *</span><input name="imei" placeholder="Nhập IMEI" required /></label>
-            <label><span>Dòng máy *</span><input name="model" placeholder="VD: 12 Pro Max" required /></label>
-            <label><span>Dịch vụ *</span><input id="worklogService" name="serviceName" placeholder="VD: Ép cảm / Thay pin" required /></label>
-            <label><span>Số lượng *</span><input name="qty" value="1" required /></label>
-            <label><span>Hoa hồng tự tính</span><input name="commission" placeholder="Tự lấy từ DM_HOA_HONG" readonly /></label>
-            <label class="span-3"><span>Ghi chú</span><textarea name="note" placeholder="Ghi chú nếu có"></textarea></label>
-
-            <div class="form-actions">
-              <button class="ghost-btn" type="reset">Xóa form</button>
-              <button class="primary-btn" type="submit">Ghi công</button>
-            </div>
-          </form>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <h3>📋 Công đã ghi gần đây</h3>
-            <p>Kỹ thuật xem công của mình. QL kỹ thuật/Admin xem tổng hợp.</p>
-          </div>
-          <div class="search-line">
-            <input id="worklogKeyword" placeholder="Tìm IMEI / KTV / dịch vụ..." />
-            <button class="primary-btn" onclick="loadWorklogs()">Làm mới</button>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Ngày</th><th>KTV</th><th>Dòng máy</th><th>IMEI</th><th>Dịch vụ</th><th>SL</th><th>Hoa hồng</th><th>Ghi chú</th></tr></thead>
-              <tbody id="worklogRows"><tr><td colspan="8">Chưa có dữ liệu.</td></tr></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
 
       <section id="money" class="tab" data-permission="money">
         <div class="page-hero">
           <div class="page-icon">💰</div>
           <div>
-            <h2>CHI PHÍ & LỢI NHUẬN</h2>
+            <h2>CẬP NHẬT CHI PHÍ</h2>
             <p>Cập nhật vật tư, công thợ, thực thu và trạng thái thanh toán.</p>
           </div>
           <div class="page-note"><b>Lưu ý:</b><span>Cập nhật hàng ngày trước 12h00</span></div>
@@ -452,7 +392,7 @@
               <div><span>Lợi nhuận</span><b id="sumProfit">0đ</b></div>
             </div>
 
-            <div class="form-actions"><button class="primary-btn" type="submit">Lưu chi phí</button></div>
+            <div class="form-actions"><button class="primary-btn" type="submit">Cập nhật</button></div>
           </form>
         </div>
       </section>
