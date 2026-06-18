@@ -1,42 +1,34 @@
-# POPOPHONE Repair Center V8
+# POPOPHONE Repair V8.2 Final UX 2026
 
-## Cấu trúc chốt
+Bản này đã tối ưu lại toàn bộ UI theo vai trò:
 
-### Public không đăng nhập
-- Tiếp nhận sửa chữa
-- Tra cứu sửa chữa
-
-### Đăng nhập quản trị
-- Kỹ thuật: Cập nhật trạng thái
-- QL cửa hàng: Tổng quan, Danh sách sửa chữa, Cập nhật trạng thái. Không thấy chi phí, giá vốn, lợi nhuận, NCC.
-- QL kỹ thuật: Tổng quan, Danh sách sửa chữa, Cập nhật trạng thái, Cập nhật chi phí, Vật tư.
-- Admin: Full quyền.
-
-## Dữ liệu
-Sheet chính: DATA
-
-Cột DATA:
-Mã sửa chữa, IMEI, Ngày nhận, Chi nhánh nhận, Sản phẩm, Tên khách hàng, Số điện thoại, Loại dịch vụ, Tình trạng khi nhận máy, Yêu cầu sửa chữa, Ghi chú tiếp nhận, Hẹn trả, FaceID, Màn hình, Camera/Mic, Loa, Giá dự kiến, Nhân viên tiếp nhận, Tình trạng thực tế, Nơi xử lý, Kỹ thuật xử lý, Trạng thái máy, Ngày hoàn thành, Ngày bàn giao, Trễ hẹn, Ghi chú kỹ thuật, Tổng tiền dịch vụ, Tổng giá vốn vật tư, Tổng công thợ, Chi phí phát sinh, Tổng chi phí, Thực thu, Lợi nhuận, Trạng thái thanh toán, Nội dung phát sinh, Năm, Tháng, Tuần, Ngày tạo, Ngày cập nhật.
-
-Sheet timeline: LOG_SUA_CHUA
-ID, Mã sửa chữa, Thời gian, Người thực hiện, Hành động, Nội dung.
-
-## Cách chạy demo
-Mở index.html hoặc login.html. Mặc định DEMO_MODE = true nên chạy bằng localStorage, chưa cần Google Sheet.
-
-Tài khoản mẫu:
-- kythuat / 123456
-- qlcuahang / 123456
-- qlkythuat / 123456
-- admin / 123456
+- Sale/Public: 100% mobile, chỉ Tiếp nhận + Tra cứu, không banner thừa.
+- Kỹ thuật: 100% mobile, đăng nhập vào thẳng Máy cần xử lý + Cập nhật trạng thái.
+- QL cửa hàng / QL kỹ thuật / Admin: PC-first, vẫn xem được trên điện thoại bằng compact mode.
+- Chi tiết phiếu làm lại gọn kiểu hồ sơ sửa chữa, có In phiếu nhận / In phiếu trả.
+- Phân tích dòng máy sửa đúng logic: Dịch vụ sửa chữa → Dòng máy → Số lượng.
 
 ## Kết nối Google Sheet
-1. Mở appscript/Code.gs.
-2. Dán Spreadsheet ID vào SHEET_ID.
-3. Deploy Web App: Execute as Me, Anyone.
-4. Copy Web App URL dán vào js/config.js tại API_URL.
-5. Đổi DEMO_MODE = false.
 
-## Ghi chú quyền
-Báo giá khách được hiển thị cho QL cửa hàng qua cột Giá dự kiến / Tổng tiền dịch vụ.
-Giá vốn, chi phí, lợi nhuận và NCC chỉ hiển thị với QL kỹ thuật và Admin.
+1. Mở `appscript/Code.gs`.
+2. Dán Spreadsheet ID vào `SHEET_ID`.
+3. Deploy Web App: Execute as Me, Anyone.
+4. Dán URL `/exec` vào `js/config.js` tại `API_URL`.
+5. Đổi `DEMO_MODE = false`.
+
+## File cần thay nếu đang chạy bản cũ
+
+Nên thay nguyên source để tránh lệch UI/JS. Nếu muốn thay nhanh: `index.html`, `dashboard.html`, `css/style.css`, `js/public.js`, `js/dashboard.js`, `appscript/Code.gs`.
+
+## V8.2 Popup & Print update
+- Nút tiếp nhận đổi thành **Lưu & In phiếu nhận**.
+- Sau khi lưu thành công sẽ hiện popup đẹp và tự mở/in phiếu nhận.
+- Khi cập nhật trạng thái sang **8. Đã trả khách** sẽ hỏi in phiếu trả.
+- Các thao tác tìm kiếm/cập nhật/lỗi API đều hiện popup rõ ràng để nhân viên biết xử lý.
+
+
+## Bản schema10 all-fix
+- DATA chuẩn theo header mới: Mã sửa chữa đứng cột đầu, NCC đứng trước Trạng thái thanh toán.
+- Cập nhật trạng thái lưu đủ: Dịch vụ sửa chữa, Giá dự kiến, Nơi xử lý, Kỹ thuật xử lý, Trạng thái máy, Ghi chú kỹ thuật.
+- Cập nhật chi phí lưu đủ: Mã bill vật tư, Tên vật tư, Giá vật tư, Công thợ, Tổng chi phí, Thực thu, Lợi nhuận, NCC, Trạng thái thanh toán.
+- addService/addMaterial cũng cập nhật ngược về DATA để dashboard đo lường đúng.
