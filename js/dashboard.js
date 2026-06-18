@@ -37,6 +37,103 @@ async function findForStatus(){const q=document.getElementById('statusKeyword').
 document.getElementById('statusForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target),d=Object.fromEntries(f.entries());await api('updateStatus',{repairId:d.repairId,data:{actualStatus:d.actualStatus,place:d.processPlace,technician:d.technician,status:d.status,techNote:d.techNote,updatedAt:new Date().toLocaleString('vi-VN')}});toast('Đã cập nhật trạng thái');loadRepairList();loadDashboard();});
 async function findForCost(){const q=document.getElementById('costKeyword').value.trim();const res=await api('search',{q});const x=res.data?.[0];if(!x)return toast('Không thấy phiếu');const f=document.getElementById('costForm');f.classList.remove('hidden');f.repairId.value=x.repairId;f.materialCost.value=x.materialCost||0;f.laborCost.value=x.laborCost||0;f.extraCost.value=x.extraCost||0;f.actualRevenue.value=x.actualRevenue||x.serviceTotal||x.estimate||0;f.paymentStatus.value=x.paymentStatus||'Chưa thanh toán';f.extraNote.value=x.extraNote||'';}
 document.getElementById('costForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target),d=Object.fromEntries(f.entries());await api('updateCost',{repairId:d.repairId,data:d});toast('Đã cập nhật chi phí');loadRepairList();loadDashboard();});
-function openDetail(id){const x=rows.find(r=>r.repairId===id);if(!x)return;const canMoney=['qlkythuat','admin'].includes(currentUser.role);document.getElementById('detailContent').innerHTML=`<div class="detail-grid"><div class="panel"><h3>Thông tin tiếp nhận</h3><p><b>Mã:</b> ${x.repairId}</p><p><b>IMEI:</b> ${x.imei} · <b>CN:</b> ${x.branch}</p><p><b>Máy:</b> ${x.product}</p><p><b>Khách:</b> ${x.customer} — ${x.phone}</p><p><b>Loại DV:</b> ${x.serviceType}</p><p><b>Hẹn trả:</b> ${x.appointment||''}</p><p><b>Báo giá khách:</b> ${money(rev(x))}</p><hr><p><b>Tình trạng nhận:</b><br>${x.receiveStatus||''}</p><p><b>Yêu cầu:</b><br>${x.request||''}</p><p><b>FaceID:</b> ${x.faceId||''} · <b>Màn:</b> ${x.screen||''} · <b>Camera/Mic:</b> ${x.cameraMic||''} · <b>Loa:</b> ${x.speaker||''}</p></div><div class="panel"><h3>Timeline xử lý</h3><div class="timeline">${DM_TRANG_THAI.map(s=>`<div>${s===x.status?'✅':'○'} ${s}</div>`).join('')}</div><hr><p><b>KTV:</b> ${x.technician||''}</p><p><b>Tình trạng thực tế:</b><br>${x.actualStatus||''}</p><p><b>Ghi chú kỹ thuật:</b><br>${x.techNote||''}</p></div></div><div class="panel"><h3>Dịch vụ sửa chữa</h3><p><b>${x.serviceType||'Chưa cập nhật'}</b> — ${money(rev(x))}</p></div>${canMoney?`<div class="panel"><h3>Chi phí — chỉ QLKT/Admin</h3><p><b>Giá vốn vật tư:</b> ${money(x.materialCost)}</p><p><b>Công thợ:</b> ${money(x.laborCost)}</p><p><b>Chi phí phát sinh:</b> ${money(x.extraCost)}</p><p><b>Tổng chi phí:</b> ${money(x.totalCost)}</p><p><b>Thực thu:</b> ${money(x.actualRevenue)}</p><p><b>Lợi nhuận:</b> ${money(x.profit)}</p><p><b>Thanh toán:</b> ${x.paymentStatus||''}</p></div>`:''}`;document.getElementById('detailModal').classList.remove('hidden')}
+function statusTone(status){
+  const s=String(status||'');
+  if(s.startsWith('7.')||s.startsWith('8.')) return 'good';
+  if(s.startsWith('6.')||s.startsWith('3.')||s.startsWith('4.')) return 'warn';
+  if(s.startsWith('9.')||s.startsWith('10.')||s.startsWith('11.')) return 'danger';
+  return 'info';
+}
+function safe(v){return v==null||v===''?'—':v}
+function openDetail(id){
+  const x=rows.find(r=>r.repairId===id);if(!x)return;
+  const canMoney=['qlkythuat','admin'].includes(currentUser.role);
+  const currentIndex=Math.max(0, DM_TRANG_THAI.findIndex(s=>s===x.status));
+  const progress=Math.round(((currentIndex+1)/DM_TRANG_THAI.length)*100);
+  const statusClass=statusTone(x.status);
+  const chips=[
+    ['FaceID',x.faceId],['Màn hình',x.screen],['Camera/Mic',x.cameraMic],['Loa',x.speaker]
+  ].map(([k,v])=>`<div class="test-chip"><span>${k}</span><b>${safe(v)}</b></div>`).join('');
+  const timeline=DM_TRANG_THAI.map((s,i)=>{
+    const done=i<currentIndex, active=i===currentIndex;
+    return `<div class="step ${done?'done':''} ${active?'active':''}"><i>${done?'✓':active?'●':''}</i><span>${s.replace(/^\d+\.\s*/,'')}</span></div>`
+  }).join('');
+  const moneyBlock=canMoney?`<div class="detail-card money-private">
+    <div class="detail-card-head"><span>💰</span><div><h4>Chi phí nội bộ</h4><p>Chỉ QL kỹ thuật và Admin thấy phần này</p></div></div>
+    <div class="money-row"><span>Giá vốn vật tư</span><b>${money(x.materialCost)}</b></div>
+    <div class="money-row"><span>Công thợ</span><b>${money(x.laborCost)}</b></div>
+    <div class="money-row"><span>Chi phí phát sinh</span><b>${money(x.extraCost)}</b></div>
+    <div class="money-row muted-line"><span>Tổng chi phí</span><b>${money(x.totalCost)}</b></div>
+    <div class="money-row"><span>Thực thu</span><b>${money(x.actualRevenue)}</b></div>
+    <div class="money-row profit-line"><span>Lợi nhuận</span><b>${money(x.profit)}</b></div>
+    <div class="payment-pill">${safe(x.paymentStatus)}</div>
+  </div>`:'';
+  document.getElementById('detailContent').innerHTML=`
+    <div class="detail-modern">
+      <div class="detail-hero ${statusClass}">
+        <div class="detail-hero-main">
+          <div class="repair-avatar">${String(x.product||'P').slice(0,2).toUpperCase()}</div>
+          <div>
+            <div class="detail-eyebrow">Hồ sơ sửa chữa</div>
+            <h2>${safe(x.product)} <span>${safe(x.repairId)}</span></h2>
+            <p>${safe(x.customer)} · ${safe(x.phone)} · CN ${safe(x.branch)}</p>
+          </div>
+        </div>
+        <div class="detail-status-box">
+          <span class="status-pill ${statusClass}">${safe(x.status)}</span>
+          <b>${money(rev(x))}</b>
+          <small>Báo giá khách</small>
+        </div>
+      </div>
+
+      <div class="detail-quick-grid">
+        <div><span>IMEI</span><b>${safe(x.imei)}</b></div>
+        <div><span>Loại dịch vụ</span><b>${safe(x.serviceType)}</b></div>
+        <div><span>Kỹ thuật</span><b>${safe(x.technician)}</b></div>
+        <div><span>Hẹn trả</span><b>${safe(x.appointment)}</b></div>
+      </div>
+
+      <div class="progress-card">
+        <div class="progress-top"><b>Tiến trình xử lý</b><span>${progress}%</span></div>
+        <div class="progress-bar"><i style="width:${progress}%"></i></div>
+        <div class="stepper">${timeline}</div>
+      </div>
+
+      <div class="detail-layout">
+        <div class="detail-left">
+          <div class="detail-card">
+            <div class="detail-card-head"><span>📥</span><div><h4>Thông tin tiếp nhận</h4><p>Form nhận máy giữ đúng dữ liệu gốc</p></div></div>
+            <div class="info-list">
+              <div><span>Ngày nhận</span><b>${safe(x.date)}</b></div>
+              <div><span>Nhân viên tiếp nhận</span><b>${safe(x.staff)}</b></div>
+              <div><span>Tình trạng khi nhận</span><p>${safe(x.receiveStatus)}</p></div>
+              <div><span>Yêu cầu sửa chữa</span><p>${safe(x.request)}</p></div>
+              <div><span>Ghi chú tiếp nhận</span><p>${safe(x.receiveNote)}</p></div>
+            </div>
+            <div class="test-grid">${chips}</div>
+          </div>
+
+          <div class="detail-card">
+            <div class="detail-card-head"><span>🔨</span><div><h4>Cập nhật kỹ thuật</h4><p>Tình trạng thực tế và ghi chú xử lý</p></div></div>
+            <div class="info-list two">
+              <div><span>Nơi xử lý</span><b>${safe(x.place)}</b></div>
+              <div><span>Ngày hoàn thành</span><b>${safe(x.completedDate)}</b></div>
+              <div><span>Tình trạng thực tế</span><p>${safe(x.actualStatus)}</p></div>
+              <div><span>Ghi chú kỹ thuật</span><p>${safe(x.techNote)}</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="detail-right">
+          <div class="detail-card service-card">
+            <div class="detail-card-head"><span>🔧</span><div><h4>Dịch vụ & báo giá</h4><p>QL cửa hàng được xem để báo khách</p></div></div>
+            <div class="service-price"><span>${safe(x.serviceType||x.request)}</span><b>${money(rev(x))}</b></div>
+            <div class="service-note">Tổng tiền dịch vụ / giá dự kiến hiển thị là báo giá khách, không phải chi phí nội bộ.</div>
+          </div>
+          ${moneyBlock}
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('detailModal').classList.remove('hidden')
+}
 function closeDetail(){document.getElementById('detailModal').classList.add('hidden')}
 function renderMaterials(){const box=document.getElementById('materialsList');if(!box)return;box.innerHTML=DM_VAT_TU.map(x=>`<div class="card"><h4>${x.name}</h4><p>${x.group} · ${x.model}</p><p>Giá nhập gợi ý: ${x.price?money(x.price):'Chưa nhập'} · NCC: ${x.supplier||'Chưa chọn'}</p></div>`).join('')}
