@@ -3,7 +3,7 @@ Schema 10 bảng mới: DATA, CT_DICH_VU, CT_VAT_TU, DM_TRANG_THAI, DM_DICH_VU, 
 Deploy: Apps Script > Deploy > Web app > Execute as Me > Anyone.
 Set SHEET_ID rồi dán Web App URL vào js/config.js.
 */
-const SHEET_ID = 'PASTE_SPREADSHEET_ID_HERE';
+const SHEET_ID = '1ZsLoZF4hVBpSrbna0sZQ-lg9KNI-TkwuUYmiJP885mo';
 const TZ = 'GMT+7';
 const SHEET_DATA = 'DATA';
 const SHEET_LOG = 'LOG_SUA_CHUA';
@@ -91,6 +91,10 @@ function updateStatus(id,d){
   const app=parseDate(getVal(current,m,'Hẹn trả'));
   const closed=/^(7|8|9|11)\./.test(String(status||''));
   setVal(s,row,m,'Trễ hẹn',app && !closed && app<new Date()?'Có':'Không');
+  // Đồng bộ CT_DICH_VU theo DATA mới: KTV cập nhật dịch vụ thì phải đổ chi tiết dịch vụ.
+  if(service){
+    appendServiceIfMissing(id, service, num(d.estimate), techNote||'', technician||'Kỹ thuật');
+  }
   addLog(id,technician||'Kỹ thuật','Cập nhật trạng thái',(status||'')+(service?' | DV: '+service:'')+(techNote?' | '+techNote:''));
   return {success:true}
 }
@@ -115,6 +119,10 @@ function updateCost(id,d){
   setVal(s,row,m,'NCC',supplier);
   setVal(s,row,m,'Trạng thái thanh toán',d.paymentStatus||'');
   setVal(s,row,m,'Ngày cập nhật',nowStr());
+  // Đồng bộ CT_VAT_TU theo DATA mới: QLKT cập nhật vật tư thì phải đổ chi tiết vật tư.
+  if(materialName){
+    appendMaterialIfMissing(id, materialBill, materialName, d.qty||1, material, material, supplier, d.user||'QLKT/Admin');
+  }
   addLog(id,d.user||'QLKT/Admin','Cập nhật chi phí','Bill '+materialBill+' | VT: '+materialName+' | Vật tư '+material+' | Công '+labor+' | Thực thu '+actual+' | Tổng chi phí '+total+' | Lợi nhuận '+profit+' | NCC '+supplier);
   return {success:true}
 }
@@ -161,6 +169,22 @@ function addMaterial(id,d){
   addLog(id,d.user||'QLKT/Admin','Thêm vật tư',name+' '+qty+'x'+price+' | '+supplier);
   return {success:true}
 }
+
+function appendServiceIfMissing(id,name,price,note,user){
+  name=String(name||'').trim(); if(!name) return;
+  const sheet=getSheet(SHEET_CT_DICH_VU); const vals=sheet.getDataRange().getValues();
+  const exists=vals.slice(1).some(r=>String(r[0])===String(id)&&String(r[1]).trim().toLowerCase()===name.toLowerCase());
+  if(!exists) sheet.appendRow([id,name,num(price),note||'',user||'',nowStr()]);
+}
+function appendMaterialIfMissing(id,bill,name,qty,price,total,supplier,user){
+  name=String(name||'').trim(); if(!name) return;
+  bill=String(bill||'').trim(); supplier=String(supplier||'').trim();
+  qty=num(qty)||1; price=num(price); total=num(total)||qty*price;
+  const sheet=getSheet(SHEET_CT_VAT_TU); const vals=sheet.getDataRange().getValues();
+  const exists=vals.slice(1).some(r=>String(r[0])===String(id)&&String(r[1]).trim()===bill&&String(r[2]).trim().toLowerCase()===name.toLowerCase()&&num(r[5])===total);
+  if(!exists) sheet.appendRow([id,bill,name,qty,price,total,supplier,user||'',nowStr()]);
+}
+
 function getDetail(id){const item=listRepairs({}).find(x=>String(x.repairId)===String(id));return {success:!!item,data:item||null,logs:getLogs(id).data||[],services:getRowsByRepair(SHEET_CT_DICH_VU,id),materials:getRowsByRepair(SHEET_CT_VAT_TU,id)}}
 function getRowsByRepair(sheetName,id){const s=getSheet(sheetName);const vals=s.getDataRange().getValues();if(vals.length<=1)return [];const h=vals[0];return vals.slice(1).filter(r=>String(r[0])===String(id)).map(r=>{const o={};h.forEach((x,i)=>o[x]=r[i]);return o})}
 function getLogs(id){const s=getSheet(SHEET_LOG);const vals=s.getDataRange().getValues();if(vals.length<=1)return {success:true,data:[]};const h=vals[0],idx=h.indexOf('Mã sửa chữa');const data=vals.slice(1).filter(r=>String(r[idx])===String(id)).map(r=>({id:r[0],repairId:r[1],time:fmtDate(r[2]),user:r[3],action:r[4],content:r[5]}));return {success:true,data}}
