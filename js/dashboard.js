@@ -8,6 +8,9 @@ async function getRows(){const res=await api('list',{});rows=(res.data||[]).map(
 function normalizeRow(x){return {...x,estimate:num(x.estimate),serviceTotal:num(x.serviceTotal),materialCost:num(x.materialCost),laborCost:num(x.laborCost),extraCost:num(x.extraCost),totalCost:num(x.totalCost),actualRevenue:num(x.actualRevenue),profit:num(x.profit)}}
 function num(v){return Number(String(v||0).replace(/[^0-9.-]/g,''))||0}
 function parseDate(v){if(!v)return null;if(v instanceof Date)return v;let s=String(v);if(s.includes('/')){const [d,m,yAndTime]=s.split('/');const [y,t='00:00:00']=yAndTime.split(' ');return new Date(`${y}-${m}-${d}T${t}`)}return new Date(s.replace(' ','T'))}
+function fmtDate(v){const d=parseDate(v);if(!d||isNaN(d))return safe(v);return d.toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'})}
+function cleanModel(v){return String(v||'Không rõ').toUpperCase().replace(/IPHONE/gi,'').replace(/PRO MAX/gi,'PM').replace(/PROMAX/gi,'PM').replace(/\s+/g,' ').trim()||'Không rõ'}
+function repairService(x){return (x.serviceName||x.service||x.repairService||x.request||x.serviceType||'Khác').toString().trim()}
 function rev(x){return x.actualRevenue||x.serviceTotal||x.estimate||0}
 function isSameDay(a,b){return a&&a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
 function isSameWeek(a,b){if(!a)return false;const one=new Date(b);one.setDate(b.getDate()-b.getDay()+1);one.setHours(0,0,0,0);const end=new Date(one);end.setDate(one.getDate()+7);return a>=one&&a<end}
@@ -22,8 +25,18 @@ function groupBy(arr,fn){return arr.reduce((m,x)=>{const k=fn(x)||'Khác';(m[k]=
 function rankHTML(items,type='count'){return items.map((x,i)=>`<div class="rank-item"><span>${i+1}. ${x.name}</span><b>${type==='money'?money(x.value):x.value}</b></div>`).join('')||'<p class="muted">Chưa có dữ liệu</p>'}
 function topFromGroups(groups,calc){return Object.entries(groups).map(([name,arr])=>({name,value:calc(arr)})).sort((a,b)=>b.value-a.value).slice(0,6)}
 function renderWeekChart(data){const box=document.getElementById('weekChart');if(!box)return;const now=new Date();const weeks=[];for(let i=3;i>=0;i--){const end=new Date(now);end.setDate(now.getDate()-i*7);const start=new Date(end);start.setDate(end.getDate()-6);const arr=data.filter(x=>{const d=parseDate(x.date||x.createdAt);return d>=start&&d<=end});weeks.push({name:'Tuần '+(4-i),orders:arr.length,revenue:sum(arr,rev),profit:sum(arr,x=>x.profit||rev(x)-x.totalCost)});}const max=Math.max(...weeks.map(w=>w.revenue),1);box.innerHTML=weeks.map(w=>`<div class="week-col"><b>${w.name}</b><div class="bar-stack"><span style="height:${Math.max(8,w.orders*8)}px"></span><span style="height:${Math.max(8,w.revenue/max*110)}px"></span><span style="height:${Math.max(8,Math.max(w.profit,0)/max*110)}px"></span></div><small>Đơn ${w.orders}<br>DT ${money(w.revenue)}<br>LN ${money(w.profit)}</small></div>`).join('')}
-function renderServices(data){const g=groupBy(data,x=>x.serviceType||x.request);document.getElementById('topServices').innerHTML=rankHTML(topFromGroups(g,a=>a.length));document.getElementById('topServiceRevenue').innerHTML=rankHTML(topFromGroups(g,a=>sum(a,rev)),'money');document.getElementById('topProfit').innerHTML=rankHTML(topFromGroups(g,a=>sum(a,x=>x.profit||rev(x)-x.totalCost)),'money')}
-function renderModels(data){const g=groupBy(data,x=>String(x.product||'').toUpperCase());document.getElementById('modelAnalysis').innerHTML=rankHTML(topFromGroups(g,a=>a.length));const issue=document.getElementById('commonIssues');issue.innerHTML=Object.entries(g).slice(0,6).map(([model,arr])=>{const top=topFromGroups(groupBy(arr,x=>x.serviceType||x.request),a=>a.length).slice(0,3).map(x=>`<li>${x.name} (${x.value})</li>`).join('');return `<div class="issue-card"><b>${model}</b><ul>${top}</ul></div>`}).join('')||'<p class="muted">Chưa có dữ liệu</p>'}
+function renderServices(data){const g=groupBy(data,x=>repairService(x));document.getElementById('topServices').innerHTML=rankHTML(topFromGroups(g,a=>a.length));document.getElementById('topServiceRevenue').innerHTML=rankHTML(topFromGroups(g,a=>sum(a,rev)),'money');document.getElementById('topProfit').innerHTML=rankHTML(topFromGroups(g,a=>sum(a,x=>x.profit||rev(x)-x.totalCost)),'money')}
+function renderModels(data){
+  const byService=groupBy(data,x=>repairService(x));
+  const serviceModel=Object.entries(byService).map(([service,arr])=>{
+    const models=topFromGroups(groupBy(arr,x=>cleanModel(x.product)),a=>a.length);
+    return {service,total:arr.length,models};
+  }).sort((a,b)=>b.total-a.total).slice(0,8);
+  const box=document.getElementById('modelAnalysis');
+  box.innerHTML=serviceModel.map(sv=>`<div class="service-model-card"><div><b>${sv.service}</b><span>${sv.total} đơn</span></div><div class="model-chips">${sv.models.slice(0,5).map(m=>`<em>${m.name}: ${m.value}</em>`).join('')}</div></div>`).join('')||'<p class="muted">Chưa có dữ liệu</p>';
+  const matrix=document.getElementById('commonIssues');
+  matrix.innerHTML=serviceModel.map(sv=>`<div class="issue-card modern-matrix"><b>${sv.service}</b><ul>${sv.models.slice(0,6).map(m=>`<li><span>${m.name}</span><strong>${m.value}</strong></li>`).join('')}</ul></div>`).join('')||'<p class="muted">Chưa có dữ liệu</p>';
+}
 function renderMaterialsNeed(data){const g=groupBy(data,x=>x.serviceType);document.getElementById('materialNeed').innerHTML=DM_VAT_TU.map(v=>{const used=(g[v.group]?.length||0)+(g[v.name]?.length||0);const need=Math.max(0,Math.ceil(used*0.8));return `<div class="material-card"><b>${v.name}</b><span>${v.group} · ${v.model}</span><p>Đã dùng: <b>${used}</b></p><p>Đề xuất nhập: <b>${need}</b></p></div>`}).join('')}
 function renderTechKpi(data){const g=groupBy(data,x=>x.technician||'Chưa giao');const list=topFromGroups(g,a=>a.filter(x=>x.status==='7. Đã hoàn thành'||x.status==='8. Đã bàn giao').length).map((x,i)=>({name:x.name,rank:['🥇','🥈','🥉'][i]||i+1,arr:g[x.name]}));const html=list.map(x=>`<tr><td>${x.name}</td><td>${x.arr.filter(i=>i.status==='7. Đã hoàn thành'||i.status==='8. Đã bàn giao').length}</td><td>${money(sum(x.arr,rev))}</td><td>${money(sum(x.arr,i=>i.laborCost))}</td><td>${x.arr.filter(isOverdue).length}</td><td>${x.rank}</td></tr>`).join('')||'<tr><td colspan="6">Chưa có dữ liệu</td></tr>';setTBody('techKpiRows',html);setTBody('adminKpiRows',html.replaceAll('<td>'+list[0]?.rank+'</td>',''))}
 function setTBody(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html}
@@ -46,91 +59,72 @@ function statusTone(status){
 }
 function safe(v){return v==null||v===''?'—':v}
 function openDetail(id){
-  const x=rows.find(r=>r.repairId===id);if(!x)return;
+  const x=rows.find(r=>String(r.repairId)===String(id));if(!x)return;
   const canMoney=['qlkythuat','admin'].includes(currentUser.role);
-  const currentIndex=Math.max(0, DM_TRANG_THAI.findIndex(s=>s===x.status));
-  const progress=Math.round(((currentIndex+1)/DM_TRANG_THAI.length)*100);
-  const statusClass=statusTone(x.status);
-  const chips=[
-    ['FaceID',x.faceId],['Màn hình',x.screen],['Camera/Mic',x.cameraMic],['Loa',x.speaker]
-  ].map(([k,v])=>`<div class="test-chip"><span>${k}</span><b>${safe(v)}</b></div>`).join('');
-  const timeline=DM_TRANG_THAI.map((s,i)=>{
-    const done=i<currentIndex, active=i===currentIndex;
-    return `<div class="step ${done?'done':''} ${active?'active':''}"><i>${done?'✓':active?'●':''}</i><span>${s.replace(/^\d+\.\s*/,'')}</span></div>`
-  }).join('');
-  const moneyBlock=canMoney?`<div class="detail-card money-private">
-    <div class="detail-card-head"><span>💰</span><div><h4>Chi phí nội bộ</h4><p>Chỉ QL kỹ thuật và Admin thấy phần này</p></div></div>
-    <div class="money-row"><span>Giá vốn vật tư</span><b>${money(x.materialCost)}</b></div>
-    <div class="money-row"><span>Công thợ</span><b>${money(x.laborCost)}</b></div>
-    <div class="money-row"><span>Chi phí phát sinh</span><b>${money(x.extraCost)}</b></div>
-    <div class="money-row muted-line"><span>Tổng chi phí</span><b>${money(x.totalCost)}</b></div>
-    <div class="money-row"><span>Thực thu</span><b>${money(x.actualRevenue)}</b></div>
-    <div class="money-row profit-line"><span>Lợi nhuận</span><b>${money(x.profit)}</b></div>
-    <div class="payment-pill">${safe(x.paymentStatus)}</div>
-  </div>`:'';
+  const statusIndex=Math.max(0,DM_TRANG_THAI.indexOf(x.status));
+  const progress=Math.round((statusIndex+1)/DM_TRANG_THAI.length*100);
+  const statusClass=(x.status||'').includes('Quá')||isOverdue(x)?'danger':(x.status||'').includes('Chờ')?'warn':(x.status||'').includes('hoàn thành')||(x.status||'').includes('bàn giao')?'good':'info';
+  const stepList=DM_TRANG_THAI.slice(0,8).map((st,i)=>`<div class="mini-step ${i<statusIndex?'done':i===statusIndex?'active':''}"><i></i><span>${st.replace(/^\d+\.\s*/,'')}</span></div>`).join('');
+  const chips=[['FaceID',x.faceId],['Màn hình',x.screen],['Camera/Mic',x.cameraMic],['Loa',x.speaker]].map(c=>`<div class="check-chip"><span>${c[0]}</span><b>${safe(c[1])||'Chưa test'}</b></div>`).join('');
+  const moneyBlock=canMoney?`<div class="clean-card money-clean">
+      <div class="card-title"><span>💰</span><div><h4>Chi phí nội bộ</h4><p>Chỉ QL kỹ thuật và Admin thấy.</p></div></div>
+      <div class="money-lines"><div><span>Giá vốn vật tư</span><b>${money(x.materialCost)}</b></div><div><span>Công thợ</span><b>${money(x.laborCost)}</b></div><div><span>Chi phí khác</span><b>${money(x.extraCost)}</b></div><div><span>Tổng chi phí</span><b>${money(x.totalCost)}</b></div><div><span>Thực thu</span><b>${money(x.actualRevenue)}</b></div><div class="profit"><span>Lợi nhuận</span><b>${money(x.profit)}</b></div></div>
+    </div>`:'';
   document.getElementById('detailContent').innerHTML=`
-    <div class="detail-modern">
-      <div class="detail-hero ${statusClass}">
-        <div class="detail-hero-main">
-          <div class="repair-avatar">${String(x.product||'P').slice(0,2).toUpperCase()}</div>
-          <div>
-            <div class="detail-eyebrow">Hồ sơ sửa chữa</div>
-            <h2>${safe(x.product)} <span>${safe(x.repairId)}</span></h2>
-            <p>${safe(x.customer)} · ${safe(x.phone)} · CN ${safe(x.branch)}</p>
-          </div>
+    <div class="detail-clean">
+      <div class="clean-header">
+        <div>
+          <span class="clean-label">${safe(x.repairId)}</span>
+          <h2>${safe(x.product)}</h2>
+          <p>${safe(x.customer)} · ${safe(x.phone)} · CN ${safe(x.branch)}</p>
         </div>
-        <div class="detail-status-box">
+        <div class="clean-price">
           <span class="status-pill ${statusClass}">${safe(x.status)}</span>
           <b>${money(rev(x))}</b>
           <small>Báo giá khách</small>
         </div>
       </div>
 
-      <div class="detail-quick-grid">
+      <div class="clean-summary">
         <div><span>IMEI</span><b>${safe(x.imei)}</b></div>
         <div><span>Loại dịch vụ</span><b>${safe(x.serviceType)}</b></div>
-        <div><span>Kỹ thuật</span><b>${safe(x.technician)}</b></div>
-        <div><span>Hẹn trả</span><b>${safe(x.appointment)}</b></div>
+        <div><span>Dịch vụ / yêu cầu</span><b>${safe(repairService(x))}</b></div>
+        <div><span>Kỹ thuật</span><b>${safe(x.technician)||'Chưa giao'}</b></div>
+        <div><span>Ngày nhận</span><b>${fmtDate(x.date)}</b></div>
+        <div><span>Hẹn trả</span><b>${fmtDate(x.appointment)}</b></div>
       </div>
 
-      <div class="progress-card">
-        <div class="progress-top"><b>Tiến trình xử lý</b><span>${progress}%</span></div>
-        <div class="progress-bar"><i style="width:${progress}%"></i></div>
-        <div class="stepper">${timeline}</div>
-      </div>
+      <div class="clean-progress"><div><b>Tiến trình xử lý</b><span>${progress}%</span></div><i><em style="width:${progress}%"></em></i><section>${stepList}</section></div>
 
-      <div class="detail-layout">
-        <div class="detail-left">
-          <div class="detail-card">
-            <div class="detail-card-head"><span>📥</span><div><h4>Thông tin tiếp nhận</h4><p>Form nhận máy giữ đúng dữ liệu gốc</p></div></div>
-            <div class="info-list">
-              <div><span>Ngày nhận</span><b>${safe(x.date)}</b></div>
+      <div class="clean-layout">
+        <div class="clean-left">
+          <div class="clean-card">
+            <div class="card-title"><span>📥</span><div><h4>Thông tin tiếp nhận</h4><p>Dữ liệu từ form nhận máy.</p></div></div>
+            <div class="clean-fields">
               <div><span>Nhân viên tiếp nhận</span><b>${safe(x.staff)}</b></div>
               <div><span>Tình trạng khi nhận</span><p>${safe(x.receiveStatus)}</p></div>
               <div><span>Yêu cầu sửa chữa</span><p>${safe(x.request)}</p></div>
-              <div><span>Ghi chú tiếp nhận</span><p>${safe(x.receiveNote)}</p></div>
+              <div><span>Ghi chú tiếp nhận</span><p>${safe(x.receiveNote)||'Không có'}</p></div>
             </div>
-            <div class="test-grid">${chips}</div>
+            <div class="check-grid">${chips}</div>
           </div>
-
-          <div class="detail-card">
-            <div class="detail-card-head"><span>🔨</span><div><h4>Cập nhật kỹ thuật</h4><p>Tình trạng thực tế và ghi chú xử lý</p></div></div>
-            <div class="info-list two">
-              <div><span>Nơi xử lý</span><b>${safe(x.place)}</b></div>
-              <div><span>Ngày hoàn thành</span><b>${safe(x.completedDate)}</b></div>
-              <div><span>Tình trạng thực tế</span><p>${safe(x.actualStatus)}</p></div>
-              <div><span>Ghi chú kỹ thuật</span><p>${safe(x.techNote)}</p></div>
+          <div class="clean-card">
+            <div class="card-title"><span>🔨</span><div><h4>Cập nhật kỹ thuật</h4><p>Tình trạng thực tế và ghi chú xử lý.</p></div></div>
+            <div class="clean-fields two">
+              <div><span>Nơi xử lý</span><b>${safe(x.place)||'Chưa cập nhật'}</b></div>
+              <div><span>Ngày hoàn thành</span><b>${fmtDate(x.completedDate)||'Chưa hoàn thành'}</b></div>
+              <div><span>Tình trạng thực tế</span><p>${safe(x.actualStatus)||'Chưa cập nhật'}</p></div>
+              <div><span>Ghi chú kỹ thuật</span><p>${safe(x.techNote)||'Không có'}</p></div>
             </div>
           </div>
         </div>
-        <div class="detail-right">
-          <div class="detail-card service-card">
-            <div class="detail-card-head"><span>🔧</span><div><h4>Dịch vụ & báo giá</h4><p>QL cửa hàng được xem để báo khách</p></div></div>
-            <div class="service-price"><span>${safe(x.serviceType||x.request)}</span><b>${money(rev(x))}</b></div>
-            <div class="service-note">Tổng tiền dịch vụ / giá dự kiến hiển thị là báo giá khách, không phải chi phí nội bộ.</div>
+        <aside class="clean-right">
+          <div class="clean-card quote-clean">
+            <div class="card-title"><span>🔧</span><div><h4>Dịch vụ & báo giá</h4><p>QL cửa hàng được xem để báo khách.</p></div></div>
+            <div class="quote-line"><span>${safe(repairService(x))}</span><b>${money(rev(x))}</b></div>
           </div>
           ${moneyBlock}
-        </div>
+        </aside>
       </div>
     </div>`;
   document.getElementById('detailModal').classList.remove('hidden')
