@@ -1,0 +1,139 @@
+let currentUser=null;let rows=[];document.addEventListener('DOMContentLoaded',init);
+function init(){currentUser=JSON.parse(localStorage.getItem('repairUser')||'null');if(!currentUser)return location.href='login.html';document.getElementById('currentRole').textContent=currentUser.name;document.body.classList.toggle('no-sensitive',!['qlkythuat','admin'].includes(currentUser.role));document.body.classList.toggle('no-admin',currentUser.role!=='admin');buildNav();fillAdminSelects();loadDashboard();loadRepairList();renderMaterials();}
+function logout(){localStorage.removeItem('repairUser');location.href='login.html'}
+function buildNav(){const all=[['overview','📊 Tổng quan',['qlcuahang','qlkythuat','admin']],['list','📋 Danh sách sửa chữa',['qlcuahang','qlkythuat','admin']],['status','🔨 Cập nhật trạng thái',['kythuat','qlcuahang','qlkythuat','admin']],['cost','💰 Cập nhật chi phí',['qlkythuat','admin']],['materials','📦 Vật tư',['qlkythuat','admin']],['kpi','📈 KPI',['admin']],['settings','⚙️ Danh mục / Người dùng',['admin']]];const nav=document.getElementById('adminNav');nav.innerHTML=all.filter(x=>x[2].includes(currentUser.role)).map(x=>`<button class="nav-btn" data-tab="${x[0]}" onclick="openTab('${x[0]}')">${x[1]}</button>`).join('');nav.querySelector('.nav-btn')?.classList.add('active');}
+function openTab(id){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.tab===id));document.getElementById('pageTitle').textContent=document.querySelector(`[data-tab="${id}"]`).textContent.trim();}
+function fillAdminSelects(){['listStatus','statusSelect'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Tất cả trạng thái</option>'+DM_TRANG_THAI.map(x=>`<option>${x}</option>`).join('')});['listTech','statusTech'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Chọn KTV</option>'+DM_KY_THUAT.map(x=>`<option>${x.name}</option>`).join('')});}
+async function getRows(){const res=await api('list',{});rows=(res.data||[]).map(normalizeRow);return rows}
+function normalizeRow(x){return {...x,estimate:num(x.estimate),serviceTotal:num(x.serviceTotal),materialCost:num(x.materialCost),laborCost:num(x.laborCost),extraCost:num(x.extraCost),totalCost:num(x.totalCost),actualRevenue:num(x.actualRevenue),profit:num(x.profit)}}
+function num(v){return Number(String(v||0).replace(/[^0-9.-]/g,''))||0}
+function parseDate(v){if(!v)return null;if(v instanceof Date)return v;let s=String(v);if(s.includes('/')){const [d,m,yAndTime]=s.split('/');const [y,t='00:00:00']=yAndTime.split(' ');return new Date(`${y}-${m}-${d}T${t}`)}return new Date(s.replace(' ','T'))}
+function rev(x){return x.actualRevenue||x.serviceTotal||x.estimate||0}
+function isSameDay(a,b){return a&&a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
+function isSameWeek(a,b){if(!a)return false;const one=new Date(b);one.setDate(b.getDate()-b.getDay()+1);one.setHours(0,0,0,0);const end=new Date(one);end.setDate(one.getDate()+7);return a>=one&&a<end}
+function isSameMonth(a,b){return a&&a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()}
+function filteredRows(){const branch=document.getElementById('branchFilter')?.value||'';const m=document.getElementById('monthFilter')?.value||'';return rows.filter(x=>(!branch||x.branch===branch)&&(!m||String(x.date||x.createdAt||'').includes(m.split('-').reverse().join('/'))||String(x.date||'').includes(m)))}
+async function loadDashboard(){await getRows();const data=filteredRows();const now=new Date();const today=data.filter(x=>isSameDay(parseDate(x.date||x.createdAt),now));const week=data.filter(x=>isSameWeek(parseDate(x.date||x.createdAt),now));const month=data.filter(x=>isSameMonth(parseDate(x.date||x.createdAt),now));setText('todayOrders',today.length);setText('repairingOrders',data.filter(x=>x.status==='5. Đang sửa').length);setText('completedOrders',data.filter(x=>x.status==='7. Đã hoàn thành').length);setText('deliveredOrders',data.filter(x=>x.status==='8. Đã bàn giao').length);setText('overdueOrders',data.filter(isOverdue).length);setText('waitingPartOrders',data.filter(x=>x.status==='6. Chờ linh kiện').length);setText('storeDayOrders',today.length);setText('storeWeekOrders',week.length);setText('storeMonthOrders',month.length);setText('storeDayRevenue',money(sum(today,rev)));setText('storeWeekRevenue',money(sum(week,rev)));setText('storeMonthRevenue',money(sum(month,rev)));setText('moneyRevenue',money(sum(data,rev)));setText('moneyMaterial',money(sum(data,x=>x.materialCost)));setText('moneyLabor',money(sum(data,x=>x.laborCost)));setText('moneyExtra',money(sum(data,x=>x.extraCost)));setText('moneyProfit',money(sum(data,x=>x.profit||rev(x)-x.totalCost)));setText('compareText','↑ '+pct(sum(week,rev),sum(data,rev)/4)+' so với TB tuần');renderWeekChart(data);renderServices(data);renderModels(data);renderMaterialsNeed(data);renderTechKpi(data);renderWarnings(data);renderBranches(data);renderStatusRatio(data);setText('avgRepairTime',avgRepairDays(data)+' ngày');renderTopOverdueTech(data);}
+function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v}
+function sum(arr,fn){return arr.reduce((s,x)=>s+(fn(x)||0),0)}
+function pct(a,b){if(!b)return '0%';return Math.round((a-b)/b*100)+'%'}
+function isOverdue(x){if(!x.appointment||['7. Đã hoàn thành','8. Đã bàn giao','9. Back lại khách','11. Hủy sửa'].includes(x.status))return false;return parseDate(x.appointment)<new Date()}
+function groupBy(arr,fn){return arr.reduce((m,x)=>{const k=fn(x)||'Khác';(m[k]=m[k]||[]).push(x);return m},{})}
+function rankHTML(items,type='count'){return items.map((x,i)=>`<div class="rank-item"><span>${i+1}. ${x.name}</span><b>${type==='money'?money(x.value):x.value}</b></div>`).join('')||'<p class="muted">Chưa có dữ liệu</p>'}
+function topFromGroups(groups,calc){return Object.entries(groups).map(([name,arr])=>({name,value:calc(arr)})).sort((a,b)=>b.value-a.value).slice(0,6)}
+function renderWeekChart(data){const box=document.getElementById('weekChart');if(!box)return;const now=new Date();const weeks=[];for(let i=3;i>=0;i--){const end=new Date(now);end.setDate(now.getDate()-i*7);const start=new Date(end);start.setDate(end.getDate()-6);const arr=data.filter(x=>{const d=parseDate(x.date||x.createdAt);return d>=start&&d<=end});weeks.push({name:'Tuần '+(4-i),orders:arr.length,revenue:sum(arr,rev),profit:sum(arr,x=>x.profit||rev(x)-x.totalCost)});}const max=Math.max(...weeks.map(w=>w.revenue),1);box.innerHTML=weeks.map(w=>`<div class="week-col"><b>${w.name}</b><div class="bar-stack"><span style="height:${Math.max(8,w.orders*8)}px"></span><span style="height:${Math.max(8,w.revenue/max*110)}px"></span><span style="height:${Math.max(8,Math.max(w.profit,0)/max*110)}px"></span></div><small>Đơn ${w.orders}<br>DT ${money(w.revenue)}<br>LN ${money(w.profit)}</small></div>`).join('')}
+function renderServices(data){const g=groupBy(data,x=>x.serviceType||x.request);document.getElementById('topServices').innerHTML=rankHTML(topFromGroups(g,a=>a.length));document.getElementById('topServiceRevenue').innerHTML=rankHTML(topFromGroups(g,a=>sum(a,rev)),'money');document.getElementById('topProfit').innerHTML=rankHTML(topFromGroups(g,a=>sum(a,x=>x.profit||rev(x)-x.totalCost)),'money')}
+function renderModels(data){const g=groupBy(data,x=>String(x.product||'').toUpperCase());document.getElementById('modelAnalysis').innerHTML=rankHTML(topFromGroups(g,a=>a.length));const issue=document.getElementById('commonIssues');issue.innerHTML=Object.entries(g).slice(0,6).map(([model,arr])=>{const top=topFromGroups(groupBy(arr,x=>x.serviceType||x.request),a=>a.length).slice(0,3).map(x=>`<li>${x.name} (${x.value})</li>`).join('');return `<div class="issue-card"><b>${model}</b><ul>${top}</ul></div>`}).join('')||'<p class="muted">Chưa có dữ liệu</p>'}
+function renderMaterialsNeed(data){const g=groupBy(data,x=>x.serviceType);document.getElementById('materialNeed').innerHTML=DM_VAT_TU.map(v=>{const used=(g[v.group]?.length||0)+(g[v.name]?.length||0);const need=Math.max(0,Math.ceil(used*0.8));return `<div class="material-card"><b>${v.name}</b><span>${v.group} · ${v.model}</span><p>Đã dùng: <b>${used}</b></p><p>Đề xuất nhập: <b>${need}</b></p></div>`}).join('')}
+function renderTechKpi(data){const g=groupBy(data,x=>x.technician||'Chưa giao');const list=topFromGroups(g,a=>a.filter(x=>x.status==='7. Đã hoàn thành'||x.status==='8. Đã bàn giao').length).map((x,i)=>({name:x.name,rank:['🥇','🥈','🥉'][i]||i+1,arr:g[x.name]}));const html=list.map(x=>`<tr><td>${x.name}</td><td>${x.arr.filter(i=>i.status==='7. Đã hoàn thành'||i.status==='8. Đã bàn giao').length}</td><td>${money(sum(x.arr,rev))}</td><td>${money(sum(x.arr,i=>i.laborCost))}</td><td>${x.arr.filter(isOverdue).length}</td><td>${x.rank}</td></tr>`).join('')||'<tr><td colspan="6">Chưa có dữ liệu</td></tr>';setTBody('techKpiRows',html);setTBody('adminKpiRows',html.replaceAll('<td>'+list[0]?.rank+'</td>',''))}
+function setTBody(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html}
+function renderWarnings(data){const soak=data.filter(x=>{const d=parseDate(x.date||x.createdAt);return d&&!['7. Đã hoàn thành','8. Đã bàn giao','9. Back lại khách','11. Hủy sửa'].includes(x.status)&&(new Date()-d)>3*864e5}).length;const cards=[['Máy quá hẹn',data.filter(isOverdue).length],['Máy ngâm trên 3 ngày',soak],['Chờ linh kiện',data.filter(x=>x.status==='6. Chờ linh kiện').length],['Bảo hành lại',data.filter(x=>x.status==='10. Bảo hành lại').length]];document.getElementById('warningCards').innerHTML=cards.map(c=>`<button class="warning-card" onclick="openTab('list')"><span>${c[0]}</span><b>${c[1]}</b><small>Bấm xem danh sách</small></button>`).join('')}
+function renderBranches(data){const g=groupBy(data,x=>x.branch||'Không rõ');document.getElementById('branchCards').innerHTML=Object.entries(g).map(([b,a])=>`<div class="branch-card"><b>CN${b}</b><p>Đơn: ${a.length}</p><p>Doanh thu: ${money(sum(a,rev))}</p><p class="sensitive-money">Lợi nhuận: ${money(sum(a,x=>x.profit||rev(x)-x.totalCost))}</p></div>`).join('')}
+function renderStatusRatio(data){document.getElementById('statusRatio').innerHTML=DM_TRANG_THAI.map(s=>{const c=data.filter(x=>x.status===s).length;const p=data.length?Math.round(c/data.length*100):0;return `<div class="status-item"><b>${p}%</b><br><span>${s}</span><small>${c} máy</small></div>`}).join('')}
+function avgRepairDays(data){const arr=data.map(x=>{const a=parseDate(x.date||x.createdAt),b=parseDate(x.completedDate||x.handoverDate);return a&&b?Math.max(0,(b-a)/864e5):null}).filter(x=>x!==null);return arr.length?(sum(arr,x=>x)/arr.length).toFixed(1):'0'}
+function renderTopOverdueTech(data){const g=groupBy(data.filter(isOverdue),x=>x.technician||'Chưa giao');document.getElementById('topOverdueTech').innerHTML=rankHTML(topFromGroups(g,a=>a.length))}
+async function loadRepairList(){await getRows();const q=(document.getElementById('listKeyword')?.value||'').toLowerCase();const st=document.getElementById('listStatus')?.value||'';const tech=document.getElementById('listTech')?.value||'';const data=filteredRows().filter(x=>(!q||JSON.stringify(x).toLowerCase().includes(q))&&(!st||x.status===st)&&(!tech||x.technician===tech));document.getElementById('repairRows').innerHTML=data.map(x=>`<tr><td>${x.repairId||''}</td><td>${x.date||''}</td><td>${x.branch||''}</td><td>${x.product||''}</td><td>${x.customer||''}</td><td>${x.phone||''}</td><td><span class="badge">${x.status||''}</span></td><td>${x.technician||''}</td><td>${x.appointment||''}</td><td><b>${money(rev(x))}</b></td><td><button class="view-btn" onclick="openDetail('${x.repairId}')">👁 Xem</button></td></tr>`).join('')||'<tr><td colspan="11">Không có dữ liệu</td></tr>'}
+async function findForStatus(){const q=document.getElementById('statusKeyword').value.trim();const res=await api('search',{q});const x=res.data?.[0];if(!x)return toast('Không thấy phiếu');const f=document.getElementById('statusForm');f.classList.remove('hidden');f.repairId.value=x.repairId;f.actualStatus.value=x.actualStatus||'';f.processPlace.value=x.place||'Nội bộ';f.technician.value=x.technician||'';f.status.value=x.status||'1. Đã tiếp nhận';f.techNote.value=x.techNote||'';}
+document.getElementById('statusForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target),d=Object.fromEntries(f.entries());await api('updateStatus',{repairId:d.repairId,data:{actualStatus:d.actualStatus,place:d.processPlace,technician:d.technician,status:d.status,techNote:d.techNote,updatedAt:new Date().toLocaleString('vi-VN')}});toast('Đã cập nhật trạng thái');loadRepairList();loadDashboard();});
+async function findForCost(){const q=document.getElementById('costKeyword').value.trim();const res=await api('search',{q});const x=res.data?.[0];if(!x)return toast('Không thấy phiếu');const f=document.getElementById('costForm');f.classList.remove('hidden');f.repairId.value=x.repairId;f.materialCost.value=x.materialCost||0;f.laborCost.value=x.laborCost||0;f.extraCost.value=x.extraCost||0;f.actualRevenue.value=x.actualRevenue||x.serviceTotal||x.estimate||0;f.paymentStatus.value=x.paymentStatus||'Chưa thanh toán';f.extraNote.value=x.extraNote||'';}
+document.getElementById('costForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target),d=Object.fromEntries(f.entries());await api('updateCost',{repairId:d.repairId,data:d});toast('Đã cập nhật chi phí');loadRepairList();loadDashboard();});
+function statusTone(status){
+  const s=String(status||'');
+  if(s.startsWith('7.')||s.startsWith('8.')) return 'good';
+  if(s.startsWith('6.')||s.startsWith('3.')||s.startsWith('4.')) return 'warn';
+  if(s.startsWith('9.')||s.startsWith('10.')||s.startsWith('11.')) return 'danger';
+  return 'info';
+}
+function safe(v){return v==null||v===''?'—':v}
+function openDetail(id){
+  const x=rows.find(r=>r.repairId===id);if(!x)return;
+  const canMoney=['qlkythuat','admin'].includes(currentUser.role);
+  const currentIndex=Math.max(0, DM_TRANG_THAI.findIndex(s=>s===x.status));
+  const progress=Math.round(((currentIndex+1)/DM_TRANG_THAI.length)*100);
+  const statusClass=statusTone(x.status);
+  const chips=[
+    ['FaceID',x.faceId],['Màn hình',x.screen],['Camera/Mic',x.cameraMic],['Loa',x.speaker]
+  ].map(([k,v])=>`<div class="test-chip"><span>${k}</span><b>${safe(v)}</b></div>`).join('');
+  const timeline=DM_TRANG_THAI.map((s,i)=>{
+    const done=i<currentIndex, active=i===currentIndex;
+    return `<div class="step ${done?'done':''} ${active?'active':''}"><i>${done?'✓':active?'●':''}</i><span>${s.replace(/^\d+\.\s*/,'')}</span></div>`
+  }).join('');
+  const moneyBlock=canMoney?`<div class="detail-card money-private">
+    <div class="detail-card-head"><span>💰</span><div><h4>Chi phí nội bộ</h4><p>Chỉ QL kỹ thuật và Admin thấy phần này</p></div></div>
+    <div class="money-row"><span>Giá vốn vật tư</span><b>${money(x.materialCost)}</b></div>
+    <div class="money-row"><span>Công thợ</span><b>${money(x.laborCost)}</b></div>
+    <div class="money-row"><span>Chi phí phát sinh</span><b>${money(x.extraCost)}</b></div>
+    <div class="money-row muted-line"><span>Tổng chi phí</span><b>${money(x.totalCost)}</b></div>
+    <div class="money-row"><span>Thực thu</span><b>${money(x.actualRevenue)}</b></div>
+    <div class="money-row profit-line"><span>Lợi nhuận</span><b>${money(x.profit)}</b></div>
+    <div class="payment-pill">${safe(x.paymentStatus)}</div>
+  </div>`:'';
+  document.getElementById('detailContent').innerHTML=`
+    <div class="detail-modern">
+      <div class="detail-hero ${statusClass}">
+        <div class="detail-hero-main">
+          <div class="repair-avatar">${String(x.product||'P').slice(0,2).toUpperCase()}</div>
+          <div>
+            <div class="detail-eyebrow">Hồ sơ sửa chữa</div>
+            <h2>${safe(x.product)} <span>${safe(x.repairId)}</span></h2>
+            <p>${safe(x.customer)} · ${safe(x.phone)} · CN ${safe(x.branch)}</p>
+          </div>
+        </div>
+        <div class="detail-status-box">
+          <span class="status-pill ${statusClass}">${safe(x.status)}</span>
+          <b>${money(rev(x))}</b>
+          <small>Báo giá khách</small>
+        </div>
+      </div>
+
+      <div class="detail-quick-grid">
+        <div><span>IMEI</span><b>${safe(x.imei)}</b></div>
+        <div><span>Loại dịch vụ</span><b>${safe(x.serviceType)}</b></div>
+        <div><span>Kỹ thuật</span><b>${safe(x.technician)}</b></div>
+        <div><span>Hẹn trả</span><b>${safe(x.appointment)}</b></div>
+      </div>
+
+      <div class="progress-card">
+        <div class="progress-top"><b>Tiến trình xử lý</b><span>${progress}%</span></div>
+        <div class="progress-bar"><i style="width:${progress}%"></i></div>
+        <div class="stepper">${timeline}</div>
+      </div>
+
+      <div class="detail-layout">
+        <div class="detail-left">
+          <div class="detail-card">
+            <div class="detail-card-head"><span>📥</span><div><h4>Thông tin tiếp nhận</h4><p>Form nhận máy giữ đúng dữ liệu gốc</p></div></div>
+            <div class="info-list">
+              <div><span>Ngày nhận</span><b>${safe(x.date)}</b></div>
+              <div><span>Nhân viên tiếp nhận</span><b>${safe(x.staff)}</b></div>
+              <div><span>Tình trạng khi nhận</span><p>${safe(x.receiveStatus)}</p></div>
+              <div><span>Yêu cầu sửa chữa</span><p>${safe(x.request)}</p></div>
+              <div><span>Ghi chú tiếp nhận</span><p>${safe(x.receiveNote)}</p></div>
+            </div>
+            <div class="test-grid">${chips}</div>
+          </div>
+
+          <div class="detail-card">
+            <div class="detail-card-head"><span>🔨</span><div><h4>Cập nhật kỹ thuật</h4><p>Tình trạng thực tế và ghi chú xử lý</p></div></div>
+            <div class="info-list two">
+              <div><span>Nơi xử lý</span><b>${safe(x.place)}</b></div>
+              <div><span>Ngày hoàn thành</span><b>${safe(x.completedDate)}</b></div>
+              <div><span>Tình trạng thực tế</span><p>${safe(x.actualStatus)}</p></div>
+              <div><span>Ghi chú kỹ thuật</span><p>${safe(x.techNote)}</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="detail-right">
+          <div class="detail-card service-card">
+            <div class="detail-card-head"><span>🔧</span><div><h4>Dịch vụ & báo giá</h4><p>QL cửa hàng được xem để báo khách</p></div></div>
+            <div class="service-price"><span>${safe(x.serviceType||x.request)}</span><b>${money(rev(x))}</b></div>
+            <div class="service-note">Tổng tiền dịch vụ / giá dự kiến hiển thị là báo giá khách, không phải chi phí nội bộ.</div>
+          </div>
+          ${moneyBlock}
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('detailModal').classList.remove('hidden')
+}
+function closeDetail(){document.getElementById('detailModal').classList.add('hidden')}
+function renderMaterials(){const box=document.getElementById('materialsList');if(!box)return;box.innerHTML=DM_VAT_TU.map(x=>`<div class="card"><h4>${x.name}</h4><p>${x.group} · ${x.model}</p><p>Giá nhập gợi ý: ${x.price?money(x.price):'Chưa nhập'} · NCC: ${x.supplier||'Chưa chọn'}</p></div>`).join('')}
