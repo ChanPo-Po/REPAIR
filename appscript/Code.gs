@@ -3,7 +3,7 @@ Schema 10 bảng mới: DATA, CT_DICH_VU, CT_VAT_TU, DM_TRANG_THAI, DM_DICH_VU, 
 Deploy: Apps Script > Deploy > Web app > Execute as Me > Anyone.
 Set SHEET_ID rồi dán Web App URL vào js/config.js.
 */
-const SHEET_ID = 'PASTE_SPREADSHEET_ID_HERE';
+const SHEET_ID = '1ZsLoZF4hVBpSrbna0sZQ-lg9KNI-TkwuUYmiJP885mo';
 const TZ = 'GMT+7';
 const SHEET_DATA = 'DATA';
 const SHEET_LOG = 'LOG_SUA_CHUA';
