@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>POPOPHONE Repair</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="public-page app-mobile-ui">
+  <header class="mobile-app-head">
+    <div class="brand compact-brand"><div class="brand-mark">P</div><div><h1>POPOPHONE Repair</h1><p>Tiếp nhận & tra cứu</p></div></div>
+    <a class="icon-login" href="login.html">Quản trị</a>
+  </header>
+  <main class="mobile-shell">
+    <nav class="mobile-tabs">
+      <button class="active" data-pubtab="receive" onclick="showPublicTab('receive')">📥 Tiếp nhận</button>
+      <button data-pubtab="lookup" onclick="showPublicTab('lookup')">🔍 Tra cứu</button>
+    </nav>
+    <section id="receive" class="public-tab active">
+      <div class="mobile-panel tight-panel">
+        <div class="mini-title"><h2>Phiếu tiếp nhận</h2></div>
+        <form id="receiveForm" class="receive-mobile-form">
+          <div class="field-row two"><label><span>IMEI *</span><input name="imei" required placeholder="IMEI"></label><label><span>CN *</span><select name="branch" required><option value="">Chọn</option><option>113</option><option>148</option></select></label></div>
+          <label><span>Sản phẩm *</span><input name="product" required placeholder="VD: 12 Pro Max"></label>
+          <div class="field-row two"><label><span>Tên khách *</span><input name="customer" required></label><label><span>SĐT *</span><input name="phone" required inputmode="tel"></label></div>
+          <label><span>Loại dịch vụ *</span><select name="serviceType" id="receiveServiceType" required></select></label>
+          <label><span>Tình trạng khi nhận *</span><textarea name="receiveStatus" required placeholder="Ngoại hình, chức năng, lỗi khách báo..."></textarea></label>
+          <label><span>Yêu cầu sửa chữa *</span><textarea name="request" required placeholder="VD: thay pin, ép kính, kiểm tra nguồn..."></textarea></label>
+          <label><span>Ghi chú tiếp nhận</span><textarea name="receiveNote" placeholder="Mật khẩu, lưu ý, ghi chú thêm..."></textarea></label>
+          <div class="field-row two"><label><span>Hẹn trả</span><input name="appointment" type="datetime-local"></label><label><span>Báo giá</span><input name="estimate" inputmode="numeric" placeholder="0"></label></div>
+          <div class="check-compact"><label><span>FaceID</span><select name="faceId"><option>Bình thường</option><option>Lỗi</option><option>Không test được</option></select></label><label><span>Màn hình</span><select name="screen"><option>Bình thường</option><option>Lỗi</option><option>Không test được</option></select></label><label><span>Camera/Mic</span><select name="cameraMic"><option>Bình thường</option><option>Lỗi</option><option>Không test được</option></select></label><label><span>Loa</span><select name="speaker"><option>Bình thường</option><option>Lỗi</option><option>Không test được</option></select></label></div>
+          <label><span>Nhân viên tiếp nhận</span><input name="staff" placeholder="Tên sale"></label>
+          <div class="sticky-actions"><button type="reset" class="ghost-btn">Xóa</button><button type="submit" class="primary-btn">Lưu & In phiếu nhận</button></div>
+        </form>
+      </div>
+    </section>
+    <section id="lookup" class="public-tab">
+      <div class="mobile-panel tight-panel">
+        <div class="mini-title"><h2>Tra cứu sửa chữa</h2><span>Tìm mã SC / IMEI / SĐT</span></div>
+        <div class="mobile-search"><input id="lookupKeyword" placeholder="Nhập từ khóa"><button class="primary-btn" onclick="publicLookup()">Tìm</button></div>
+        <div id="lookupResult" class="result-list"></div>
+      </div>
+    </section>
+  </main>
+  <div id="toast" class="toast"></div>
+  <script src="js/config.js"></script><script src="js/public.js"></script>
+</body>
+</html>
