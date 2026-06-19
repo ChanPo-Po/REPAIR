@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>POPOPHONE Repair V8.2</title>
+  <title>POPOPHONE Repair </title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -11,7 +11,7 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-mark">P</div>
-        <div><h1>POPOPHONE</h1><p>Repair Center V8.2</p></div>
+        <div><h1>POPOPHONE</h1><p>Repair Center</p></div>
       </div>
       <nav id="adminNav" class="nav"></nav>
       <div class="sidebar-card">
@@ -23,8 +23,7 @@
     <main class="main">
       <header class="topbar">
         <div>
-          <h2 id="pageTitle">📊 Tổng quan</h2>
-          <p id="pageSub">QL cửa hàng được xem đơn và doanh thu; chi phí/lợi nhuận/NCC chỉ QL kỹ thuật và Admin.</p>
+          <h2 id="pageTitle">📊 Tổng quan</h2>  
         </div>
         <div class="top-actions">
           <select id="branchFilter"><option value="">Tất cả CN</option><option>113</option><option>148</option></select>
@@ -48,7 +47,7 @@
         </div>
 
         <div class="panel store-visible">
-          <div class="panel-head"><div><h3>🏪 Số đơn & doanh thu để QL cửa hàng báo cáo</h3><p>Không hiển thị chi phí, giá vốn, lợi nhuận.</p></div></div>
+          <div class="panel-head"><div><h3>🏪 Tình hình kinh doanh</h3></div></div>
           <div class="mini-kpi-grid">
             <div class="mini-kpi"><span>Đơn hôm nay</span><b id="storeDayOrders">0</b></div>
             <div class="mini-kpi"><span>Đơn tuần</span><b id="storeWeekOrders">0</b></div>
@@ -60,7 +59,7 @@
         </div>
 
         <div class="panel sensitive-money">
-          <div class="panel-head"><div><h3>2. Doanh thu - Chi phí - Lợi nhuận</h3><p>Chỉ hiện với QL kỹ thuật và Admin.</p></div><div class="compare-pill" id="compareText">Đang tính...</div></div>
+          <div class="panel-head"><div><h3>2. Doanh thu - Chi phí</h3>></div><div class="compare-pill" id="compareText">Đang tính...</div></div>
           <div class="money-grid">
             <div><span>Doanh thu sửa chữa</span><b id="moneyRevenue">0đ</b></div>
             <div><span>Chi phí vật tư</span><b id="moneyMaterial">0đ</b></div>
@@ -71,7 +70,7 @@
         </div>
 
         <div class="panel">
-          <div class="panel-head"><div><h3>3. Biểu đồ 4 tuần gần nhất</h3><p>QL cửa hàng chỉ thấy đơn và doanh thu; QL kỹ thuật/Admin thấy thêm lợi nhuận.</p></div></div>
+          <div class="panel-head"><div><h3>3. Biểu đồ 4 tuần gần nhất</h3></div></div>
           <div id="weekChart" class="chart-bars"></div>
         </div>
 
@@ -82,12 +81,12 @@
         </div>
 
         <div class="dashboard-grid-2">
-          <div class="panel"><div class="panel-head"><h3>📱 Dịch vụ sửa theo dòng máy</h3><p>Đếm từng dịch vụ sửa chữa đang sửa cho dòng máy nào.</p></div><div id="modelAnalysis" class="service-model-list"></div></div>
-          <div class="panel"><div class="panel-head"><h3>🔎 Ma trận dịch vụ × dòng máy</h3><p>Ví dụ: Thay pin sửa nhiều nhất ở 11, 12PM...</p></div><div id="commonIssues" class="issue-list"></div></div>
+          <div class="panel"><div class="panel-head"><h3>📱 Dịch vụ sửa theo dòng máy</h3><p></p></div><div id="modelAnalysis" class="service-model-list"></div></div>
+          <div class="panel"><div class="panel-head"><h3>🔎 Ma trận dịch vụ × dòng máy</h3></div><div id="commonIssues" class="issue-list"></div></div>
         </div>
 
         <div class="panel sensitive-money">
-          <div class="panel-head"><div><h3>📦 Nhu cầu vật tư</h3><p>V8.2 tính theo vật tư/dịch vụ đã dùng; tồn kho chi tiết để V9.</p></div></div>
+          <div class="panel-head"><div><h3>📦 Nhu cầu vật tư</h3></div></div>
           <div id="materialNeed" class="material-grid"></div>
         </div>
 
@@ -110,7 +109,7 @@
 
       <section id="list" class="tab">
         <div class="panel">
-          <div class="panel-head"><div><h3>📋 Danh sách sửa chữa</h3><p>Có cột Báo giá để báo khách. Không lộ giá vốn/lợi nhuận cho QL cửa hàng.</p></div></div>
+          <div class="panel-head"><div><h3>📋 Danh sách sửa chữa</h3></div></div>
           <div class="filter-row"><input id="listKeyword" placeholder="Mã SC / IMEI / KH / SĐT"><select id="listStatus"></select><select id="listTech"></select><button class="primary-btn" onclick="loadRepairList()">Lọc</button></div>
           <div class="table-wrap"><table><thead><tr><th>Mã</th><th>Ngày nhận</th><th>CN</th><th>Máy</th><th>Khách</th><th>SĐT</th><th>Trạng thái</th><th>KTV</th><th>Hẹn trả</th><th>Báo giá</th><th>Thao tác</th></tr></thead><tbody id="repairRows"></tbody></table></div>
         </div>
@@ -118,7 +117,7 @@
 
       <section id="status" class="tab">
         <div class="mobile-workspace">
-          <div class="mini-title"><h2>Máy cần xử lý</h2><span>KTV dùng trên điện thoại</span></div>
+          <div class="mini-title"><h2>Máy cần xử lý</h2></div>
           <div class="mobile-search"><input id="statusKeyword" placeholder="Mã SC / IMEI / SĐT"><button class="primary-btn" onclick="findForStatus()">Tìm</button></div>
           <div id="techQueue" class="job-list"></div>
         </div>
@@ -130,12 +129,12 @@
       </section>
 
       <section id="cost" class="tab sensitive-money">
-        <div class="panel"><div class="panel-head"><h3>💰 Cập nhật chi phí</h3><p>Chỉ QL kỹ thuật và Admin.</p></div><div class="search-line"><input id="costKeyword" placeholder="Mã SC / IMEI / SĐT"><button class="primary-btn" onclick="findForCost()">Tìm</button></div><form id="costForm" class="form-grid hidden"><label><span>Mã sửa chữa</span><input name="repairId" readonly></label><label><span>Mã bill mua vật tư</span><input name="materialBill" placeholder="VD: HDVT001"></label><label><span>Tên vật tư</span><select name="materialName" id="costMaterial"></select></label><label><span>Giá vật tư</span><input name="materialCost" inputmode="numeric"></label><label><span>Công thợ</span><input name="laborCost" inputmode="numeric"></label><label><span>Thực thu</span><input name="actualRevenue" inputmode="numeric"></label><label><span>NCC</span><select name="supplier" id="costSupplier"></select></label><label><span>Trạng thái thanh toán</span><select name="paymentStatus"><option>Chưa thanh toán</option><option>Đã thanh toán</option><option>Cọc trước</option><option>Không thu tiền</option></select></label><div class="form-actions span-3"><button class="primary-btn">Cập nhật chi phí</button></div></form></div>
+        <div class="panel"><div class="panel-head"><h3>💰 Cập nhật chi phí</h3></div><div class="search-line"><input id="costKeyword" placeholder="Mã SC / IMEI / SĐT"><button class="primary-btn" onclick="findForCost()">Tìm</button></div><form id="costForm" class="form-grid hidden"><label><span>Mã sửa chữa</span><input name="repairId" readonly></label><label><span>Mã bill mua vật tư</span><input name="materialBill" placeholder="VD: HDVT001"></label><label><span>Tên vật tư</span><select name="materialName" id="costMaterial"></select></label><label><span>Giá vật tư</span><input name="materialCost" inputmode="numeric"></label><label><span>Công thợ</span><input name="laborCost" inputmode="numeric"></label><label><span>Thực thu</span><input name="actualRevenue" inputmode="numeric"></label><label><span>NCC</span><select name="supplier" id="costSupplier"></select></label><label><span>Trạng thái thanh toán</span><select name="paymentStatus"><option>Chưa thanh toán</option><option>Đã thanh toán</option><option>Cọc trước</option><option>Không thu tiền</option></select></label><div class="form-actions span-3"><button class="primary-btn">Cập nhật chi phí</button></div></form></div>
       </section>
 
       <section id="materials" class="tab sensitive-money"><div class="panel"><div class="panel-head"><h3>📦 Vật tư</h3></div><div id="materialsList" class="cards"></div></div></section>
       <section id="kpi" class="tab admin-only"><div class="panel"><div class="panel-head"><h3>📈 KPI</h3></div><div class="table-wrap"><table><thead><tr><th>KTV</th><th>Đơn hoàn thành</th><th>Doanh thu</th><th>Tổng công</th><th>Quá hẹn</th></tr></thead><tbody id="adminKpiRows"></tbody></table></div></div></section>
-      <section id="settings" class="tab admin-only"><div class="panel"><div class="panel-head"><h3>⚙️ Danh mục & Người dùng</h3></div><p>Quản lý danh mục dịch vụ, trạng thái, kỹ thuật, vật tư, NCC và tài khoản.</p></div></section>
+      
     </main>
   </div>
 
