@@ -909,7 +909,8 @@ function getCommissionRows() {
     if (month && rowMonth !== month) return;
 
     const model = canonicalModelName(r.product || 'Khác');
-    const services = uniqueTextList(splitItems(r.repairService || '').length ? splitItems(r.repairService || '') : (serviceByRepair[r.repairId] || []));
+    // Hoa hồng lấy CT_DICH_VU làm nguồn chính. Nếu CT chưa có thì mới fallback về DATA.
+    const services = uniqueTextList((serviceByRepair[r.repairId] && serviceByRepair[r.repairId].length) ? serviceByRepair[r.repairId] : splitItems(r.repairService || ''));
     if (!services.length) return;
 
     services.forEach(function (svc) {
@@ -1017,28 +1018,57 @@ function buildCommissionRuleMap() {
 
 function lookupCommissionAmount(rules, tech, model, group) {
   const row = rules[normalizeKey(tech) + '|' + canonicalModelName(model)];
-  if (!row) return 0;
-  return parseMoneyValue(row[group] || row[group.toUpperCase()] || row[group.toLowerCase()] || 0);
+  if (!row || !group) return 0;
+  return parseMoneyValue(getCommissionCellValue_(row, group));
 }
 
 function hasCommissionRule(rules, tech, model, group) {
   const row = rules[normalizeKey(tech) + '|' + canonicalModelName(model)];
-  return !!(row && row[group] !== undefined && row[group] !== '');
+  if (!row || !group) return false;
+  const val = getCommissionCellValue_(row, group);
+  return val !== undefined && val !== '' && val !== null;
+}
+
+function getCommissionCellValue_(row, group) {
+  if (!row || !group) return 0;
+  const target = normalizeTextNoAccent(group);
+  const keys = Object.keys(row);
+
+  // Ưu tiên đúng header gốc trước.
+  if (row[group] !== undefined) return row[group];
+
+  // Sau đó so header đã chuẩn hóa để chịu được khác hoa/thường, dấu, khoảng trắng.
+  for (let i = 0; i < keys.length; i++) {
+    if (normalizeTextNoAccent(keys[i]) === target) return row[keys[i]];
+  }
+
+  return 0;
 }
 
 function commissionGroupFromService(serviceName) {
   const s = normalizeTextNoAccent(serviceName);
   if (!s) return '';
-  if (s.includes('pin')) {
-    if (s.includes('co san co') && !s.includes('khong')) return 'THAY PIN CÓ SÀN CỔ';
-    return 'THAY PIN KHÔNG SÀN CỔ';
-  }
-  if (s.includes('phan quang')) return 'PHẢN QUANG';
-  if (s.includes('fix ao') || s.includes('fix man')) return 'FIX ẢO';
-  if (s.includes('ep kinh')) return 'ÉP KÍNH';
-  if (s.includes('ep cam')) return 'ÉP CẢM';
-  if (s.includes('thay vo') || s.includes('vo may')) return 'THAY VỎ';
-  if (s.includes('lung mat to')) return 'LƯNG MẮT TO';
+
+  // Bảng DM_HOA_HONG_THO mới tính trực tiếp theo tên dịch vụ trong CT_DICH_VU.
+  if (s.includes('thay pin san co')) return 'Thay pin sàn cổ';
+  if (s.includes('thay pin ksc dlc')) return 'Thay pin KSC DLC';
+  if (s.includes('thay pin ksc')) return 'Thay pin KSC';
+  if (s.includes('thay pin energizer')) return 'Thay pin Energizer';
+  if (s.includes('thay pin bison')) return 'Thay pin Bison';
+  if (s.includes('thay pin pisen dlc')) return 'Thay pin Pisen DLC';
+  if (s.includes('thay pin pisen')) return 'Thay pin Pisen';
+  if (s.includes('thay pin dlc maxe')) return 'Thay pin DLC Maxe';
+  if (s.includes('thay pin thuong')) return 'Thay pin thường';
+  if (s.includes('thay pin')) return 'Thay pin thường';
+
+  if (s.includes('phan quang')) return 'Thay phản quang';
+  if (s.includes('fix ao') || s.includes('fix man')) return 'Fix ảo';
+  if (s.includes('ep kinh')) return 'Ép kính';
+  if (s.includes('ep cam')) return 'Ép cảm';
+  if (s.includes('thay vo') || s.includes('vo may')) return 'Thay vỏ';
+  if (s.includes('lung mat to')) return 'Thay lưng mắt to';
+  if (s.includes('lung mat nho')) return 'Thay lưng mắt nhỏ';
+
   return '';
 }
 
