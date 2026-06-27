@@ -1046,10 +1046,15 @@ function getCommissionCellValue_(row, group) {
 }
 
 function commissionGroupFromService(serviceName) {
-  const s = normalizeTextNoAccent(serviceName);
+  const raw = canonicalServiceName(serviceName);
+  const s = normalizeTextNoAccent(raw);
   if (!s) return '';
 
-  // Bảng DM_HOA_HONG_THO mới tính trực tiếp theo tên dịch vụ trong CT_DICH_VU.
+  // Từ V10.22+: Hoa hồng dò trực tiếp theo tên dịch vụ trong CT_DICH_VU
+  // và tên cột trong DM_HOA_HONG_THO. Nghĩa là thêm cột mới như
+  // "Thay màn LK", "Thay màn OLED", "Thay chân sạc" thì dashboard tự đọc,
+  // miễn tên dịch vụ CT_DICH_VU khớp tên cột hoa hồng.
+  // Các dòng dưới chỉ xử lý alias/tên cũ để không bị lệch dữ liệu cũ.
   if (s.includes('thay pin san co')) return 'Thay pin sàn cổ';
   if (s.includes('thay pin ksc dlc')) return 'Thay pin KSC DLC';
   if (s.includes('thay pin ksc')) return 'Thay pin KSC';
@@ -1059,7 +1064,6 @@ function commissionGroupFromService(serviceName) {
   if (s.includes('thay pin pisen')) return 'Thay pin Pisen';
   if (s.includes('thay pin dlc maxe')) return 'Thay pin DLC Maxe';
   if (s.includes('thay pin thuong')) return 'Thay pin thường';
-  if (s.includes('thay pin')) return 'Thay pin thường';
 
   if (s.includes('phan quang')) return 'Thay phản quang';
   if (s.includes('fix ao') || s.includes('fix man')) return 'Fix ảo';
@@ -1069,7 +1073,9 @@ function commissionGroupFromService(serviceName) {
   if (s.includes('lung mat to')) return 'Thay lưng mắt to';
   if (s.includes('lung mat nho')) return 'Thay lưng mắt nhỏ';
 
-  return '';
+  // Quan trọng: không return rỗng nữa. Trả tên dịch vụ gốc để lookup trực tiếp
+  // với header DM_HOA_HONG_THO. Có cột trùng tên thì tự tính, không có thì 0đ.
+  return raw;
 }
 
 function normalizeTextNoAccent(value) {
