@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POPOPHONE Repair Dashboard</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">P</div>
+        <div>
+          <h1>POPOPHONE</h1>
+          <p>Repair V10 Pro</p>
+        </div>
+      </div>
+
+      <nav class="nav" id="navMenu">
+        <button data-tab="overview">📊 Tổng quan</button>
+        <button data-tab="repairs">📋 Danh sách</button>
+        <button data-tab="status">🔨 Cập nhật trạng thái</button>
+        <button data-tab="cost">💰 Cập nhật chi phí</button>
+        <button data-tab="materials">📦 Vật tư</button>
+        <button data-tab="weeklyReport">📝 Tạo báo cáo</button>
+        <button data-tab="masters">⚙️ Danh mục</button>
+      </nav>
+
+      <div class="user-card">
+        <b id="userName">Người dùng</b>
+        <small id="userRole">Vai trò</small>
+        <button class="ghost-btn" onclick="logout()">Đăng xuất</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <header class="topbar">
+        <div>
+          <h1 id="pageTitle">Tổng quan</h1>
+        </div>
+        <div class="top-actions">
+          <select id="globalBranch"><option value="">Tất cả CN</option><option>113</option><option>148</option></select>
+          <button class="ghost-btn" onclick="window.open('index.html', '_blank')">Tiếp nhận</button>
+          <button class="primary-btn" onclick="refreshAll()">Làm mới</button>
+        </div>
+      </header>
+
+      <section id="overview" class="tab">
+        <div class="dashboard-grid-2 top-overview-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h3>1. Tổng quan hôm nay</h3>
+              </div>
+            </div>
+            <div class="kpi-grid compact" id="kpiGrid"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h3>🏪 Tình hình kinh doanh</h3>
+              </div>
+            </div>
+            <div class="kpi-grid compact" id="businessGrid"></div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid-2">
+          <div class="panel">
+            <div class="panel-head"><div><h3>2. Doanh thu 4 tuần</h3></div></div>
+            <div id="weekChart" class="table-wrap"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h3>📊 Phân bổ loại dịch vụ</h3></div></div>
+            <div id="serviceTypeDist" class="service-type-list"></div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid-3">
+          <div class="panel"><div class="panel-head"><h3>🔧 Top dịch vụ</h3></div><div id="topServices" class="rank-list"></div></div>
+          <div class="panel"><div class="panel-head"><h3>📱 Top dòng máy</h3></div><div id="topModels" class="rank-list"></div></div>
+          <div class="panel"><div class="panel-head"><h3>👨‍🔧 KPI KTV</h3></div><div id="techKpi" class="rank-list"></div></div>
+        </div>
+
+        <div class="panel full-width">
+          <div class="panel-head">
+            <div>
+              <h3>🔎 Ma trận dịch vụ × dòng máy</h3>
+            </div>
+          </div>
+          <div class="matrix-toolbar">
+            <input id="matrixModelFilter" placeholder="Lọc dòng máy" oninput="renderMatrix()" />
+            <input id="matrixServiceFilter" placeholder="Lọc dịch vụ" oninput="renderMatrix()" />
+            <select id="matrixLimit" onchange="renderMatrix()"><option value="20">Top 20</option><option value="40">Top 40</option><option value="999">Tất cả</option></select>
+          </div>
+          <div id="serviceMatrix" class="table-wrap"></div>
+        </div>
+
+        <div class="dashboard-grid-2">
+          <div class="panel">
+            <div class="panel-head"><div><h3>📦 Nhu cầu vật tư</h3></div></div>
+            <div class="filter-row" style="grid-template-columns: 1fr 1fr auto;">
+              <input id="materialSearch" placeholder="Tìm vật tư" oninput="renderMaterialsNeed()" />
+              <select id="materialGroup" onchange="renderMaterialsNeed()"><option value="">Tất cả nhóm</option></select>
+              <label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" id="showAllMaterials" onchange="renderMaterialsNeed()" style="width:auto;" /> Tất cả</label>
+            </div>
+            <div id="materialsNeed" class="table-wrap"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h3>⚠️ Tồn vận hành</h3></div></div>
+            <div id="opsAlerts" class="rank-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="repairs" class="tab">
+        <div class="panel">
+          <div class="panel-head"><h3>📋 Danh sách sửa chữa</h3></div>
+          <div class="filter-row">
+            <input id="repairQ" placeholder="Tìm mã/IMEI/SĐT/KH" oninput="renderRepairTable()" />
+            <select id="repairBranch" onchange="renderRepairTable()"><option value="">CN</option><option>113</option><option>148</option></select>
+            <select id="repairStatus" onchange="renderRepairTable()"><option value="">Trạng thái</option></select>
+            <select id="repairTech" onchange="renderRepairTable()"><option value="">KTV</option></select>
+            <input id="repairFrom" type="date" onchange="renderRepairTable()" />
+            <input id="repairTo" type="date" onchange="renderRepairTable()" />
+            <button class="ghost-btn" onclick="clearRepairFilters()">Xóa lọc</button>
+          </div>
+          <div id="repairTable" class="table-wrap"></div>
+        </div>
+      </section>
+
+      <section id="status" class="tab">
+        <div class="panel">
+          <div class="panel-head"><div><h3>🔨 Máy cần xử lý</h3></div></div>
+          <div class="filter-row" style="grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr auto;">
+            <input id="statusQ" placeholder="Tìm mã/IMEI/SĐT" oninput="renderStatusList()" />
+            <select id="statusFilter" onchange="renderStatusList()"><option value="">Trạng thái</option></select>
+            <select id="statusTech" onchange="renderStatusList()"><option value="">KTV</option></select>
+            <input id="statusFrom" type="date" onchange="renderStatusList()" title="Từ ngày" />
+            <input id="statusTo" type="date" onchange="renderStatusList()" title="Đến ngày" />
+            <button class="ghost-btn" onclick="renderStatusList()">Lọc</button>
+          </div>
+          <div id="statusList" class="mobile-list"></div>
+        </div>
+      </section>
+
+      <section id="cost" class="tab">
+        <div class="panel">
+          <div class="panel-head"><div><h3>💰 Cập nhật chi phí</h3></div></div>
+          <div class="filter-row" style="grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr 1fr auto;">
+            <input id="costQ" placeholder="Tìm mã/IMEI/SĐT" oninput="renderCostTable()" />
+            <select id="costStatus" onchange="renderCostTable()"><option value="">Trạng thái</option></select>
+            <select id="costPayment" onchange="renderCostTable()"><option value="">Thanh toán</option><option>Chưa thanh toán</option><option>Đã thanh toán</option></select>
+            <input id="costMaterialQ" placeholder="Vật tư/NCC" oninput="renderCostTable()" />
+            <input id="costFrom" type="date" onchange="renderCostTable()" title="Từ ngày" />
+            <input id="costTo" type="date" onchange="renderCostTable()" title="Đến ngày" />
+            <button class="ghost-btn" onclick="renderCostTable()">Lọc</button>
+          </div>
+          <div id="costTable" class="table-wrap"></div>
+        </div>
+      </section>
+
+      <section id="weeklyReport" class="tab">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>📝 Tạo báo cáo tuần nộp sếp</h3>
+              <p>Chọn chi nhánh / tháng / tuần, web sẽ tự gom số liệu sửa chữa, dịch vụ, dòng máy và vật tư để in PDF.</p>
+            </div>
+            <button class="primary-btn" onclick="printWeeklyReport()">Xuất PDF / In báo cáo</button>
+          </div>
+          <div class="filter-row report-filter-row">
+            <select id="reportBranch" onchange="renderWeeklyReport()"><option value="">Tất cả CN</option><option>113</option><option>148</option></select>
+            <input id="reportMonth" type="month" onchange="renderWeeklyReport()" />
+            <select id="reportWeek" onchange="renderWeeklyReport()">
+              <option value="">Cả tháng</option>
+              <option value="1">Tuần 1</option>
+              <option value="2">Tuần 2</option>
+              <option value="3">Tuần 3</option>
+              <option value="4">Tuần 4</option>
+              <option value="5">Tuần 5</option>
+            </select>
+            <button class="ghost-btn" onclick="renderWeeklyReport()">Tạo báo cáo</button>
+          </div>
+          <div id="weeklyReportPreview" class="report-preview-wrap"></div>
+        </div>
+      </section>
+
+      <section id="materials" class="tab">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>📦 Vật tư sử dụng</h3>
+              <p>Tổng hợp vật tư đã dùng theo phiếu sửa chữa.</p>
+            </div>
+          </div>
+          <div id="materialsFull" class="table-wrap"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>🏪 Tổng quan NCC sử dụng vật tư</h3>
+              <p>Nắm nhanh nhà cung cấp nào đang chiếm nhiều chi phí vật tư nhất.</p>
+            </div>
+          </div>
+          <div id="materialsFullSupplierKpis" class="kpi-grid compact"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>📊 Phân tích theo NCC</h3>
+              <p>Đối chiếu tổng số phiếu, tổng SL và tổng tiền vật tư theo từng nhà cung cấp.</p>
+            </div>
+          </div>
+          <div id="materialsFullSupplierSummary" class="table-wrap"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>🔥 Top vật tư theo NCC</h3>
+              <p>Xem từng NCC đang được dùng nhiều nhất ở nhóm vật tư nào.</p>
+            </div>
+          </div>
+          <div id="materialsFullSupplierMaterials" class="supplier-grid"></div>
+        </div>
+      </section>
+
+      <section id="masters" class="tab">
+        <div class="panel"><div class="panel-head"><h3>⚙️ Danh mục đang dùng</h3></div><div id="masterView" class="table-wrap"></div></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal" class="modal"></div>
+  <div id="printArea" class="print-area"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/mock.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
