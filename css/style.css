@@ -1379,3 +1379,7 @@ input.input-error, textarea.input-error, select.input-error {
 .supplier-materials{display:flex;flex-wrap:wrap;gap:8px}
 .supplier-materials span{background:#eef2ff;border:1px solid #dbe3ff;color:#1e3a8a;border-radius:999px;padding:6px 9px;font-size:12px}
 .supplier-materials b{margin-left:4px;color:#0f172a}
+
+/* Hoa hồng kỹ thuật */
+.warn-row { background: #fff7ed; }
+.warn-row td { border-color: #fed7aa; }

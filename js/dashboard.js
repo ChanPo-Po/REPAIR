@@ -20,8 +20,8 @@ function setupNavByRole() {
   const allowed = {
     tech: ['status'],
     store: ['overview', 'repairs'],
-    tech_manager: ['overview', 'repairs', 'status', 'cost', 'materials', 'weeklyReport'],
-    admin: ['overview', 'repairs', 'status', 'cost', 'materials', 'weeklyReport', 'masters']
+    tech_manager: ['overview', 'repairs', 'status', 'cost', 'materials', 'commission', 'weeklyReport'],
+    admin: ['overview', 'repairs', 'status', 'cost', 'materials', 'commission', 'weeklyReport', 'masters']
   }[USER.role] || [];
 
   document.querySelectorAll('#navMenu button').forEach(function (btn) {
@@ -43,6 +43,7 @@ function openTab(tab) {
   if (tab === 'status') renderStatusList();
   if (tab === 'cost') renderCostTable();
   if (tab === 'materials') renderMaterialsFull();
+  if (tab === 'commission') initCommissionTab();
   if (tab === 'weeklyReport') initWeeklyReport();
   if (tab === 'masters') renderMasters();
 }
@@ -75,6 +76,7 @@ function hydrateFilters() {
   fillSelect('costStatus', MASTERS.trangThai || []);
   fillSelect('repairTech', (MASTERS.kyThuat || []).map(x => x.name));
   fillSelect('statusTech', (MASTERS.kyThuat || []).map(x => x.name));
+  fillSelect('commissionTech', (MASTERS.kyThuat || []).map(x => x.name));
   fillSelect('materialGroup', [...new Set((MASTERS.vatTu || []).map(x => x.group).filter(Boolean))]);
 }
 
@@ -864,6 +866,203 @@ function renderMaterialsFull() {
   const need = document.getElementById('materialsNeed');
   if (full && need) full.innerHTML = need.innerHTML;
   renderMaterialSupplierSummary('materialsFull');
+}
+
+
+function initCommissionTab() {
+  const m = document.getElementById('commissionMonth');
+  if (m && !m.value) {
+    const now = new Date();
+    m.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  }
+  renderCommissionDashboard();
+}
+
+function getCommissionRows() {
+  const monthVal = document.getElementById('commissionMonth')?.value || '';
+  const techFilter = document.getElementById('commissionTech')?.value || '';
+  let year = 0, month = 0;
+  if (monthVal) {
+    const parts = monthVal.split('-');
+    year = Number(parts[0] || 0);
+    month = Number(parts[1] || 0);
+  }
+
+  const rules = buildCommissionRuleMap();
+  const serviceCt = normalizeCtServices(CT_SERVICES);
+  const serviceByRepair = {};
+  serviceCt.forEach(function (svc) {
+    serviceByRepair[svc.repairId] = serviceByRepair[svc.repairId] || [];
+    serviceByRepair[svc.repairId].push(svc.name);
+  });
+
+  const out = [];
+  branchFiltered().forEach(function (r) {
+    const techName = String(r.technician || '').trim();
+    if (!techName) return;
+    if (techFilter && techName !== techFilter) return;
+
+    const dt = parseAnyDate(r.completedDate || r.updatedAt || r.date || r.createdAt);
+    const rowYear = Number(r.year || (dt ? dt.getFullYear() : 0));
+    const rowMonth = Number(r.month || (dt ? dt.getMonth() + 1 : 0));
+    if (year && rowYear !== year) return;
+    if (month && rowMonth !== month) return;
+
+    const model = canonicalModelName(r.product || 'Khác');
+    const services = uniqueTextList(splitItems(r.repairService || '').length ? splitItems(r.repairService || '') : (serviceByRepair[r.repairId] || []));
+    if (!services.length) return;
+
+    services.forEach(function (svc) {
+      const group = commissionGroupFromService(svc);
+      if (!group) return;
+      const amount = lookupCommissionAmount(rules, techName, model, group);
+      out.push({
+        repairId: r.repairId || '',
+        date: r.completedDate || r.updatedAt || r.date || r.createdAt || '',
+        tech: techName,
+        model: model,
+        service: canonicalServiceName(svc),
+        group: group,
+        amount: amount,
+        hasRule: amount > 0 || hasCommissionRule(rules, techName, model, group),
+        customer: r.customer || ''
+      });
+    });
+  });
+
+  return out.sort(function (a, b) {
+    return String(a.tech).localeCompare(String(b.tech), 'vi') || String(a.date).localeCompare(String(b.date), 'vi');
+  });
+}
+
+function renderCommissionDashboard() {
+  const rows = getCommissionRows();
+  const total = rows.reduce(function (sum, x) { return sum + Number(x.amount || 0); }, 0);
+  const summaryMap = {};
+  const allTechs = (MASTERS.kyThuat || []).map(function (x) { return x.name; }).filter(Boolean);
+
+  allTechs.forEach(function (name) {
+    summaryMap[name] = { tech: name, count: 0, total: 0, services: {}, missing: 0 };
+  });
+
+  rows.forEach(function (x) {
+    if (!summaryMap[x.tech]) summaryMap[x.tech] = { tech: x.tech, count: 0, total: 0, services: {}, missing: 0 };
+    const b = summaryMap[x.tech];
+    b.count++;
+    b.total += Number(x.amount || 0);
+    if (!x.hasRule) b.missing++;
+    const k = normalizeKey(x.service);
+    if (!b.services[k]) b.services[k] = { name: x.service, count: 0 };
+    b.services[k].count++;
+  });
+
+  const summary = Object.values(summaryMap).sort(function (a, b) { return b.total - a.total || b.count - a.count; });
+  const topTech = summary.filter(x => x.total > 0)[0] || null;
+  const missingCount = rows.filter(x => !x.hasRule).length;
+
+  const kpiEl = document.getElementById('commissionKpis');
+  if (kpiEl) {
+    kpiEl.innerHTML = [
+      { label: 'Tổng hoa hồng', value: fmtMoney(total) },
+      { label: 'KTV cao nhất', value: topTech ? topTech.tech + ' · ' + fmtMoney(topTech.total) : 'Chưa có' },
+      { label: 'Phiếu/dịch vụ tính công', value: rows.length },
+      { label: 'Chưa có bảng/0đ', value: missingCount }
+    ].map(function (x) { return '<div class="kpi-card mini"><span>' + esc(x.label) + '</span><b>' + esc(x.value) + '</b></div>'; }).join('');
+  }
+
+  const summaryEl = document.getElementById('commissionSummary');
+  if (summaryEl) {
+    summaryEl.innerHTML = '<table><thead><tr><th>Kỹ thuật</th><th>Số dịch vụ</th><th>Tổng hoa hồng</th><th>Top dịch vụ</th><th>Thiếu bảng</th></tr></thead><tbody>' +
+      (summary.length ? summary.map(function (x) {
+        const topSvc = Object.values(x.services || {}).sort(function (a, b) { return b.count - a.count; })[0];
+        return '<tr>' +
+          '<td><b>' + esc(x.tech) + '</b></td>' +
+          '<td>' + (x.count || 0) + '</td>' +
+          '<td><b>' + fmtMoney(x.total || 0) + '</b></td>' +
+          '<td>' + (topSvc ? esc(topSvc.name) + ' · ' + topSvc.count : '') + '</td>' +
+          '<td>' + (x.missing || 0) + '</td>' +
+        '</tr>';
+      }).join('') : '<tr><td colspan="5">Chưa có dữ liệu hoa hồng.</td></tr>') +
+      '</tbody></table>';
+  }
+
+  const detailEl = document.getElementById('commissionDetail');
+  if (detailEl) {
+    detailEl.innerHTML = '<table><thead><tr><th>Ngày</th><th>Mã SC</th><th>KTV</th><th>Dòng máy</th><th>Dịch vụ</th><th>Nhóm hoa hồng</th><th>Hoa hồng</th></tr></thead><tbody>' +
+      (rows.length ? rows.map(function (x) {
+        return '<tr class="' + (!x.hasRule ? 'warn-row' : '') + '">' +
+          '<td>' + esc(dateTime(x.date) || x.date || '') + '</td>' +
+          '<td><b>' + esc(x.repairId) + '</b></td>' +
+          '<td>' + esc(x.tech) + '</td>' +
+          '<td>' + esc(x.model) + '</td>' +
+          '<td>' + esc(x.service) + '</td>' +
+          '<td>' + esc(x.group) + '</td>' +
+          '<td><b>' + fmtMoney(x.amount || 0) + '</b></td>' +
+        '</tr>';
+      }).join('') : '<tr><td colspan="7">Chưa có dữ liệu hoa hồng.</td></tr>') +
+      '</tbody></table>';
+  }
+}
+
+function buildCommissionRuleMap() {
+  const map = {};
+  (MASTERS.hoaHongTho || []).forEach(function (r) {
+    const tech = normalizeKey(r.tech || r['Kỹ thuật'] || r['KỸ THUẬT'] || r.kyThuat || '');
+    const model = canonicalModelName(r.model || r.MODEL || r['Model'] || '');
+    if (!tech || !model) return;
+    map[tech + '|' + model] = r;
+  });
+  return map;
+}
+
+function lookupCommissionAmount(rules, tech, model, group) {
+  const row = rules[normalizeKey(tech) + '|' + canonicalModelName(model)];
+  if (!row) return 0;
+  return parseMoneyValue(row[group] || row[group.toUpperCase()] || row[group.toLowerCase()] || 0);
+}
+
+function hasCommissionRule(rules, tech, model, group) {
+  const row = rules[normalizeKey(tech) + '|' + canonicalModelName(model)];
+  return !!(row && row[group] !== undefined && row[group] !== '');
+}
+
+function commissionGroupFromService(serviceName) {
+  const s = normalizeTextNoAccent(serviceName);
+  if (!s) return '';
+  if (s.includes('pin')) {
+    if (s.includes('co san co') && !s.includes('khong')) return 'THAY PIN CÓ SÀN CỔ';
+    return 'THAY PIN KHÔNG SÀN CỔ';
+  }
+  if (s.includes('phan quang')) return 'PHẢN QUANG';
+  if (s.includes('fix ao') || s.includes('fix man')) return 'FIX ẢO';
+  if (s.includes('ep kinh')) return 'ÉP KÍNH';
+  if (s.includes('ep cam')) return 'ÉP CẢM';
+  if (s.includes('thay vo') || s.includes('vo may')) return 'THAY VỎ';
+  if (s.includes('lung mat to')) return 'LƯNG MẮT TO';
+  return '';
+}
+
+function normalizeTextNoAccent(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function uniqueTextList(items) {
+  const seen = {};
+  const out = [];
+  (items || []).forEach(function (x) {
+    const clean = titleClean(x);
+    const k = normalizeKey(clean);
+    if (!clean || seen[k]) return;
+    seen[k] = true;
+    out.push(clean);
+  });
+  return out;
 }
 
 function renderMasters() { document.getElementById('masterView').innerHTML = '<table><thead><tr><th>Danh mục</th><th>Số lượng</th></tr></thead><tbody>' + Object.keys(MASTERS).map(k => '<tr><td>' + k + '</td><td>' + (MASTERS[k] || []).length + '</td></tr>').join('') + '</tbody></table>'; }

@@ -23,6 +23,7 @@
         <button data-tab="status">🔨 Cập nhật trạng thái</button>
         <button data-tab="cost">💰 Cập nhật chi phí</button>
         <button data-tab="materials">📦 Vật tư</button>
+        <button data-tab="commission">💵 Hoa hồng kỹ thuật</button>
         <button data-tab="weeklyReport">📝 Tạo báo cáo</button>
         <button data-tab="masters">⚙️ Danh mục</button>
       </nav>
@@ -159,6 +160,44 @@
             <button class="ghost-btn" onclick="renderCostTable()">Lọc</button>
           </div>
           <div id="costTable" class="table-wrap"></div>
+        </div>
+      </section>
+
+
+      <section id="commission" class="tab">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>💵 Hoa hồng kỹ thuật</h3>
+              <p>Tính hoa hồng theo kỹ thuật + dòng máy + nhóm dịch vụ từ DM_HOA_HONG_THO.</p>
+            </div>
+          </div>
+          <div class="filter-row" style="grid-template-columns: 1fr 1fr auto;">
+            <input id="commissionMonth" type="month" onchange="renderCommissionDashboard()" />
+            <select id="commissionTech" onchange="renderCommissionDashboard()"><option value="">Tất cả kỹ thuật</option></select>
+            <button class="ghost-btn" onclick="renderCommissionDashboard()">Lọc</button>
+          </div>
+          <div id="commissionKpis" class="kpi-grid compact"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>📊 Tổng hợp theo kỹ thuật</h3>
+              <p>Ai chưa có bảng hoa hồng thì vẫn hiện, số tiền = 0.</p>
+            </div>
+          </div>
+          <div id="commissionSummary" class="table-wrap"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>📋 Chi tiết hoa hồng</h3>
+              <p>Chi tiết từng mã sửa chữa, dòng máy, dịch vụ và hoa hồng.</p>
+            </div>
+          </div>
+          <div id="commissionDetail" class="table-wrap"></div>
         </div>
       </section>
 
