@@ -912,6 +912,8 @@ function getCommissionRows() {
   });
 
   const out = [];
+
+  // 1) Hoa hồng từ máy khách trên hệ thống: DATA + CT_DICH_VU
   branchFiltered().forEach(function (r) {
     const techName = String(r.technician || '').trim();
     if (!techName) return;
@@ -924,7 +926,6 @@ function getCommissionRows() {
     if (month && rowMonth !== month) return;
 
     const model = canonicalModelName(r.product || 'Khác');
-    // Hoa hồng lấy CT_DICH_VU làm nguồn chính. Nếu CT chưa có thì mới fallback về DATA.
     const services = uniqueTextList((serviceByRepair[r.repairId] && serviceByRepair[r.repairId].length) ? serviceByRepair[r.repairId] : splitItems(r.repairService || ''));
     if (!services.length) return;
 
@@ -941,13 +942,51 @@ function getCommissionRows() {
         group: group,
         amount: amount,
         hasRule: amount > 0 || hasCommissionRule(rules, techName, model, group),
-        customer: r.customer || ''
+        customer: r.customer || '',
+        source: 'Khách hệ thống'
       });
     });
   });
 
+  // 2) Hoa hồng từ máy nhà / máy gửi xử lý: chỉ cộng khi thợ đã nhập công và IMEI khớp MAY_GUI_XU_LY.
+  // Không cộng THO_NHAP_CONG khớp DATA để tránh đếm trùng máy khách hệ thống.
+  const sentSourceMap = {};
+  (SENT_REPAIRS || []).forEach(function (s) {
+    const key = salaryKey_(s.imei, s.technician);
+    if (!key || key === '|') return;
+    sentSourceMap[key] = s;
+  });
+
+  (TECH_WORK || []).forEach(function (w) {
+    const techName = String(w.technician || '').trim();
+    if (!techName) return;
+    if (techFilter && techName !== techFilter) return;
+    if (!matchMonth_(w.date || w.createdAt, monthVal)) return;
+
+    const sent = sentSourceMap[salaryKey_(w.imei, techName)];
+    if (!sent) return;
+
+    const serviceName = canonicalServiceName(w.service || [sent.process1, sent.process2].filter(Boolean).join(', '));
+    const group = commissionGroupFromService(serviceName);
+    const model = canonicalModelName(w.model || sent.model || sent.name || 'Khác');
+    const amount = parseMoneyValue(w.commission || lookupCommissionAmount(rules, techName, model, group));
+
+    out.push({
+      repairId: 'MGXL-' + String(w.imei || sent.imei || ''),
+      date: w.date || sent.sentDate || w.createdAt || sent.createdAt || '',
+      tech: techName,
+      model: model,
+      service: serviceName,
+      group: group || serviceName,
+      amount: amount,
+      hasRule: amount > 0 || hasCommissionRule(rules, techName, model, group),
+      customer: '',
+      source: 'Máy gửi xử lý'
+    });
+  });
+
   return out.sort(function (a, b) {
-    return String(a.tech).localeCompare(String(b.tech), 'vi') || String(a.date).localeCompare(String(b.date), 'vi');
+    return String(a.tech).localeCompare(String(b.tech), 'vi') || String(a.date).localeCompare(String(b.date), 'vi') || String(a.source).localeCompare(String(b.source), 'vi');
   });
 }
 
@@ -958,14 +997,16 @@ function renderCommissionDashboard() {
   const allTechs = (MASTERS.kyThuat || []).map(function (x) { return x.name; }).filter(Boolean);
 
   allTechs.forEach(function (name) {
-    summaryMap[name] = { tech: name, count: 0, total: 0, services: {}, missing: 0 };
+    summaryMap[name] = { tech: name, count: 0, total: 0, systemTotal: 0, sentTotal: 0, services: {}, missing: 0 };
   });
 
   rows.forEach(function (x) {
-    if (!summaryMap[x.tech]) summaryMap[x.tech] = { tech: x.tech, count: 0, total: 0, services: {}, missing: 0 };
+    if (!summaryMap[x.tech]) summaryMap[x.tech] = { tech: x.tech, count: 0, total: 0, systemTotal: 0, sentTotal: 0, services: {}, missing: 0 };
     const b = summaryMap[x.tech];
     b.count++;
     b.total += Number(x.amount || 0);
+    if (x.source === 'Máy gửi xử lý') b.sentTotal += Number(x.amount || 0);
+    else b.systemTotal += Number(x.amount || 0);
     if (!x.hasRule) b.missing++;
     const k = normalizeKey(x.service);
     if (!b.services[k]) b.services[k] = { name: x.service, count: 0 };
@@ -976,38 +1017,46 @@ function renderCommissionDashboard() {
   const topTech = summary.filter(x => x.total > 0)[0] || null;
   const missingCount = rows.filter(x => !x.hasRule).length;
 
+  const systemTotal = rows.filter(function (x) { return x.source === 'Khách hệ thống'; }).reduce(function (sum, x) { return sum + Number(x.amount || 0); }, 0);
+  const sentTotal = rows.filter(function (x) { return x.source === 'Máy gửi xử lý'; }).reduce(function (sum, x) { return sum + Number(x.amount || 0); }, 0);
+
   const kpiEl = document.getElementById('commissionKpis');
   if (kpiEl) {
     kpiEl.innerHTML = [
       { label: 'Tổng hoa hồng', value: fmtMoney(total) },
+      { label: 'Khách hệ thống', value: fmtMoney(systemTotal) },
+      { label: 'Máy gửi xử lý', value: fmtMoney(sentTotal) },
       { label: 'KTV cao nhất', value: topTech ? topTech.tech + ' · ' + fmtMoney(topTech.total) : 'Chưa có' },
-      { label: 'Phiếu/dịch vụ tính công', value: rows.length },
+      { label: 'Dịch vụ/công tính lương', value: rows.length },
       { label: 'Chưa có bảng/0đ', value: missingCount }
     ].map(function (x) { return '<div class="kpi-card mini"><span>' + esc(x.label) + '</span><b>' + esc(x.value) + '</b></div>'; }).join('');
   }
 
   const summaryEl = document.getElementById('commissionSummary');
   if (summaryEl) {
-    summaryEl.innerHTML = '<table><thead><tr><th>Kỹ thuật</th><th>Số dịch vụ</th><th>Tổng hoa hồng</th><th>Top dịch vụ</th><th>Thiếu bảng</th></tr></thead><tbody>' +
+    summaryEl.innerHTML = '<table><thead><tr><th>Kỹ thuật</th><th>Số dịch vụ</th><th>Khách hệ thống</th><th>Máy gửi xử lý</th><th>Tổng hoa hồng</th><th>Top dịch vụ</th><th>Thiếu bảng</th></tr></thead><tbody>' +
       (summary.length ? summary.map(function (x) {
         const topSvc = Object.values(x.services || {}).sort(function (a, b) { return b.count - a.count; })[0];
         return '<tr>' +
           '<td><b>' + esc(x.tech) + '</b></td>' +
           '<td>' + (x.count || 0) + '</td>' +
+          '<td>' + fmtMoney(x.systemTotal || 0) + '</td>' +
+          '<td>' + fmtMoney(x.sentTotal || 0) + '</td>' +
           '<td><b>' + fmtMoney(x.total || 0) + '</b></td>' +
           '<td>' + (topSvc ? esc(topSvc.name) + ' · ' + topSvc.count : '') + '</td>' +
           '<td>' + (x.missing || 0) + '</td>' +
         '</tr>';
-      }).join('') : '<tr><td colspan="5">Chưa có dữ liệu hoa hồng.</td></tr>') +
+      }).join('') : '<tr><td colspan="7">Chưa có dữ liệu hoa hồng.</td></tr>') +
       '</tbody></table>';
   }
 
   const detailEl = document.getElementById('commissionDetail');
   if (detailEl) {
-    detailEl.innerHTML = '<table><thead><tr><th>Ngày</th><th>Mã SC</th><th>KTV</th><th>Dòng máy</th><th>Dịch vụ</th><th>Nhóm hoa hồng</th><th>Hoa hồng</th></tr></thead><tbody>' +
+    detailEl.innerHTML = '<table><thead><tr><th>Ngày</th><th>Nguồn</th><th>Mã/IMEI</th><th>KTV</th><th>Dòng máy</th><th>Dịch vụ</th><th>Nhóm hoa hồng</th><th>Hoa hồng</th></tr></thead><tbody>' +
       (rows.length ? rows.map(function (x) {
         return '<tr class="' + (!x.hasRule ? 'warn-row' : '') + '">' +
           '<td>' + esc(dateTime(x.date) || x.date || '') + '</td>' +
+          '<td><span class="status-pill ' + (x.source === 'Máy gửi xử lý' ? 'wait' : 'done') + '">' + esc(x.source || 'Khách hệ thống') + '</span></td>' +
           '<td><b>' + esc(x.repairId) + '</b></td>' +
           '<td>' + esc(x.tech) + '</td>' +
           '<td>' + esc(x.model) + '</td>' +
@@ -1015,7 +1064,7 @@ function renderCommissionDashboard() {
           '<td>' + esc(x.group) + '</td>' +
           '<td><b>' + fmtMoney(x.amount || 0) + '</b></td>' +
         '</tr>';
-      }).join('') : '<tr><td colspan="7">Chưa có dữ liệu hoa hồng.</td></tr>') +
+      }).join('') : '<tr><td colspan="8">Chưa có dữ liệu hoa hồng.</td></tr>') +
       '</tbody></table>';
   }
 }

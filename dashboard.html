@@ -19,15 +19,15 @@
 
       <nav class="nav" id="navMenu">
         <button data-tab="overview">📊 Tổng quan</button>
-        <button data-tab="repairs">📋 Danh sách</button>
-        <button data-tab="status">🔨 Cập nhật trạng thái</button>
-        <button data-tab="cost">💰 Cập nhật chi phí</button>
-        <button data-tab="materials">📦 Vật tư</button>
+        <button data-tab="repairs">📋 Danh sách sửa chữa</button>
+        <button data-tab="status">🔧 Xử lý sửa chữa</button>
+        <button data-tab="cost">💰 Chi phí & lợi nhuận</button>
+        <button data-tab="materials">📦 Vật tư & NCC</button>
         <button data-tab="commission">💵 Hoa hồng kỹ thuật</button>
-        <button data-tab="salaryAudit">🧾 Đối chiếu lương thợ</button>
-        <button data-tab="sentRepairs">📦 Máy gửi xử lý</button>
-        <button data-tab="weeklyReport">📝 Tạo báo cáo</button>
-        <button data-tab="masters">⚙️ Danh mục</button>
+        <button data-tab="salaryAudit">🧾 Đối chiếu công kỹ thuật</button>
+        <button data-tab="sentRepairs">🚚 Máy gửi xử lý</button>
+        <button data-tab="weeklyReport">📝 Báo cáo</button>
+        <button data-tab="masters">⚙️ Danh mục hệ thống</button>
       </nav>
 
       <div class="user-card">
@@ -196,7 +196,7 @@
           <div class="panel-head">
             <div>
               <h3>📋 Chi tiết hoa hồng</h3>
-              <p>Chi tiết từng mã sửa chữa, dòng máy, dịch vụ và hoa hồng.</p>
+              <p>Gộp cả máy khách hệ thống và máy gửi xử lý đã được thợ kê công để tính tổng hoa hồng tháng.</p>
             </div>
           </div>
           <div id="commissionDetail" class="table-wrap"></div>
@@ -246,7 +246,7 @@
         </div>
 
         <div class="panel salary-manager-only">
-          <div class="panel-head"><div><h3>🔎 Đối chiếu IMEI</h3><p>So THO_NHAP_CONG với DATA/CT_DICH_VU và MAY_GUI_XU_LY.</p></div></div>
+          <div class="panel-head"><div><h3>🔎 Đối chiếu IMEI</h3><p>Gộp chung máy khách hệ thống và máy gửi xử lý để kiểm tra thợ kê đủ, thiếu hay dư công.</p></div></div>
           <div id="salaryAuditTable" class="table-wrap"></div>
         </div>
       </section>
