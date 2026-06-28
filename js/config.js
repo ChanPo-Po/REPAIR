@@ -61,14 +61,21 @@ function apiCall(payload, options) {
     return res.text();
   }).then(function (text) {
     try {
-      return JSON.parse(text);
+      const data = JSON.parse(text);
+      if (data && data.success === false && typeof showToast === 'function') {
+        showToast(data.message || 'Lỗi API', 'error');
+      }
+      return data;
     } catch (e) {
       const preview = String(text || '').slice(0, 140);
       throw new Error('API không trả JSON. Có thể Apps Script deploy sai quyền/link sai. Response: ' + preview);
     }
   }).catch(function (err) {
     if (err && err.name === 'AbortError') {
-      throw new Error('API quá lâu không phản hồi sau ' + Math.round(timeoutMs / 1000) + ' giây. Kiểm tra mạng hoặc Apps Script.');
+      err = new Error('API quá lâu không phản hồi sau ' + Math.round(timeoutMs / 1000) + ' giây. Kiểm tra mạng hoặc Apps Script.');
+    }
+    if (typeof showToast === 'function') {
+      showToast(err.message || 'Lỗi API', 'error');
     }
     throw err;
   }).finally(function () {
@@ -134,3 +141,16 @@ const splitItems = function (text) {
     .map(function (x) { return x.trim(); })
     .filter(Boolean);
 };
+
+
+window.onerror = function (msg, url, line, col, error) {
+  if (typeof showToast === 'function') showToast(String(msg || 'Lỗi xử lý dữ liệu'), 'error');
+  if (error) console.error(error);
+  return false;
+};
+
+window.addEventListener('unhandledrejection', function (e) {
+  const msg = e && e.reason && e.reason.message ? e.reason.message : 'Lỗi xử lý dữ liệu';
+  if (typeof showToast === 'function') showToast(msg, 'error');
+  console.error(e.reason || e);
+});

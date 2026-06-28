@@ -17,7 +17,9 @@ const SHEETS = {
   DM_NCC: 'DM_NCC',
   DM_DONG_MAY: 'DM_DONG_MAY',
   DM_NHAN_VIEN: 'DM_NHAN_VIEN',
-  DM_HOA_HONG_THO: 'DM_HOA_HONG_THO'
+  DM_HOA_HONG_THO: 'DM_HOA_HONG_THO',
+  THO_NHAP_CONG: 'THO_NHAP_CONG',
+  MAY_GUI_XU_LY: 'MAY_GUI_XU_LY'
 };
 
 const HEADERS_DATA = [
@@ -44,7 +46,9 @@ const DEFAULTS = {
   DM_NCC: ['Tên NCC', 'Thắng', 'Vtech', 'Hồ Chí Trung', 'Nhà', 'Mua từ thợ', 'Maxe', 'Luban'],
   DM_DONG_MAY: ['Tên dòng máy', '11', '11PM', '12', '12PM', '12PRO', '13', '13PM', '14PM', '15PM', '16PM'],
   DM_NHAN_VIEN: [['Tên nhân viên', 'Chi nhánh', 'Bộ phận', 'Trạng thái'], ['Chan', '113', 'SALE', 'Đang làm'], ['Hùng', '113', 'SALE', 'Đang làm'], ['Trường', '113', 'SALE', 'Đang làm']],
-  DM_HOA_HONG_THO: [['Kỹ thuật', 'MODEL', 'THAY PIN CÓ SÀN CỔ', 'THAY PIN KHÔNG SÀN CỔ', 'PHẢN QUANG', 'FIX ẢO', 'ÉP KÍNH', 'ÉP CẢM', 'THAY VỎ', 'LƯNG MẮT TO'], ['Thanh', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Thanh', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Thanh', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Thanh', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Thanh', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Thanh', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Thanh', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Thanh', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Thanh', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Thanh', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Thanh', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Thanh', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Thanh', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Thanh', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Thanh', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Thanh', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Thanh', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Thanh', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Thanh', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Thanh', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Thanh', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Thanh', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Thanh', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Thanh', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Trường', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Trường', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Trường', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Trường', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Trường', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Trường', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Trường', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Trường', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Trường', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Trường', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Trường', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Trường', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Trường', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Trường', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Trường', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Trường', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Trường', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Trường', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Trường', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Trường', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Trường', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Trường', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Trường', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Trường', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Phong', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Phong', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Phong', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Phong', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Phong', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Phong', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Phong', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Phong', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Phong', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Phong', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Phong', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Phong', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Phong', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Phong', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Phong', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Phong', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Phong', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Phong', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Phong', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Phong', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Phong', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Phong', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Phong', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Phong', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Thành', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Thành', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Thành', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Thành', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Thành', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Thành', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Thành', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Thành', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Thành', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Thành', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Thành', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Thành', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Thành', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Thành', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Thành', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Thành', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Thành', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Thành', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Thành', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Thành', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Thành', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Thành', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Thành', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Thành', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Hà', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Hà', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Hà', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Hà', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Hà', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Hà', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Hà', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Hà', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Hà', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Hà', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Hà', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Hà', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Hà', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Hà', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Hà', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Hà', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Hà', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Hà', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Hà', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Hà', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Hà', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Hà', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Hà', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Hà', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0]]
+  DM_HOA_HONG_THO: [['Kỹ thuật', 'MODEL', 'THAY PIN CÓ SÀN CỔ', 'THAY PIN KHÔNG SÀN CỔ', 'PHẢN QUANG', 'FIX ẢO', 'ÉP KÍNH', 'ÉP CẢM', 'THAY VỎ', 'LƯNG MẮT TO'], ['Thanh', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Thanh', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Thanh', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Thanh', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Thanh', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Thanh', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Thanh', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Thanh', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Thanh', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Thanh', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Thanh', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Thanh', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Thanh', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Thanh', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Thanh', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Thanh', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Thanh', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Thanh', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Thanh', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Thanh', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Thanh', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Thanh', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Thanh', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Thanh', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Trường', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Trường', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Trường', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Trường', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Trường', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Trường', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Trường', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Trường', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Trường', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Trường', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Trường', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Trường', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Trường', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Trường', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Trường', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Trường', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Trường', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Trường', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Trường', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Trường', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Trường', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Trường', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Trường', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Trường', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Phong', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Phong', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Phong', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Phong', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Phong', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Phong', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Phong', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Phong', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Phong', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Phong', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Phong', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Phong', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Phong', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Phong', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Phong', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Phong', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Phong', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Phong', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Phong', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Phong', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Phong', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Phong', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Phong', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Phong', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Thành', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Thành', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Thành', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Thành', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Thành', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Thành', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Thành', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Thành', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Thành', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Thành', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Thành', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Thành', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Thành', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Thành', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Thành', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Thành', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Thành', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Thành', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Thành', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Thành', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Thành', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Thành', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Thành', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Thành', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Hà', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Hà', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Hà', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Hà', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Hà', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Hà', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Hà', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Hà', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Hà', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Hà', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Hà', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Hà', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Hà', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Hà', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Hà', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Hà', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Hà', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Hà', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Hà', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Hà', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Hà', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Hà', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Hà', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Hà', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0]],
+  THO_NHAP_CONG: [['Ngày', 'Kỹ thuật', 'IMEI', 'Dòng máy', 'Dịch vụ', 'SL', 'Hoa hồng', 'Ghi chú', 'Nguồn nhập', 'Trạng thái duyệt', 'Ngày tạo', 'Người nhập']],
+  MAY_GUI_XU_LY: [['Ngày gửi', 'IMEI', 'Tên máy', 'GB', 'Màu', 'Xử lý 1', 'Xử lý 2', 'Kỹ thuật', 'Người gửi', 'Tại sao chưa nhận', 'Ngày nhận lại', 'Trạng thái', 'Ngày tạo', 'Ngày cập nhật']]
 };
 
 function doGet() {
@@ -67,6 +71,8 @@ function doPost(e) {
     if (action === 'quickStatus') return json(updateStatus(body.repairId, body.data || {}));
     if (action === 'updateCost') return json(updateCost(body.repairId, body.data || {}));
     if (action === 'getDashboard') return json({ success: true, data: getDashboard() });
+    if (action === 'createTechWork') return json(createTechWork(body.data || {}));
+    if (action === 'createSentRepair') return json(createSentRepair(body.data || {}));
     if (action === 'backfillOldDataToCT') return json(backfillOldDataToCT());
     if (action === 'unlockRepair') return json(unlockRepair(body.repairId, body.data || {}));
     if (action === 'fixMoneyDateColumns') return json(fixMoneyDateColumns());
@@ -647,7 +653,9 @@ function getDashboard() {
   return {
     rows: listRepairs(),
     ctServices: readCtServices(),
-    ctMaterials: readCtMaterials()
+    ctMaterials: readCtMaterials(),
+    techWork: readTechWork(),
+    sentRepairs: readSentRepairs()
   };
 }
 
@@ -678,6 +686,124 @@ function readCtMaterials() {
       date: x['Ngày thêm']
     };
   }).filter(function (x) { return x.repairId && x.name; });
+}
+
+
+function readTechWork() {
+  return readObjects(SHEETS.THO_NHAP_CONG).map(function (x) {
+    return {
+      date: x['Ngày'],
+      technician: x['Kỹ thuật'],
+      imei: x['IMEI'],
+      model: x['Dòng máy'],
+      service: x['Dịch vụ'],
+      qty: Number(x['SL'] || 1) || 1,
+      commission: moneyValue(x['Hoa hồng']),
+      note: x['Ghi chú'],
+      source: x['Nguồn nhập'],
+      approvalStatus: x['Trạng thái duyệt'],
+      createdAt: x['Ngày tạo'],
+      createdBy: x['Người nhập']
+    };
+  }).filter(function (x) { return x.imei && x.technician; });
+}
+
+function readSentRepairs() {
+  return readObjects(SHEETS.MAY_GUI_XU_LY).map(function (x) {
+    return {
+      sentDate: x['Ngày gửi'],
+      imei: x['IMEI'],
+      name: x['Tên máy'],
+      gb: x['GB'],
+      color: x['Màu'],
+      process1: x['Xử lý 1'],
+      process2: x['Xử lý 2'],
+      technician: x['Kỹ thuật'],
+      sender: x['Người gửi'],
+      notReceivedReason: x['Tại sao chưa nhận'],
+      receivedBackDate: x['Ngày nhận lại'],
+      status: x['Trạng thái'],
+      createdAt: x['Ngày tạo'],
+      updatedAt: x['Ngày cập nhật']
+    };
+  }).filter(function (x) { return x.imei; });
+}
+
+function createTechWork(d) {
+  setupSheets();
+  d = d || {};
+  const tech = String(d.technician || d.tech || '').trim();
+  const model = String(d.model || d.product || '').trim();
+  const service = String(d.service || '').trim();
+  const imei = onlyDigits_(d.imei || '').slice(-6);
+  const date = d.date || nowText().split(' ')[0];
+  if (!tech) return { success: false, message: 'Chưa chọn kỹ thuật.' };
+  if (!model) return { success: false, message: 'Chưa chọn dòng máy.' };
+  if (!service) return { success: false, message: 'Chưa chọn dịch vụ.' };
+  if (!/^\d{6}$/.test(imei)) return { success: false, message: 'IMEI phải nhập đúng 6 số.' };
+
+  const commission = lookupTechCommission_(tech, model, service);
+  sh(SHEETS.THO_NHAP_CONG).appendRow([
+    date,
+    tech,
+    imei,
+    model,
+    service,
+    1,
+    commission,
+    String(d.note || '').trim(),
+    'Thợ tự nhập',
+    'Chờ đối chiếu',
+    nowText(),
+    String(d.actor || d.createdBy || '').trim()
+  ]);
+  return { success: true, message: 'Đã lưu công thợ.', commission: commission };
+}
+
+function createSentRepair(d) {
+  setupSheets();
+  d = d || {};
+  const imei = onlyDigits_(d.imei || '').slice(-6);
+  if (!/^\d{6}$/.test(imei)) return { success: false, message: 'IMEI phải nhập đúng 6 số.' };
+  sh(SHEETS.MAY_GUI_XU_LY).appendRow([
+    d.sentDate || d.date || nowText().split(' ')[0],
+    imei,
+    String(d.name || d.productName || '').trim(),
+    String(d.gb || '').trim(),
+    String(d.color || '').trim(),
+    String(d.process1 || '').trim(),
+    String(d.process2 || '').trim(),
+    String(d.technician || '').trim(),
+    String(d.sender || '').trim(),
+    String(d.notReceivedReason || '').trim(),
+    String(d.receivedBackDate || '').trim(),
+    String(d.status || 'Đang gửi xử lý').trim(),
+    nowText(),
+    nowText()
+  ]);
+  return { success: true, message: 'Đã lưu máy gửi xử lý.' };
+}
+
+function lookupTechCommission_(tech, model, service) {
+  const rows = readObjects(SHEETS.DM_HOA_HONG_THO);
+  const t = normText_(tech);
+  const m = normalizeModelForCommission_(model);
+  const serviceKey = normText_(service);
+  for (var i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const rowTech = normText_(pick_(r, ['Kỹ thuật', 'KỸ THUẬT', 'Tên kỹ thuật']));
+    const rowModel = normalizeModelForCommission_(pick_(r, ['Model', 'MODEL', 'Dòng máy']));
+    if (rowTech !== t || rowModel !== m) continue;
+    const keys = Object.keys(r);
+    for (var j = 0; j < keys.length; j++) {
+      if (normText_(keys[j]) === serviceKey) return moneyValue(r[keys[j]]);
+    }
+  }
+  return 0;
+}
+
+function normalizeModelForCommission_(v) {
+  return normText_(v).replace(/\s+/g, '').replace(/promax/g, 'promax').replace(/pm$/g, 'promax');
 }
 
 function moneyValue(value) {

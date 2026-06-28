@@ -24,6 +24,7 @@
         <button data-tab="cost">💰 Cập nhật chi phí</button>
         <button data-tab="materials">📦 Vật tư</button>
         <button data-tab="commission">💵 Hoa hồng kỹ thuật</button>
+        <button data-tab="salaryAudit">🧾 Đối chiếu lương thợ</button>
         <button data-tab="weeklyReport">📝 Tạo báo cáo</button>
         <button data-tab="masters">⚙️ Danh mục</button>
       </nav>
@@ -198,6 +199,80 @@
             </div>
           </div>
           <div id="commissionDetail" class="table-wrap"></div>
+        </div>
+      </section>
+
+
+
+      <section id="salaryAudit" class="tab">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>🧾 Thợ nhập công sửa máy</h3>
+              <p>Dòng máy lấy từ DM_DONG_MAY, dịch vụ lấy từ DM_DICH_VU, SL luôn bằng 1, hoa hồng tự dò DM_HOA_HONG_THO.</p>
+            </div>
+          </div>
+          <form id="techWorkForm" class="form-grid" onsubmit="submitTechWork(event)">
+            <label><span>Ngày</span><input name="date" type="date" required /></label>
+            <label><span>Kỹ thuật</span><select name="technician" id="techWorkTech" required onchange="updateTechWorkCommissionPreview()"></select></label>
+            <label><span>IMEI *</span><input name="imei" required inputmode="numeric" maxlength="6" pattern="\d{6}" placeholder="6 số cuối IMEI" /></label>
+            <label><span>Dòng máy</span><select name="model" id="techWorkModel" required onchange="updateTechWorkCommissionPreview()"></select></label>
+            <label><span>Dịch vụ</span><select name="service" id="techWorkService" required onchange="updateTechWorkCommissionPreview()"></select></label>
+            <label><span>SL</span><input name="qty" value="1" readonly /></label>
+            <label><span>Hoa hồng tạm tính</span><input id="techWorkCommissionPreview" value="0đ" readonly /></label>
+            <label class="span-3"><span>Ghi chú</span><textarea name="note" placeholder="Ghi chú thêm nếu có"></textarea></label>
+            <div class="form-actions span-3">
+              <button type="reset" class="ghost-btn">Nhập lại</button>
+              <button type="submit" class="primary-btn">Lưu công thợ</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel salary-manager-only">
+          <div class="panel-head">
+            <div>
+              <h3>📨 Máy gửi xử lý</h3>
+              <p>QL kỹ thuật/Admin nhập máy gửi xử lý để đối chiếu với công thợ tự nhập.</p>
+            </div>
+          </div>
+          <form id="sentRepairForm" class="form-grid" onsubmit="submitSentRepair(event)">
+            <label><span>Ngày gửi</span><input name="sentDate" type="date" required /></label>
+            <label><span>IMEI *</span><input name="imei" required inputmode="numeric" maxlength="6" pattern="\d{6}" placeholder="6 số cuối IMEI" /></label>
+            <label><span>Tên máy</span><input name="name" placeholder="VD: 12PROMAX" /></label>
+            <label><span>GB</span><input name="gb" placeholder="128" /></label>
+            <label><span>Màu</span><input name="color" placeholder="Đen" /></label>
+            <label><span>Xử lý 1</span><select name="process1" id="sentProcess1"></select></label>
+            <label><span>Xử lý 2</span><select name="process2" id="sentProcess2"></select></label>
+            <label><span>Kỹ thuật</span><select name="technician" id="sentTech"></select></label>
+            <label><span>Người gửi</span><input name="sender" placeholder="Người gửi" /></label>
+            <label><span>Tại sao chưa nhận</span><input name="notReceivedReason" placeholder="Nếu chưa nhận lại" /></label>
+            <label><span>Ngày nhận lại</span><input name="receivedBackDate" type="date" /></label>
+            <label><span>Trạng thái</span><select name="status"><option>Đang gửi xử lý</option><option>Đã nhận</option><option>Chưa nhận</option><option>Hủy</option></select></label>
+            <div class="form-actions span-3">
+              <button type="reset" class="ghost-btn">Nhập lại</button>
+              <button type="submit" class="primary-btn">Lưu máy gửi xử lý</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><div><h3>📊 Tổng quan đối chiếu</h3></div></div>
+          <div class="filter-row" style="grid-template-columns: 1fr 1fr auto;">
+            <input id="salaryMonth" type="month" onchange="renderSalaryAudit()" />
+            <select id="salaryTech" onchange="renderSalaryAudit()"><option value="">Tất cả kỹ thuật</option></select>
+            <button class="ghost-btn" onclick="renderSalaryAudit()">Lọc</button>
+          </div>
+          <div id="salaryKpis" class="kpi-grid compact"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><div><h3>📋 Công thợ đã nhập</h3></div></div>
+          <div id="techWorkTable" class="table-wrap"></div>
+        </div>
+
+        <div class="panel salary-manager-only">
+          <div class="panel-head"><div><h3>🔎 Đối chiếu IMEI</h3><p>So THO_NHAP_CONG với DATA/CT_DICH_VU và MAY_GUI_XU_LY.</p></div></div>
+          <div id="salaryAuditTable" class="table-wrap"></div>
         </div>
       </section>
 

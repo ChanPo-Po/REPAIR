@@ -4,6 +4,8 @@ let MASTERS = {};
 let DASH = {};
 let CT_SERVICES = [];
 let CT_MATERIALS = [];
+let TECH_WORK = [];
+let SENT_REPAIRS = [];
 let ACTIVE_TAB = 'overview';
 
 function initDashboard() {
@@ -18,10 +20,10 @@ function initDashboard() {
 
 function setupNavByRole() {
   const allowed = {
-    tech: ['status'],
+    tech: ['status', 'salaryAudit'],
     store: ['overview', 'repairs'],
-    tech_manager: ['overview', 'repairs', 'status', 'cost', 'materials', 'commission', 'weeklyReport'],
-    admin: ['overview', 'repairs', 'status', 'cost', 'materials', 'commission', 'weeklyReport', 'masters']
+    tech_manager: ['overview', 'repairs', 'status', 'cost', 'materials', 'commission', 'salaryAudit', 'weeklyReport'],
+    admin: ['overview', 'repairs', 'status', 'cost', 'materials', 'commission', 'salaryAudit', 'weeklyReport', 'masters']
   }[USER.role] || [];
 
   document.querySelectorAll('#navMenu button').forEach(function (btn) {
@@ -44,6 +46,7 @@ function openTab(tab) {
   if (tab === 'cost') renderCostTable();
   if (tab === 'materials') renderMaterialsFull();
   if (tab === 'commission') initCommissionTab();
+  if (tab === 'salaryAudit') initSalaryAuditTab();
   if (tab === 'weeklyReport') initWeeklyReport();
   if (tab === 'masters') renderMasters();
 }
@@ -59,6 +62,8 @@ function loadAll() {
     DASH = all[2].data || {};
     CT_SERVICES = DASH.ctServices || DASH.services || [];
     CT_MATERIALS = DASH.ctMaterials || DASH.materialsCt || [];
+    TECH_WORK = DASH.techWork || [];
+    SENT_REPAIRS = DASH.sentRepairs || [];
     hydrateFilters();
   });
 }
@@ -77,6 +82,13 @@ function hydrateFilters() {
   fillSelect('repairTech', (MASTERS.kyThuat || []).map(x => x.name));
   fillSelect('statusTech', (MASTERS.kyThuat || []).map(x => x.name));
   fillSelect('commissionTech', (MASTERS.kyThuat || []).map(x => x.name));
+  fillSelect('salaryTech', (MASTERS.kyThuat || []).map(x => x.name));
+  fillSelect('techWorkTech', (MASTERS.kyThuat || []).map(x => x.name));
+  fillSelect('techWorkModel', MASTERS.dongMay || []);
+  fillSelect('techWorkService', (MASTERS.dichVu || []).map(x => x.name));
+  fillSelect('sentTech', (MASTERS.kyThuat || []).map(x => x.name));
+  fillSelect('sentProcess1', (MASTERS.dichVu || []).map(x => x.name));
+  fillSelect('sentProcess2', (MASTERS.dichVu || []).map(x => x.name));
   fillSelect('materialGroup', [...new Set((MASTERS.vatTu || []).map(x => x.group).filter(Boolean))]);
 }
 
@@ -1046,36 +1058,17 @@ function getCommissionCellValue_(row, group) {
 }
 
 function commissionGroupFromService(serviceName) {
-  const raw = canonicalServiceName(serviceName);
-  const s = normalizeTextNoAccent(raw);
+  const clean = canonicalServiceName(serviceName);
+  const s = normalizeTextNoAccent(clean);
   if (!s) return '';
 
-  // Từ V10.22+: Hoa hồng dò trực tiếp theo tên dịch vụ trong CT_DICH_VU
-  // và tên cột trong DM_HOA_HONG_THO. Nghĩa là thêm cột mới như
-  // "Thay màn LK", "Thay màn OLED", "Thay chân sạc" thì dashboard tự đọc,
-  // miễn tên dịch vụ CT_DICH_VU khớp tên cột hoa hồng.
-  // Các dòng dưới chỉ xử lý alias/tên cũ để không bị lệch dữ liệu cũ.
-  if (s.includes('thay pin san co')) return 'Thay pin sàn cổ';
-  if (s.includes('thay pin ksc dlc')) return 'Thay pin KSC DLC';
-  if (s.includes('thay pin ksc')) return 'Thay pin KSC';
-  if (s.includes('thay pin energizer')) return 'Thay pin Energizer';
-  if (s.includes('thay pin bison')) return 'Thay pin Bison';
-  if (s.includes('thay pin pisen dlc')) return 'Thay pin Pisen DLC';
-  if (s.includes('thay pin pisen')) return 'Thay pin Pisen';
-  if (s.includes('thay pin dlc maxe')) return 'Thay pin DLC Maxe';
-  if (s.includes('thay pin thuong')) return 'Thay pin thường';
+  // Ưu tiên vài alias cũ, còn lại trả nguyên tên dịch vụ.
+  // Nhờ vậy CT_DICH_VU = tên cột DM_HOA_HONG_THO thì tự tính được,
+  // sau này thêm cột mới như Thay màn LK / Thay chân sạc không cần sửa code.
+  if (s.includes('fix man')) return 'Fix ảo';
+  if (s.includes('phan quang') && !s.includes('thay phan quang')) return 'Thay phản quang';
 
-  if (s.includes('phan quang')) return 'Thay phản quang';
-  if (s.includes('fix ao') || s.includes('fix man')) return 'Fix ảo';
-  if (s.includes('ep kinh')) return 'Ép kính';
-  if (s.includes('ep cam')) return 'Ép cảm';
-  if (s.includes('thay vo') || s.includes('vo may')) return 'Thay vỏ';
-  if (s.includes('lung mat to')) return 'Thay lưng mắt to';
-  if (s.includes('lung mat nho')) return 'Thay lưng mắt nhỏ';
-
-  // Quan trọng: không return rỗng nữa. Trả tên dịch vụ gốc để lookup trực tiếp
-  // với header DM_HOA_HONG_THO. Có cột trùng tên thì tự tính, không có thì 0đ.
-  return raw;
+  return clean;
 }
 
 function normalizeTextNoAccent(value) {
@@ -1099,6 +1092,159 @@ function uniqueTextList(items) {
     out.push(clean);
   });
   return out;
+}
+
+
+function initSalaryAuditTab() {
+  const m = document.getElementById('salaryMonth');
+  if (m && !m.value) {
+    const now = new Date();
+    m.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  }
+  ['techWorkForm', 'sentRepairForm'].forEach(function (id) {
+    const f = document.getElementById(id);
+    if (f && f.querySelector('input[type="date"]') && !f.querySelector('input[type="date"]').value) {
+      f.querySelector('input[type="date"]').value = new Date().toISOString().slice(0, 10);
+    }
+  });
+  const isManager = USER.role === 'admin' || USER.role === 'tech_manager';
+  document.querySelectorAll('.salary-manager-only').forEach(function (el) { el.style.display = isManager ? '' : 'none'; });
+  updateTechWorkCommissionPreview();
+  renderSalaryAudit();
+}
+
+function submitTechWork(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = Object.fromEntries(new FormData(form).entries());
+  data.actor = USER.name || USER.username || '';
+  data.qty = 1;
+  apiCall({ action: 'createTechWork', data: data }).then(function (res) {
+    if (!res.success) return showToast(res.message || 'Không lưu được công thợ', 'error');
+    showToast('Đã lưu công thợ · Hoa hồng ' + fmtMoney(res.commission || 0));
+    form.reset();
+    refreshAll();
+  }).catch(function (err) { showToast(err.message || 'Lỗi lưu công thợ', 'error'); });
+}
+
+function submitSentRepair(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = Object.fromEntries(new FormData(form).entries());
+  apiCall({ action: 'createSentRepair', data: data }).then(function (res) {
+    if (!res.success) return showToast(res.message || 'Không lưu được máy gửi xử lý', 'error');
+    showToast('Đã lưu máy gửi xử lý');
+    form.reset();
+    refreshAll();
+  }).catch(function (err) { showToast(err.message || 'Lỗi lưu máy gửi xử lý', 'error'); });
+}
+
+function updateTechWorkCommissionPreview() {
+  const tech = document.getElementById('techWorkTech')?.value || '';
+  const model = document.getElementById('techWorkModel')?.value || '';
+  const service = document.getElementById('techWorkService')?.value || '';
+  const amount = lookupCommissionAmount(buildCommissionRuleMap(), tech, canonicalModelName(model), service);
+  const el = document.getElementById('techWorkCommissionPreview');
+  if (el) el.value = fmtMoney(amount || 0);
+}
+
+function renderSalaryAudit() {
+  const rows = salaryFilteredTechWork();
+  const audits = buildSalaryAuditRows();
+  const total = rows.reduce(function (s, x) { return s + parseMoneyValue(x.commission || 0); }, 0);
+  const matched = audits.filter(x => x.type === 'input' && (x.status.indexOf('✅') === 0)).length;
+  const pending = audits.filter(x => x.status.indexOf('⚠️') === 0 || x.status.indexOf('❌') === 0).length;
+  const kpi = document.getElementById('salaryKpis');
+  if (kpi) {
+    kpi.innerHTML = [
+      { label: 'Tổng công thợ nhập', value: rows.length },
+      { label: 'Hoa hồng tự nhập', value: fmtMoney(total) },
+      { label: 'Đã khớp nguồn', value: matched },
+      { label: 'Cần kiểm tra', value: pending }
+    ].map(x => '<div class="kpi-card mini"><span>' + esc(x.label) + '</span><b>' + esc(x.value) + '</b></div>').join('');
+  }
+
+  const table = document.getElementById('techWorkTable');
+  if (table) {
+    table.innerHTML = '<table><thead><tr><th>Ngày</th><th>KTV</th><th>IMEI</th><th>Dòng máy</th><th>Dịch vụ</th><th>SL</th><th>Hoa hồng</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>' +
+      (rows.length ? rows.map(function (r) {
+        return '<tr><td>' + esc(dateOnly(r.date) || r.date || '') + '</td><td>' + esc(r.technician) + '</td><td><b>' + esc(r.imei) + '</b></td><td>' + esc(r.model) + '</td><td>' + esc(r.service) + '</td><td>1</td><td><b>' + fmtMoney(r.commission || 0) + '</b></td><td>' + esc(r.approvalStatus || '') + '</td><td>' + esc(r.note || '') + '</td></tr>';
+      }).join('') : '<tr><td colspan="9">Chưa có dữ liệu công thợ.</td></tr>') + '</tbody></table>';
+  }
+
+  const auditEl = document.getElementById('salaryAuditTable');
+  if (auditEl) {
+    auditEl.innerHTML = '<table><thead><tr><th>IMEI</th><th>Kỹ thuật</th><th>Dòng máy</th><th>Dịch vụ</th><th>Nguồn đối chiếu</th><th>Kết luận</th><th>Gợi ý</th></tr></thead><tbody>' +
+      (audits.length ? audits.map(function (a) {
+        return '<tr class="' + (a.status.indexOf('✅') === 0 ? '' : 'warn-row') + '"><td><b>' + esc(a.imei) + '</b></td><td>' + esc(a.technician) + '</td><td>' + esc(a.model || '') + '</td><td>' + esc(a.service || '') + '</td><td>' + esc(a.source || '') + '</td><td><b>' + esc(a.status) + '</b></td><td>' + esc(a.suggestion || '') + '</td></tr>';
+      }).join('') : '<tr><td colspan="7">Chưa có dữ liệu đối chiếu.</td></tr>') + '</tbody></table>';
+  }
+}
+
+function salaryFilteredTechWork() {
+  const monthVal = document.getElementById('salaryMonth')?.value || '';
+  const techFilter = document.getElementById('salaryTech')?.value || '';
+  return (TECH_WORK || []).filter(function (r) {
+    if (techFilter && String(r.technician || '') !== techFilter) return false;
+    if (!matchMonth_(r.date || r.createdAt, monthVal)) return false;
+    return true;
+  });
+}
+
+function buildSalaryAuditRows() {
+  const monthVal = document.getElementById('salaryMonth')?.value || '';
+  const techFilter = document.getElementById('salaryTech')?.value || '';
+  const inputRows = salaryFilteredTechWork();
+  const inputKeys = {};
+  inputRows.forEach(function (r) { inputKeys[salaryKey_(r.imei, r.technician)] = true; });
+
+  const systemSources = [];
+  const servicesByRepair = {};
+  normalizeCtServices(CT_SERVICES).forEach(function (svc) {
+    servicesByRepair[svc.repairId] = servicesByRepair[svc.repairId] || [];
+    servicesByRepair[svc.repairId].push(svc.name);
+  });
+  branchFiltered().forEach(function (r) {
+    if (!r.imei || !r.technician) return;
+    if (techFilter && r.technician !== techFilter) return;
+    if (!matchMonth_(r.completedDate || r.updatedAt || r.date || r.createdAt, monthVal)) return;
+    const services = uniqueTextList((servicesByRepair[r.repairId] && servicesByRepair[r.repairId].length) ? servicesByRepair[r.repairId] : splitItems(r.repairService || ''));
+    systemSources.push({ imei: r.imei, technician: r.technician, model: r.product, service: services.join(', '), source: 'Khách lẻ hệ thống' });
+  });
+
+  const sentSources = (SENT_REPAIRS || []).filter(function (r) {
+    if (techFilter && String(r.technician || '') !== techFilter) return false;
+    if (!matchMonth_(r.sentDate || r.createdAt, monthVal)) return false;
+    return true;
+  }).map(function (r) { return { imei: r.imei, technician: r.technician, model: r.name, service: [r.process1, r.process2].filter(Boolean).join(', '), source: 'Máy gửi xử lý' }; });
+
+  const allSources = systemSources.concat(sentSources);
+  const sourceKeys = {};
+  allSources.forEach(function (s) { sourceKeys[salaryKey_(s.imei, s.technician)] = s; });
+
+  const out = [];
+  inputRows.forEach(function (r) {
+    const src = sourceKeys[salaryKey_(r.imei, r.technician)];
+    out.push({
+      type: 'input', imei: r.imei, technician: r.technician, model: r.model, service: r.service,
+      source: src ? src.source : 'Không có nguồn',
+      status: src ? (src.source === 'Máy gửi xử lý' ? '✅ Khớp máy gửi xử lý' : '✅ Khớp hệ thống') : '⚠️ Thợ nhập nhưng không có nguồn đối chiếu',
+      suggestion: src ? '' : 'Kiểm tra IMEI/KTV hoặc Admin duyệt tay nếu là khách quen ngoài hệ thống'
+    });
+  });
+  allSources.forEach(function (s) {
+    if (inputKeys[salaryKey_(s.imei, s.technician)]) return;
+    out.push({ type: 'missing', imei: s.imei, technician: s.technician, model: s.model, service: s.service, source: s.source, status: s.source === 'Máy gửi xử lý' ? '⚠️ Máy gửi xử lý nhưng thợ chưa nhập' : '⚠️ Có trong hệ thống nhưng thợ chưa nhập', suggestion: 'Nhắc thợ nhập công hoặc kiểm tra lại KTV' });
+  });
+  return out;
+}
+
+function salaryKey_(imei, tech) { return String(imei || '').replace(/\D/g, '').slice(-6) + '|' + normalizeKey(tech); }
+function matchMonth_(dateValue, monthVal) {
+  if (!monthVal) return true;
+  const d = parseAnyDate(dateValue);
+  if (!d) return false;
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') === monthVal;
 }
 
 function renderMasters() { document.getElementById('masterView').innerHTML = '<table><thead><tr><th>Danh mục</th><th>Số lượng</th></tr></thead><tbody>' + Object.keys(MASTERS).map(k => '<tr><td>' + k + '</td><td>' + (MASTERS[k] || []).length + '</td></tr>').join('') + '</tbody></table>'; }
