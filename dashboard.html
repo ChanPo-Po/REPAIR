@@ -104,7 +104,7 @@
         <div class="dashboard-grid-2">
           <div class="panel">
             <div class="panel-head"><div><h3>📦 Nhu cầu vật tư</h3></div></div>
-            <div class="filter-row" style="grid-template-columns: 1fr 1fr auto;">
+            <div class="filter-row" style="grid-template-columns: 1fr 1fr auto auto;">
               <input id="materialSearch" placeholder="Tìm vật tư" oninput="renderMaterialsNeed()" />
               <select id="materialGroup" onchange="renderMaterialsNeed()"><option value="">Tất cả nhóm</option></select>
               <label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" id="showAllMaterials" onchange="renderMaterialsNeed()" style="width:auto;" /> Tất cả</label>
@@ -174,10 +174,11 @@
      
             </div>
           </div>
-          <div class="filter-row" style="grid-template-columns: 1fr 1fr auto;">
+          <div class="filter-row" style="grid-template-columns: 1fr 1fr auto auto;">
             <input id="commissionMonth" type="month" onchange="renderCommissionDashboard()" />
             <select id="commissionTech" onchange="renderCommissionDashboard()"><option value="">Tất cả kỹ thuật</option></select>
             <button class="ghost-btn" onclick="renderCommissionDashboard()">Lọc</button>
+            <button class="primary-btn" onclick="printCommissionReport()">Xuất PDF xác nhận</button>
           </div>
           <div id="commissionKpis" class="kpi-grid compact"></div>
         </div>
@@ -232,7 +233,7 @@
 
         <div class="panel">
           <div class="panel-head"><div><h3>📊 Tổng quan đối chiếu</h3></div></div>
-          <div class="filter-row" style="grid-template-columns: 1fr 1fr auto;">
+          <div class="filter-row" style="grid-template-columns: 1fr 1fr auto auto;">
             <input id="salaryMonth" type="month" onchange="renderSalaryAudit()" />
             <select id="salaryTech" onchange="renderSalaryAudit()"><option value="">Tất cả kỹ thuật</option></select>
             <button class="ghost-btn" onclick="renderSalaryAudit()">Lọc</button>

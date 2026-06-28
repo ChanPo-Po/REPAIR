@@ -1421,3 +1421,14 @@ input.input-error, textarea.input-error, select.input-error {
   background: #fee2e2;
   color: #991b1b;
 }
+
+
+/* V10.30 - PDF xác nhận hoa hồng kỹ thuật */
+.commission-report-sheet { width: 210mm; min-height: 297mm; margin: 0 auto; background:#fff; color:#0f172a; border:1px solid #e2e8f0; border-radius:14px; padding:14mm; box-shadow:0 18px 50px rgba(15,23,42,.12); }
+.commission-report-sheet .report-title { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; border-bottom:2px solid #1e3a8a; padding-bottom:14px; margin-bottom:14px; }
+.commission-report-sheet .report-title h1 { margin:0; color:#1e3a8a; letter-spacing:.08em; }
+.commission-report-sheet .report-title p { margin:4px 0 0; font-weight:800; }
+.commission-report-sheet .report-title span { display:block; margin-top:6px; color:#475569; }
+@media print {
+  .commission-report-sheet { width:auto !important; min-height:auto !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; padding:0 !important; }
+}

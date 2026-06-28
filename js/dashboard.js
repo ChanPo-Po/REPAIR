@@ -935,6 +935,7 @@ function getCommissionRows() {
       const amount = lookupCommissionAmount(rules, techName, model, group);
       out.push({
         repairId: r.repairId || '',
+        imei: imei6_(r.imei || ''),
         date: r.completedDate || r.updatedAt || r.date || r.createdAt || '',
         tech: techName,
         model: model,
@@ -954,7 +955,7 @@ function getCommissionRows() {
   const sentByKey = {};
   const sentByImei = {};
   (SENT_REPAIRS || []).forEach(function (s) {
-    const imeiKey = String(s.imei || '').replace(/\D/g, '').slice(-6);
+    const imeiKey = imei6_(s.imei);
     const sentTech = String(s.technician || s.tech || s['Kỹ thuật'] || s['Kỹ Thuật'] || '').trim();
     if (!imeiKey) return;
     if (sentTech) sentByKey[salaryKey_(s.imei, sentTech)] = s;
@@ -968,7 +969,7 @@ function getCommissionRows() {
     if (techFilter && techName !== techFilter) return;
     if (!matchMonth_(w.date || w.createdAt, monthVal)) return;
 
-    const imeiKey = String(w.imei || '').replace(/\D/g, '').slice(-6);
+    const imeiKey = imei6_(w.imei);
     if (!imeiKey) return;
 
     // Ưu tiên IMEI + KTV, fallback IMEI để vẫn khớp khi máy gửi xử lý chưa nhập KTV hoặc nhập lệch tên.
@@ -988,6 +989,7 @@ function getCommissionRows() {
 
     out.push({
       repairId: 'MGXL-' + imeiKey,
+      imei: imei6_(w.imei || sent.imei || ''),
       date: w.date || sent.sentDate || w.createdAt || sent.createdAt || '',
       tech: techName,
       model: model,
@@ -1067,21 +1069,73 @@ function renderCommissionDashboard() {
 
   const detailEl = document.getElementById('commissionDetail');
   if (detailEl) {
-    detailEl.innerHTML = '<table><thead><tr><th>Ngày</th><th>Nguồn</th><th>Mã/IMEI</th><th>KTV</th><th>Dòng máy</th><th>Dịch vụ</th><th>Nhóm hoa hồng</th><th>Hoa hồng</th></tr></thead><tbody>' +
+    detailEl.innerHTML = '<table><thead><tr><th>Ngày</th><th>Nguồn</th><th>IMEI</th><th>KTV</th><th>Dòng máy</th><th>Dịch vụ</th><th>Hoa hồng</th></tr></thead><tbody>' +
       (rows.length ? rows.map(function (x) {
         return '<tr class="' + (!x.hasRule ? 'warn-row' : '') + '">' +
           '<td>' + esc(dateTime(x.date) || x.date || '') + '</td>' +
           '<td><span class="status-pill ' + (x.source === 'Máy gửi xử lý' ? 'wait' : 'done') + '">' + esc(x.source || 'Khách hệ thống') + '</span></td>' +
-          '<td><b>' + esc(x.repairId) + '</b></td>' +
+          '<td><b>' + esc(x.imei || x.repairId || '') + '</b></td>' +
           '<td>' + esc(x.tech) + '</td>' +
           '<td>' + esc(x.model) + '</td>' +
           '<td>' + esc(x.service) + '</td>' +
-          '<td>' + esc(x.group) + '</td>' +
           '<td><b>' + fmtMoney(x.amount || 0) + '</b></td>' +
         '</tr>';
-      }).join('') : '<tr><td colspan="8">Chưa có dữ liệu hoa hồng.</td></tr>') +
+      }).join('') : '<tr><td colspan="7">Chưa có dữ liệu hoa hồng.</td></tr>') +
       '</tbody></table>';
   }
+}
+
+function commissionReportHtml() {
+  const rows = getCommissionRows();
+  const monthVal = document.getElementById('commissionMonth')?.value || '';
+  const techFilter = document.getElementById('commissionTech')?.value || '';
+  const titleMonth = monthVal ? ('Tháng ' + monthVal.split('-')[1] + '/' + monthVal.split('-')[0]) : 'Tất cả thời gian';
+  const titleTech = techFilter || 'Tất cả kỹ thuật';
+  const total = rows.reduce(function (sum, x) { return sum + Number(x.amount || 0); }, 0);
+  const systemTotal = rows.filter(x => x.source === 'Khách hệ thống').reduce((s,x)=>s+Number(x.amount||0),0);
+  const sentTotal = rows.filter(x => x.source === 'Máy gửi xử lý').reduce((s,x)=>s+Number(x.amount||0),0);
+  const byTech = {};
+  rows.forEach(function (x) {
+    if (!byTech[x.tech]) byTech[x.tech] = { tech: x.tech, count: 0, total: 0 };
+    byTech[x.tech].count++;
+    byTech[x.tech].total += Number(x.amount || 0);
+  });
+  const summaryRows = Object.values(byTech).sort(function (a,b){ return b.total-a.total; });
+  const detailRows = rows.map(function (x, i) {
+    return '<tr>' +
+      '<td>' + (i + 1) + '</td>' +
+      '<td>' + esc(dateOnly(x.date) || dateTime(x.date) || x.date || '') + '</td>' +
+      '<td>' + esc(x.source || '') + '</td>' +
+      '<td><b>' + esc(x.imei || '') + '</b></td>' +
+      '<td>' + esc(x.tech || '') + '</td>' +
+      '<td>' + esc(x.model || '') + '</td>' +
+      '<td>' + esc(x.service || '') + '</td>' +
+      '<td><b>' + fmtMoney(x.amount || 0) + '</b></td>' +
+    '</tr>';
+  }).join('');
+  const summaryHtml = summaryRows.map(function (x) {
+    return '<tr><td><b>' + esc(x.tech) + '</b></td><td>' + x.count + '</td><td><b>' + fmtMoney(x.total) + '</b></td></tr>';
+  }).join('');
+  return '<section class="commission-report-sheet">' +
+    '<div class="report-title"><div><h1>POPOPHONE</h1><p>BẢNG XÁC NHẬN HOA HỒNG KỸ THUẬT</p></div><div><b>' + esc(titleMonth) + '</b><span>Kỹ thuật: ' + esc(titleTech) + '</span></div></div>' +
+    '<div class="report-kpis">' +
+      '<div><span>Tổng hoa hồng</span><b>' + fmtMoney(total) + '</b></div>' +
+      '<div><span>Khách hệ thống</span><b>' + fmtMoney(systemTotal) + '</b></div>' +
+      '<div><span>Máy gửi xử lý</span><b>' + fmtMoney(sentTotal) + '</b></div>' +
+      '<div><span>Tổng dòng công</span><b>' + rows.length + '</b></div>' +
+    '</div>' +
+    '<div class="report-box full"><h4>1. Tổng hợp theo kỹ thuật</h4><table><thead><tr><th>Kỹ thuật</th><th>Số dòng công</th><th>Tổng hoa hồng</th></tr></thead><tbody>' + (summaryHtml || '<tr><td colspan="3">Chưa có dữ liệu.</td></tr>') + '</tbody></table></div>' +
+    '<div class="report-box full"><h4>2. Chi tiết hoa hồng</h4><table><thead><tr><th>#</th><th>Ngày</th><th>Nguồn</th><th>IMEI</th><th>KTV</th><th>Dòng máy</th><th>Dịch vụ</th><th>Hoa hồng</th></tr></thead><tbody>' + (detailRows || '<tr><td colspan="8">Chưa có dữ liệu.</td></tr>') + '</tbody></table></div>' +
+    '<div class="report-note"><b>Xác nhận:</b><p>Kỹ thuật đã kiểm tra danh sách máy, dịch vụ và hoa hồng trong tháng. Các dòng chưa khớp nguồn đối chiếu không được tính vào bảng này.</p></div>' +
+    '<div class="report-sign"><div><b>Kỹ thuật xác nhận</b><span>Ký, ghi rõ họ tên</span></div><div><b>Quản lý kỹ thuật</b><span>Ký, ghi rõ họ tên</span></div><div><b>Admin/Kế toán</b><span>Ký, ghi rõ họ tên</span></div></div>' +
+  '</section>';
+}
+
+function printCommissionReport() {
+  const printArea = document.getElementById('printArea');
+  if (!printArea) return showToast('Không tìm thấy vùng in PDF', 'error');
+  printArea.innerHTML = commissionReportHtml();
+  window.print();
 }
 
 function buildCommissionRuleMap() {
@@ -1419,14 +1473,14 @@ function buildSalaryAuditRows() {
   allSources.forEach(function (s) {
     sourceKeys[salaryKey_(s.imei, s.technician)] = s;
     if (s.source === 'Máy gửi xử lý') {
-      const imeiKey = String(s.imei || '').replace(/\D/g, '').slice(-6);
+      const imeiKey = imei6_(s.imei);
       if (imeiKey && !sentSourceByImei[imeiKey]) sentSourceByImei[imeiKey] = s;
     }
   });
 
   const out = [];
   inputRows.forEach(function (r) {
-    const imeiKey = String(r.imei || '').replace(/\D/g, '').slice(-6);
+    const imeiKey = imei6_(r.imei);
     const src = sourceKeys[salaryKey_(r.imei, r.technician)] || sentSourceByImei[imeiKey];
     out.push({
       type: 'input', imei: r.imei, technician: r.technician, model: r.model, service: r.service,
@@ -1442,7 +1496,12 @@ function buildSalaryAuditRows() {
   return out;
 }
 
-function salaryKey_(imei, tech) { return String(imei || '').replace(/\D/g, '').slice(-6) + '|' + normalizeKey(tech); }
+function imei6_(value) {
+  const d = String(value || '').replace(/\D/g, '').slice(-6);
+  return d ? d.padStart(6, '0') : '';
+}
+
+function salaryKey_(imei, tech) { return imei6_(imei) + '|' + normalizeKey(tech); }
 function matchMonth_(dateValue, monthVal) {
   if (!monthVal) return true;
   const d = parseAnyDate(dateValue);
