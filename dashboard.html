@@ -10,7 +10,7 @@
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-mark">P</div>
+        <div class="brand-mark"></div>
         <div>
           <h1>POPOPHONE</h1>
           <p>Repair V10 Pro</p>
@@ -19,15 +19,18 @@
 
       <nav class="nav" id="navMenu">
         <button data-tab="overview">📊 Tổng quan</button>
-        <button data-tab="repairs">📋 Danh sách</button>
-        <button data-tab="status">🔨 Cập nhật trạng thái</button>
-        <button data-tab="cost">💰 Cập nhật chi phí</button>
-        <button data-tab="materials">📦 Vật tư</button>
+        <button data-tab="repairs">📋 Danh sách sửa chữa</button>
+                <button data-tab="status">🔧 Xử lý sửa chữa</button>
+        
+        <button data-tab="cost">💰 Chi phí & lợi nhuận</button>
+               <button data-tab="materials">📦 Vật tư & NCC</button>
+        
         <button data-tab="commission">💵 Hoa hồng kỹ thuật</button>
-        <button data-tab="salaryAudit">🧾 Đối chiếu lương thợ</button>
-        <button data-tab="sentRepairs">📦 Máy gửi xử lý</button>
-        <button data-tab="weeklyReport">📝 Tạo báo cáo</button>
-        <button data-tab="masters">⚙️ Danh mục</button>
+                <button data-tab="salaryAudit">🧾 Đối chiếu lương thợ</button>
+        
+        <button data-tab="sentRepairs">🚚 Máy gửi xử lý</button>
+               <button data-tab="weeklyReport">📝 Báo cáo</button>
+                <button data-tab="masters">⚙️ Danh mục hệ thống</button>
       </nav>
 
       <div class="user-card">
@@ -210,7 +213,6 @@
           <div class="panel-head">
             <div>
               <h3>🧾 Thợ nhập công sửa máy</h3>
-              <p>Dòng máy lấy từ DM_DONG_MAY, dịch vụ lấy từ DM_DICH_VU, SL luôn bằng 1, hoa hồng tự dò DM_HOA_HONG_THO.</p>
             </div>
           </div>
           <form id="techWorkForm" class="form-grid" onsubmit="submitTechWork(event)">
@@ -246,7 +248,7 @@
         </div>
 
         <div class="panel salary-manager-only">
-          <div class="panel-head"><div><h3>🔎 Đối chiếu IMEI</h3><p>So THO_NHAP_CONG với DATA/CT_DICH_VU và MAY_GUI_XU_LY.</p></div></div>
+          <div class="panel-head"><div><h3>🔎 Đối chiếu máy</h3></div></div>
           <div id="salaryAuditTable" class="table-wrap"></div>
         </div>
       </section>
@@ -256,7 +258,6 @@
           <div class="panel-head">
             <div>
               <h3>📦 Máy gửi xử lý</h3>
-              <p>QL kỹ thuật/Admin nhập và theo dõi riêng các máy gửi xử lý. Mặc định ưu tiên hiện cây chưa nhận.</p>
             </div>
           </div>
           <form id="sentRepairForm" class="form-grid" onsubmit="submitSentRepair(event)">
@@ -283,7 +284,6 @@
           <div class="panel-head">
             <div>
               <h3>📋 Danh sách máy gửi xử lý</h3>
-              <p>Mặc định chỉ hiện Đang gửi xử lý / Chưa nhận. Muốn xem Đã nhận / Hủy thì lọc trạng thái hoặc bật Hiện tất cả.</p>
             </div>
           </div>
           <div id="sentRepairKpis" class="kpi-grid compact"></div>
