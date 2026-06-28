@@ -25,6 +25,7 @@
         <button data-tab="materials">📦 Vật tư</button>
         <button data-tab="commission">💵 Hoa hồng kỹ thuật</button>
         <button data-tab="salaryAudit">🧾 Đối chiếu lương thợ</button>
+        <button data-tab="sentRepairs">📦 Máy gửi xử lý</button>
         <button data-tab="weeklyReport">📝 Tạo báo cáo</button>
         <button data-tab="masters">⚙️ Danh mục</button>
       </nav>
@@ -228,11 +229,34 @@
           </form>
         </div>
 
+
+        <div class="panel">
+          <div class="panel-head"><div><h3>📊 Tổng quan đối chiếu</h3></div></div>
+          <div class="filter-row" style="grid-template-columns: 1fr 1fr auto;">
+            <input id="salaryMonth" type="month" onchange="renderSalaryAudit()" />
+            <select id="salaryTech" onchange="renderSalaryAudit()"><option value="">Tất cả kỹ thuật</option></select>
+            <button class="ghost-btn" onclick="renderSalaryAudit()">Lọc</button>
+          </div>
+          <div id="salaryKpis" class="kpi-grid compact"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><div><h3>📋 Công thợ đã nhập</h3></div></div>
+          <div id="techWorkTable" class="table-wrap"></div>
+        </div>
+
+        <div class="panel salary-manager-only">
+          <div class="panel-head"><div><h3>🔎 Đối chiếu IMEI</h3><p>So THO_NHAP_CONG với DATA/CT_DICH_VU và MAY_GUI_XU_LY.</p></div></div>
+          <div id="salaryAuditTable" class="table-wrap"></div>
+        </div>
+      </section>
+
+      <section id="sentRepairs" class="tab">
         <div class="panel salary-manager-only">
           <div class="panel-head">
             <div>
-              <h3>📨 Máy gửi xử lý</h3>
-              <p>QL kỹ thuật/Admin nhập máy gửi xử lý để đối chiếu với công thợ tự nhập.</p>
+              <h3>📦 Máy gửi xử lý</h3>
+              <p>QL kỹ thuật/Admin nhập và theo dõi riêng các máy gửi xử lý. Mặc định ưu tiên hiện cây chưa nhận.</p>
             </div>
           </div>
           <form id="sentRepairForm" class="form-grid" onsubmit="submitSentRepair(event)">
@@ -255,24 +279,24 @@
           </form>
         </div>
 
-        <div class="panel">
-          <div class="panel-head"><div><h3>📊 Tổng quan đối chiếu</h3></div></div>
-          <div class="filter-row" style="grid-template-columns: 1fr 1fr auto;">
-            <input id="salaryMonth" type="month" onchange="renderSalaryAudit()" />
-            <select id="salaryTech" onchange="renderSalaryAudit()"><option value="">Tất cả kỹ thuật</option></select>
-            <button class="ghost-btn" onclick="renderSalaryAudit()">Lọc</button>
-          </div>
-          <div id="salaryKpis" class="kpi-grid compact"></div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><div><h3>📋 Công thợ đã nhập</h3></div></div>
-          <div id="techWorkTable" class="table-wrap"></div>
-        </div>
-
         <div class="panel salary-manager-only">
-          <div class="panel-head"><div><h3>🔎 Đối chiếu IMEI</h3><p>So THO_NHAP_CONG với DATA/CT_DICH_VU và MAY_GUI_XU_LY.</p></div></div>
-          <div id="salaryAuditTable" class="table-wrap"></div>
+          <div class="panel-head">
+            <div>
+              <h3>📋 Danh sách máy gửi xử lý</h3>
+              <p>Mặc định chỉ hiện Đang gửi xử lý / Chưa nhận. Muốn xem Đã nhận / Hủy thì lọc trạng thái hoặc bật Hiện tất cả.</p>
+            </div>
+          </div>
+          <div id="sentRepairKpis" class="kpi-grid compact"></div>
+          <div class="filter-row" style="grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr auto;">
+            <input id="sentRepairFrom" type="date" onchange="renderSentRepairList()" />
+            <input id="sentRepairTo" type="date" onchange="renderSentRepairList()" />
+            <input id="sentRepairKeyword" placeholder="Tìm IMEI / máy / màu" oninput="renderSentRepairList()" />
+            <select id="sentRepairTechFilter" onchange="renderSentRepairList()"><option value="">Tất cả KTV</option></select>
+            <input id="sentRepairSenderFilter" placeholder="Người gửi" oninput="renderSentRepairList()" />
+            <select id="sentRepairStatusFilter" onchange="renderSentRepairList()"><option value="">Ưu tiên chưa nhận</option><option>Đang gửi xử lý</option><option>Chưa nhận</option><option>Đã nhận</option><option>Hủy</option></select>
+            <label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" id="sentRepairShowAll" onchange="renderSentRepairList()" style="width:auto;" /> Hiện tất cả</label>
+          </div>
+          <div id="sentRepairList" class="table-wrap"></div>
         </div>
       </section>
 

@@ -73,6 +73,7 @@ function doPost(e) {
     if (action === 'getDashboard') return json({ success: true, data: getDashboard() });
     if (action === 'createTechWork') return json(createTechWork(body.data || {}));
     if (action === 'createSentRepair') return json(createSentRepair(body.data || {}));
+    if (action === 'updateSentRepair') return json(updateSentRepair(body.rowNumber, body.data || {}));
     if (action === 'backfillOldDataToCT') return json(backfillOldDataToCT());
     if (action === 'unlockRepair') return json(unlockRepair(body.repairId, body.data || {}));
     if (action === 'fixMoneyDateColumns') return json(fixMoneyDateColumns());
@@ -709,8 +710,15 @@ function readTechWork() {
 }
 
 function readSentRepairs() {
-  return readObjects(SHEETS.MAY_GUI_XU_LY).map(function (x) {
+  const sheet = sh(SHEETS.MAY_GUI_XU_LY);
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+  const h = values[0];
+  return values.slice(1).map(function (r, idx) {
+    const x = {};
+    h.forEach(function (k, i) { x[k] = r[i]; });
     return {
+      rowNumber: idx + 2,
       sentDate: x['Ngày gửi'],
       imei: x['IMEI'],
       name: x['Tên máy'],
@@ -782,6 +790,34 @@ function createSentRepair(d) {
     nowText()
   ]);
   return { success: true, message: 'Đã lưu máy gửi xử lý.' };
+}
+
+
+function updateSentRepair(rowNumber, d) {
+  setupSheets();
+  const sheet = sh(SHEETS.MAY_GUI_XU_LY);
+  const row = Number(rowNumber || 0);
+  if (!row || row < 2 || row > sheet.getLastRow()) {
+    return { success: false, message: 'Không tìm thấy dòng máy gửi xử lý.' };
+  }
+
+  const map = mapHeader(SHEETS.MAY_GUI_XU_LY);
+  d = d || {};
+
+  if (map['Tại sao chưa nhận'] !== undefined) {
+    sheet.getRange(row, map['Tại sao chưa nhận'] + 1).setValue(String(d.notReceivedReason || '').trim());
+  }
+  if (map['Ngày nhận lại'] !== undefined) {
+    sheet.getRange(row, map['Ngày nhận lại'] + 1).setValue(String(d.receivedBackDate || '').trim());
+  }
+  if (map['Trạng thái'] !== undefined) {
+    sheet.getRange(row, map['Trạng thái'] + 1).setValue(String(d.status || '').trim() || 'Đang gửi xử lý');
+  }
+  if (map['Ngày cập nhật'] !== undefined) {
+    sheet.getRange(row, map['Ngày cập nhật'] + 1).setValue(nowText());
+  }
+
+  return { success: true, message: 'Đã cập nhật máy gửi xử lý.' };
 }
 
 function lookupTechCommission_(tech, model, service) {
