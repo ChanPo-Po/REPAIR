@@ -951,10 +951,18 @@ function getCommissionRows() {
   // 2) Hoa hồng từ máy nhà / máy gửi xử lý: chỉ cộng khi thợ đã nhập công và IMEI khớp MAY_GUI_XU_LY.
   // Không cộng THO_NHAP_CONG khớp DATA để tránh đếm trùng máy khách hệ thống.
   const sentSourceMap = {};
+  const sentSourceByImei = {};
   (SENT_REPAIRS || []).forEach(function (s) {
-    const key = salaryKey_(s.imei, s.technician);
-    if (!key || key === '|') return;
-    sentSourceMap[key] = s;
+    const imeiKey = String(s.imei || '').replace(/\D/g, '').slice(-6);
+    const techName = String(s.technician || s.tech || s['Kỹ thuật'] || s['Kỹ Thuật'] || '').trim();
+    if (!imeiKey) return;
+
+    // Ưu tiên khớp IMEI + KTV nếu có KTV ở danh sách máy gửi xử lý.
+    if (techName) sentSourceMap[salaryKey_(s.imei, techName)] = s;
+
+    // Fallback theo IMEI để vẫn tính được khi sheet máy gửi xử lý bị thiếu/sai tên KTV.
+    // KTV tính lương vẫn lấy từ THO_NHAP_CONG, không lấy từ máy gửi xử lý.
+    if (!sentSourceByImei[imeiKey]) sentSourceByImei[imeiKey] = s;
   });
 
   (TECH_WORK || []).forEach(function (w) {
@@ -963,13 +971,16 @@ function getCommissionRows() {
     if (techFilter && techName !== techFilter) return;
     if (!matchMonth_(w.date || w.createdAt, monthVal)) return;
 
-    const sent = sentSourceMap[salaryKey_(w.imei, techName)];
+    const imeiKey = String(w.imei || '').replace(/\D/g, '').slice(-6);
+    const sent = sentSourceMap[salaryKey_(w.imei, techName)] || sentSourceByImei[imeiKey];
     if (!sent) return;
 
     const serviceName = canonicalServiceName(w.service || [sent.process1, sent.process2].filter(Boolean).join(', '));
     const group = commissionGroupFromService(serviceName);
     const model = canonicalModelName(w.model || sent.model || sent.name || 'Khác');
-    const amount = parseMoneyValue(w.commission || lookupCommissionAmount(rules, techName, model, group));
+    const lookupAmount = lookupCommissionAmount(rules, techName, model, group);
+    const enteredAmount = parseMoneyValue(w.commission || 0);
+    const amount = enteredAmount || lookupAmount;
 
     out.push({
       repairId: 'MGXL-' + String(w.imei || sent.imei || ''),
@@ -1400,11 +1411,19 @@ function buildSalaryAuditRows() {
 
   const allSources = systemSources.concat(sentSources);
   const sourceKeys = {};
-  allSources.forEach(function (s) { sourceKeys[salaryKey_(s.imei, s.technician)] = s; });
+  const sentSourceByImei = {};
+  allSources.forEach(function (s) {
+    sourceKeys[salaryKey_(s.imei, s.technician)] = s;
+    if (s.source === 'Máy gửi xử lý') {
+      const imeiKey = String(s.imei || '').replace(/\D/g, '').slice(-6);
+      if (imeiKey && !sentSourceByImei[imeiKey]) sentSourceByImei[imeiKey] = s;
+    }
+  });
 
   const out = [];
   inputRows.forEach(function (r) {
-    const src = sourceKeys[salaryKey_(r.imei, r.technician)];
+    const imeiKey = String(r.imei || '').replace(/\D/g, '').slice(-6);
+    const src = sourceKeys[salaryKey_(r.imei, r.technician)] || sentSourceByImei[imeiKey];
     out.push({
       type: 'input', imei: r.imei, technician: r.technician, model: r.model, service: r.service,
       source: src ? src.source : 'Không có nguồn',
