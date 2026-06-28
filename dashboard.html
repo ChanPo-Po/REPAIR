@@ -10,7 +10,7 @@
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-mark"></div>
+        <div class="brand-mark">P</div>
         <div>
           <h1>POPOPHONE</h1>
           <p>Repair V10 Pro</p>
@@ -19,18 +19,15 @@
 
       <nav class="nav" id="navMenu">
         <button data-tab="overview">📊 Tổng quan</button>
-        <button data-tab="repairs">📋 Danh sách sửa chữa</button>
-                <button data-tab="status">🔧 Xử lý sửa chữa</button>
-        
-        <button data-tab="cost">💰 Chi phí & lợi nhuận</button>
-               <button data-tab="materials">📦 Vật tư & NCC</button>
-        
+        <button data-tab="repairs">📋 Danh sách</button>
+        <button data-tab="status">🔨 Cập nhật trạng thái</button>
+        <button data-tab="cost">💰 Cập nhật chi phí</button>
+        <button data-tab="materials">📦 Vật tư</button>
         <button data-tab="commission">💵 Hoa hồng kỹ thuật</button>
-                <button data-tab="salaryAudit">🧾 Đối chiếu lương thợ</button>
-        
-        <button data-tab="sentRepairs">🚚 Máy gửi xử lý</button>
-               <button data-tab="weeklyReport">📝 Báo cáo</button>
-                <button data-tab="masters">⚙️ Danh mục hệ thống</button>
+        <button data-tab="salaryAudit">🧾 Đối chiếu lương thợ</button>
+        <button data-tab="sentRepairs">📦 Máy gửi xử lý</button>
+        <button data-tab="weeklyReport">📝 Tạo báo cáo</button>
+        <button data-tab="masters">⚙️ Danh mục</button>
       </nav>
 
       <div class="user-card">
@@ -213,6 +210,7 @@
           <div class="panel-head">
             <div>
               <h3>🧾 Thợ nhập công sửa máy</h3>
+              <p>Dòng máy lấy từ DM_DONG_MAY, dịch vụ lấy từ DM_DICH_VU, SL luôn bằng 1, hoa hồng tự dò DM_HOA_HONG_THO.</p>
             </div>
           </div>
           <form id="techWorkForm" class="form-grid" onsubmit="submitTechWork(event)">
@@ -248,7 +246,7 @@
         </div>
 
         <div class="panel salary-manager-only">
-          <div class="panel-head"><div><h3>🔎 Đối chiếu máy</h3></div></div>
+          <div class="panel-head"><div><h3>🔎 Đối chiếu IMEI</h3><p>So THO_NHAP_CONG với DATA/CT_DICH_VU và MAY_GUI_XU_LY.</p></div></div>
           <div id="salaryAuditTable" class="table-wrap"></div>
         </div>
       </section>
@@ -258,21 +256,19 @@
           <div class="panel-head">
             <div>
               <h3>📦 Máy gửi xử lý</h3>
+              <p>QL kỹ thuật/Admin nhập và theo dõi riêng các máy gửi xử lý. Mặc định ưu tiên hiện cây chưa nhận.</p>
             </div>
           </div>
-          <form id="sentRepairForm" class="form-grid" onsubmit="submitSentRepair(event)">
+          <form id="sentRepairForm" class="form-grid sent-repair-form" onsubmit="submitSentRepair(event)">
             <label><span>Ngày gửi</span><input name="sentDate" type="date" required /></label>
             <label><span>IMEI *</span><input name="imei" required inputmode="numeric" maxlength="6" pattern="\d{6}" placeholder="6 số cuối IMEI" /></label>
-            <label><span>Tên máy</span><input name="name" placeholder="VD: 12PROMAX" /></label>
-            <label><span>GB</span><input name="gb" placeholder="128" /></label>
-            <label><span>Màu</span><input name="color" placeholder="Đen" /></label>
+            <label><span>Dòng máy</span><select name="model" id="sentModel" required></select></label>
             <label><span>Xử lý 1</span><select name="process1" id="sentProcess1"></select></label>
             <label><span>Xử lý 2</span><select name="process2" id="sentProcess2"></select></label>
             <label><span>Kỹ thuật</span><select name="technician" id="sentTech"></select></label>
             <label><span>Người gửi</span><input name="sender" placeholder="Người gửi" /></label>
-            <label><span>Tại sao chưa nhận</span><input name="notReceivedReason" placeholder="Nếu chưa nhận lại" /></label>
-            <label><span>Ngày nhận lại</span><input name="receivedBackDate" type="date" /></label>
-            <label><span>Trạng thái</span><select name="status"><option>Đang gửi xử lý</option><option>Đã nhận</option><option>Chưa nhận</option><option>Hủy</option></select></label>
+            <label><span>Trạng thái</span><select name="status"><option>Đang gửi xử lý</option><option>Chưa nhận</option><option>Đã nhận</option><option>Hủy</option></select></label>
+            <label class="span-3"><span>Tại sao chưa nhận</span><input name="notReceivedReason" placeholder="Ghi lý do nếu chưa nhận lại / đang vướng" /></label>
             <div class="form-actions span-3">
               <button type="reset" class="ghost-btn">Nhập lại</button>
               <button type="submit" class="primary-btn">Lưu máy gửi xử lý</button>
@@ -284,13 +280,14 @@
           <div class="panel-head">
             <div>
               <h3>📋 Danh sách máy gửi xử lý</h3>
+              <p>Mặc định chỉ hiện Đang gửi xử lý / Chưa nhận. Muốn xem Đã nhận / Hủy thì lọc trạng thái hoặc bật Hiện tất cả.</p>
             </div>
           </div>
           <div id="sentRepairKpis" class="kpi-grid compact"></div>
-          <div class="filter-row" style="grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr auto;">
+          <div class="filter-row" style="grid-template-columns: 1fr 1fr 1.2fr 1fr 1fr 1fr auto;">
             <input id="sentRepairFrom" type="date" onchange="renderSentRepairList()" />
             <input id="sentRepairTo" type="date" onchange="renderSentRepairList()" />
-            <input id="sentRepairKeyword" placeholder="Tìm IMEI / máy / màu" oninput="renderSentRepairList()" />
+            <input id="sentRepairKeyword" placeholder="Tìm IMEI / dòng máy / xử lý" oninput="renderSentRepairList()" />
             <select id="sentRepairTechFilter" onchange="renderSentRepairList()"><option value="">Tất cả KTV</option></select>
             <input id="sentRepairSenderFilter" placeholder="Người gửi" oninput="renderSentRepairList()" />
             <select id="sentRepairStatusFilter" onchange="renderSentRepairList()"><option value="">Ưu tiên chưa nhận</option><option>Đang gửi xử lý</option><option>Chưa nhận</option><option>Đã nhận</option><option>Hủy</option></select>

@@ -1383,3 +1383,41 @@ input.input-error, textarea.input-error, select.input-error {
 /* Hoa hồng kỹ thuật */
 .warn-row { background: #fff7ed; }
 .warn-row td { border-color: #fed7aa; }
+
+/* V10.26 - Máy gửi xử lý / đối chiếu công kỹ thuật */
+.sent-repair-form {
+  align-items: end;
+}
+.sent-repair-form select,
+.sent-repair-form input {
+  min-height: 48px;
+}
+#sentRepairKpis.kpi-grid.compact {
+  margin-bottom: 14px;
+}
+#sentRepairList table th,
+#sentRepairList table td,
+#salaryAuditTable table th,
+#salaryAuditTable table td {
+  vertical-align: middle;
+}
+#sentRepairList .status-pill.done,
+#salaryAuditTable .status-pill.done {
+  background: #dcfce7;
+  color: #166534;
+}
+#sentRepairList .status-pill.wait,
+#salaryAuditTable .status-pill.wait {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+#sentRepairList .status-pill.warn,
+#salaryAuditTable .status-pill.warn {
+  background: #ffedd5;
+  color: #9a3412;
+}
+#sentRepairList .status-pill.danger,
+#salaryAuditTable .status-pill.danger {
+  background: #fee2e2;
+  color: #991b1b;
+}

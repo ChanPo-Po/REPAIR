@@ -48,7 +48,7 @@ const DEFAULTS = {
   DM_NHAN_VIEN: [['Tên nhân viên', 'Chi nhánh', 'Bộ phận', 'Trạng thái'], ['Chan', '113', 'SALE', 'Đang làm'], ['Hùng', '113', 'SALE', 'Đang làm'], ['Trường', '113', 'SALE', 'Đang làm']],
   DM_HOA_HONG_THO: [['Kỹ thuật', 'MODEL', 'THAY PIN CÓ SÀN CỔ', 'THAY PIN KHÔNG SÀN CỔ', 'PHẢN QUANG', 'FIX ẢO', 'ÉP KÍNH', 'ÉP CẢM', 'THAY VỎ', 'LƯNG MẮT TO'], ['Thanh', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Thanh', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Thanh', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Thanh', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Thanh', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Thanh', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Thanh', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Thanh', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Thanh', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Thanh', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Thanh', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Thanh', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Thanh', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Thanh', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Thanh', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Thanh', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Thanh', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Thanh', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Thanh', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Thanh', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Thanh', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Thanh', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Thanh', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Thanh', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Trường', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Trường', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Trường', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Trường', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Trường', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Trường', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Trường', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Trường', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Trường', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Trường', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Trường', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Trường', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Trường', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Trường', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Trường', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Trường', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Trường', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Trường', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Trường', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Trường', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Trường', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Trường', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Trường', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Trường', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Phong', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Phong', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Phong', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Phong', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Phong', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Phong', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Phong', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Phong', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Phong', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Phong', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Phong', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Phong', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Phong', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Phong', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Phong', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Phong', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Phong', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Phong', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Phong', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Phong', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Phong', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Phong', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Phong', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Phong', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Thành', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Thành', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Thành', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Thành', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Thành', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Thành', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Thành', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Thành', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Thành', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Thành', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Thành', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Thành', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Thành', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Thành', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Thành', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Thành', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Thành', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Thành', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Thành', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Thành', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Thành', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Thành', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Thành', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Thành', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Hà', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Hà', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Hà', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Hà', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Hà', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Hà', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Hà', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Hà', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Hà', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Hà', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Hà', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Hà', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Hà', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Hà', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Hà', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Hà', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Hà', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Hà', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Hà', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Hà', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Hà', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Hà', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Hà', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Hà', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0]],
   THO_NHAP_CONG: [['Ngày', 'Kỹ thuật', 'IMEI', 'Dòng máy', 'Dịch vụ', 'SL', 'Hoa hồng', 'Ghi chú', 'Nguồn nhập', 'Trạng thái duyệt', 'Ngày tạo', 'Người nhập']],
-  MAY_GUI_XU_LY: [['Ngày gửi', 'IMEI', 'Tên máy', 'GB', 'Màu', 'Xử lý 1', 'Xử lý 2', 'Kỹ thuật', 'Người gửi', 'Tại sao chưa nhận', 'Ngày nhận lại', 'Trạng thái', 'Ngày tạo', 'Ngày cập nhật']]
+  MAY_GUI_XU_LY: [['Ngày gửi', 'IMEI', 'Dòng máy', 'Xử lý 1', 'Xử lý 2', 'Kỹ thuật', 'Người gửi', 'Tại sao chưa nhận', 'Trạng thái', 'Đã đối chiếu công', 'Ngày tạo', 'Ngày cập nhật']]
 };
 
 function doGet() {
@@ -716,21 +716,21 @@ function readSentRepairs() {
   const h = values[0];
   return values.slice(1).map(function (r, idx) {
     const x = {};
-    h.forEach(function (k, i) { x[k] = r[i]; });
+    h.forEach(function (k, i) { x[String(k).trim()] = r[i]; });
     return {
       rowNumber: idx + 2,
       sentDate: x['Ngày gửi'],
       imei: x['IMEI'],
-      name: x['Tên máy'],
-      gb: x['GB'],
-      color: x['Màu'],
+      model: x['Dòng máy'] || x['Tên máy'],
+      name: x['Dòng máy'] || x['Tên máy'],
       process1: x['Xử lý 1'],
       process2: x['Xử lý 2'],
       technician: x['Kỹ thuật'],
       sender: x['Người gửi'],
       notReceivedReason: x['Tại sao chưa nhận'],
-      receivedBackDate: x['Ngày nhận lại'],
+      receivedBackDate: x['Ngày nhận lại'] || '',
       status: x['Trạng thái'],
+      checkedWork: x['Đã đối chiếu công'] || '',
       createdAt: x['Ngày tạo'],
       updatedAt: x['Ngày cập nhật']
     };
@@ -773,25 +773,31 @@ function createSentRepair(d) {
   d = d || {};
   const imei = onlyDigits_(d.imei || '').slice(-6);
   if (!/^\d{6}$/.test(imei)) return { success: false, message: 'IMEI phải nhập đúng 6 số.' };
-  sh(SHEETS.MAY_GUI_XU_LY).appendRow([
-    d.sentDate || d.date || nowText().split(' ')[0],
-    imei,
-    String(d.name || d.productName || '').trim(),
-    String(d.gb || '').trim(),
-    String(d.color || '').trim(),
-    String(d.process1 || '').trim(),
-    String(d.process2 || '').trim(),
-    String(d.technician || '').trim(),
-    String(d.sender || '').trim(),
-    String(d.notReceivedReason || '').trim(),
-    String(d.receivedBackDate || '').trim(),
-    String(d.status || 'Đang gửi xử lý').trim(),
-    nowText(),
-    nowText()
-  ]);
+
+  const sheet = sh(SHEETS.MAY_GUI_XU_LY);
+  const h = headers(SHEETS.MAY_GUI_XU_LY);
+  const model = String(d.model || d.name || d.productName || '').trim();
+  const rowObj = {
+    'Ngày gửi': d.sentDate || d.date || nowText().split(' ')[0],
+    'IMEI': imei,
+    'Dòng máy': model,
+    'Tên máy': model, // tương thích sheet cũ nếu đã tạo theo header cũ
+    'GB': '',
+    'Màu': '',
+    'Xử lý 1': String(d.process1 || '').trim(),
+    'Xử lý 2': String(d.process2 || '').trim(),
+    'Kỹ thuật': String(d.technician || '').trim(),
+    'Người gửi': String(d.sender || '').trim(),
+    'Tại sao chưa nhận': String(d.notReceivedReason || '').trim(),
+    'Ngày nhận lại': '',
+    'Trạng thái': String(d.status || 'Đang gửi xử lý').trim(),
+    'Đã đối chiếu công': 'Không',
+    'Ngày tạo': nowText(),
+    'Ngày cập nhật': nowText()
+  };
+  sheet.appendRow(h.map(function (key) { return rowObj[String(key).trim()] !== undefined ? rowObj[String(key).trim()] : ''; }));
   return { success: true, message: 'Đã lưu máy gửi xử lý.' };
 }
-
 
 function updateSentRepair(rowNumber, d) {
   setupSheets();
@@ -807,7 +813,7 @@ function updateSentRepair(rowNumber, d) {
   if (map['Tại sao chưa nhận'] !== undefined) {
     sheet.getRange(row, map['Tại sao chưa nhận'] + 1).setValue(String(d.notReceivedReason || '').trim());
   }
-  if (map['Ngày nhận lại'] !== undefined) {
+  if (map['Ngày nhận lại'] !== undefined && d.receivedBackDate !== undefined) {
     sheet.getRange(row, map['Ngày nhận lại'] + 1).setValue(String(d.receivedBackDate || '').trim());
   }
   if (map['Trạng thái'] !== undefined) {

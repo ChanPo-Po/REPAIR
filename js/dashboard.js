@@ -87,6 +87,7 @@ function hydrateFilters() {
   fillSelect('techWorkTech', (MASTERS.kyThuat || []).map(x => x.name));
   fillSelect('techWorkModel', MASTERS.dongMay || []);
   fillSelect('techWorkService', (MASTERS.dichVu || []).map(x => x.name));
+  fillSelect('sentModel', MASTERS.dongMay || []);
   fillSelect('sentTech', (MASTERS.kyThuat || []).map(x => x.name));
   fillSelect('sentRepairTechFilter', (MASTERS.kyThuat || []).map(x => x.name));
   fillSelect('sentProcess1', (MASTERS.dichVu || []).map(x => x.name));
@@ -1133,6 +1134,8 @@ function submitSentRepair(e) {
   e.preventDefault();
   const form = e.target;
   const data = Object.fromEntries(new FormData(form).entries());
+  data.name = data.model || data.name || '';
+  data.productName = data.model || data.productName || '';
   apiCall({ action: 'createSentRepair', data: data }).then(function (res) {
     if (!res.success) return showToast(res.message || 'Không lưu được máy gửi xử lý', 'error');
     showToast('Đã lưu máy gửi xử lý');
@@ -1183,7 +1186,7 @@ function getSentRepairFilteredRows_() {
     if (to && d && d > new Date(to + 'T23:59:59')) return false;
 
     if (q) {
-      const text = normalizeTextNoAccent([r.imei, r.name, r.gb, r.color, r.process1, r.process2, r.technician, r.sender, r.status].join(' '));
+      const text = normalizeTextNoAccent([r.imei, r.model || r.name, r.process1, r.process2, r.technician, r.sender, r.status].join(' '));
       if (text.indexOf(q) === -1) return false;
     }
     return true;
@@ -1195,17 +1198,25 @@ function getSentRepairFilteredRows_() {
   });
 }
 
+function sentRepairHasTechWork_(r) {
+  const key = salaryKey_(r.imei, r.technician);
+  return (TECH_WORK || []).some(function (w) {
+    return salaryKey_(w.imei, w.technician) === key;
+  });
+}
+
 function renderSentRepairList() {
   const all = SENT_REPAIRS || [];
   const rows = getSentRepairFilteredRows_();
   const kpis = document.getElementById('sentRepairKpis');
   if (kpis) {
     const countStatus = function (name) { return all.filter(function (x) { return String(x.status || '') === name; }).length; };
+    const matchedCount = all.filter(sentRepairHasTechWork_).length;
     kpis.innerHTML = [
       { label: 'Đang gửi xử lý', value: countStatus('Đang gửi xử lý') },
       { label: 'Chưa nhận', value: countStatus('Chưa nhận') },
       { label: 'Đã nhận', value: countStatus('Đã nhận') },
-      { label: 'Hủy', value: countStatus('Hủy') }
+      { label: 'Đã kê công', value: matchedCount }
     ].map(function (x) { return '<div class="kpi-card mini"><span>' + esc(x.label) + '</span><b>' + esc(x.value) + '</b></div>'; }).join('');
   }
 
@@ -1213,27 +1224,26 @@ function renderSentRepairList() {
   if (!el) return;
   const statusOptions = ['Đang gửi xử lý', 'Chưa nhận', 'Đã nhận', 'Hủy'];
   el.innerHTML = '<table><thead><tr>' +
-    '<th>Ngày gửi</th><th>IMEI</th><th>Tên máy</th><th>GB</th><th>Màu</th><th>Xử lý 1</th><th>Xử lý 2</th><th>Kỹ thuật</th><th>Người gửi</th><th>Tại sao chưa nhận</th><th>Ngày nhận lại</th><th>Trạng thái</th><th>Cập nhật</th>' +
+    '<th>Ngày gửi</th><th>IMEI</th><th>Dòng máy</th><th>Xử lý 1</th><th>Xử lý 2</th><th>Kỹ thuật</th><th>Người gửi</th><th>Tại sao chưa nhận</th><th>Trạng thái</th><th>Đối chiếu công</th><th>Cập nhật</th>' +
     '</tr></thead><tbody>' +
     (rows.length ? rows.map(function (r) {
       const rowNo = r.rowNumber || r.rowNo || '';
       const opts = statusOptions.map(function (x) { return '<option value="' + esc(x) + '" ' + (String(r.status || '') === x ? 'selected' : '') + '>' + esc(x) + '</option>'; }).join('');
+      const matched = sentRepairHasTechWork_(r);
       return '<tr class="' + (isSentRepairOpen_(r.status) ? 'warn-row' : '') + '">' +
         '<td>' + esc(dateOnly(r.sentDate) || r.sentDate || '') + '</td>' +
         '<td><b>' + esc(r.imei || '') + '</b></td>' +
-        '<td>' + esc(r.name || '') + '</td>' +
-        '<td>' + esc(r.gb || '') + '</td>' +
-        '<td>' + esc(r.color || '') + '</td>' +
+        '<td><b>' + esc(r.model || r.name || '') + '</b></td>' +
         '<td>' + esc(r.process1 || '') + '</td>' +
         '<td>' + esc(r.process2 || '') + '</td>' +
         '<td>' + esc(r.technician || '') + '</td>' +
         '<td>' + esc(r.sender || '') + '</td>' +
         '<td><input id="srReason_' + rowNo + '" value="' + esc(r.notReceivedReason || '') + '" placeholder="Lý do" /></td>' +
-        '<td><input id="srReceived_' + rowNo + '" type="date" value="' + esc(inputDateValue_(r.receivedBackDate)) + '" /></td>' +
         '<td><select id="srStatus_' + rowNo + '" class="status-pill ' + sentRepairStatusClass_(r.status) + '">' + opts + '</select></td>' +
+        '<td>' + (matched ? '<span class="status-pill done">Đã kê công</span>' : '<span class="status-pill wait">Chưa kê công</span>') + '</td>' +
         '<td><button class="ghost-btn" onclick="updateSentRepairRow(' + rowNo + ')">Lưu</button></td>' +
       '</tr>';
-    }).join('') : '<tr><td colspan="13">Không có máy gửi xử lý cần hiển thị.</td></tr>') +
+    }).join('') : '<tr><td colspan="11">Không có máy gửi xử lý cần hiển thị.</td></tr>') +
     '</tbody></table>';
 }
 
@@ -1246,9 +1256,8 @@ function inputDateValue_(value) {
 
 function updateSentRepairRow(rowNumber) {
   const status = document.getElementById('srStatus_' + rowNumber)?.value || '';
-  const receivedBackDate = document.getElementById('srReceived_' + rowNumber)?.value || '';
   const notReceivedReason = document.getElementById('srReason_' + rowNumber)?.value || '';
-  apiCall({ action: 'updateSentRepair', rowNumber: rowNumber, data: { status: status, receivedBackDate: receivedBackDate, notReceivedReason: notReceivedReason } })
+  apiCall({ action: 'updateSentRepair', rowNumber: rowNumber, data: { status: status, notReceivedReason: notReceivedReason } })
     .then(function (res) {
       if (!res.success) return showToast(res.message || 'Không cập nhật được máy gửi xử lý', 'error');
       showToast('Đã cập nhật máy gửi xử lý');
@@ -1271,12 +1280,16 @@ function renderSalaryAudit() {
   const audits = buildSalaryAuditRows();
   const total = rows.reduce(function (s, x) { return s + parseMoneyValue(x.commission || 0); }, 0);
   const matched = audits.filter(x => x.type === 'input' && (x.status.indexOf('✅') === 0)).length;
+  const matchedSystem = audits.filter(x => x.type === 'input' && x.source === 'Khách lẻ hệ thống').length;
+  const matchedSent = audits.filter(x => x.type === 'input' && x.source === 'Máy gửi xử lý').length;
   const pending = audits.filter(x => x.status.indexOf('⚠️') === 0 || x.status.indexOf('❌') === 0).length;
   const kpi = document.getElementById('salaryKpis');
   if (kpi) {
     kpi.innerHTML = [
       { label: 'Tổng công thợ nhập', value: rows.length },
       { label: 'Hoa hồng tự nhập', value: fmtMoney(total) },
+      { label: 'Khớp khách lẻ', value: matchedSystem },
+      { label: 'Khớp máy gửi xử lý', value: matchedSent },
       { label: 'Đã khớp nguồn', value: matched },
       { label: 'Cần kiểm tra', value: pending }
     ].map(x => '<div class="kpi-card mini"><span>' + esc(x.label) + '</span><b>' + esc(x.value) + '</b></div>').join('');
@@ -1334,7 +1347,7 @@ function buildSalaryAuditRows() {
     if (techFilter && String(r.technician || '') !== techFilter) return false;
     if (!matchMonth_(r.sentDate || r.createdAt, monthVal)) return false;
     return true;
-  }).map(function (r) { return { imei: r.imei, technician: r.technician, model: r.name, service: [r.process1, r.process2].filter(Boolean).join(', '), source: 'Máy gửi xử lý' }; });
+  }).map(function (r) { return { imei: r.imei, technician: r.technician, model: r.model || r.name, service: [r.process1, r.process2].filter(Boolean).join(', '), source: 'Máy gửi xử lý' }; });
 
   const allSources = systemSources.concat(sentSources);
   const sourceKeys = {};
