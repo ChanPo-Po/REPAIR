@@ -949,56 +949,50 @@ function getCommissionRows() {
     });
   });
 
-  // 2) Hoa hồng từ máy nhà / máy gửi xử lý.
-  // Nguồn đúng: THO_NHAP_CONG đã được thợ kê + IMEI có trong MAY_GUI_XU_LY.
-  // Dùng chung logic đối chiếu với tab Đối chiếu công để tránh tình trạng bên kia khớp nhưng hoa hồng không cộng.
-  const sentByKey = {};
-  const sentByImei = {};
-  (SENT_REPAIRS || []).forEach(function (s) {
-    const imeiKey = imei6_(s.imei);
-    const sentTech = String(s.technician || s.tech || s['Kỹ thuật'] || s['Kỹ Thuật'] || '').trim();
-    if (!imeiKey) return;
-    if (sentTech) sentByKey[salaryKey_(s.imei, sentTech)] = s;
-    if (!sentByImei[imeiKey]) sentByImei[imeiKey] = s;
-  });
-
+  // 2) Hoa hồng từ máy nhà / máy gửi xử lý: lấy TRỰC TIẾP từ MAY_GUI_XU_LY.
+  // THO_NHAP_CONG chỉ dùng cho tab Đối chiếu công kỹ thuật để kiểm tra thợ nhập thiếu/dư,
+  // tuyệt đối không dùng THO_NHAP_CONG làm nguồn chuẩn tính hoa hồng.
   const pushedSent = {};
-  (TECH_WORK || []).forEach(function (w) {
-    const techName = String(w.technician || w.tech || '').trim();
+  (SENT_REPAIRS || []).forEach(function (sent) {
+    const techName = String(sent.technician || sent.tech || sent['Kỹ thuật'] || sent['Kỹ Thuật'] || '').trim();
     if (!techName) return;
     if (techFilter && techName !== techFilter) return;
-    if (!matchMonth_(w.date || w.createdAt, monthVal)) return;
 
-    const imeiKey = imei6_(w.imei);
+    const rowDate = sent.receivedBackDate || sent.sentDate || sent.updatedAt || sent.createdAt || '';
+    if (!matchMonth_(rowDate, monthVal)) return;
+
+    const imeiKey = imei6_(sent.imei);
     if (!imeiKey) return;
 
-    // Ưu tiên IMEI + KTV, fallback IMEI để vẫn khớp khi máy gửi xử lý chưa nhập KTV hoặc nhập lệch tên.
-    const sent = sentByKey[salaryKey_(w.imei, techName)] || sentByImei[imeiKey];
-    if (!sent) return;
+    const model = canonicalModelName(sent.model || sent.name || sent.productName || 'Khác');
+    const services = uniqueTextList(
+      splitItems([sent.process1, sent.process2].filter(Boolean).join(', '))
+    );
+    if (!services.length) return;
 
-    const serviceName = canonicalServiceName(w.service || [sent.process1, sent.process2].filter(Boolean).join(', '));
-    if (!serviceName) return;
-    const group = commissionGroupFromService(serviceName) || serviceName;
-    const model = canonicalModelName(w.model || sent.model || sent.name || 'Khác');
-    const lookupAmount = lookupCommissionAmount(rules, techName, model, group);
-    const enteredAmount = parseMoneyValue(w.commission || 0);
-    const amount = enteredAmount || lookupAmount;
-    const pushKey = imeiKey + '|' + normalizeKey(techName) + '|' + normalizeKey(serviceName);
-    if (pushedSent[pushKey]) return;
-    pushedSent[pushKey] = true;
+    services.forEach(function (svc) {
+      const serviceName = canonicalServiceName(svc);
+      if (!serviceName) return;
 
-    out.push({
-      repairId: 'MGXL-' + imeiKey,
-      imei: imei6_(w.imei || sent.imei || ''),
-      date: w.date || sent.sentDate || w.createdAt || sent.createdAt || '',
-      tech: techName,
-      model: model,
-      service: serviceName,
-      group: group,
-      amount: amount,
-      hasRule: amount > 0 || hasCommissionRule(rules, techName, model, group),
-      customer: '',
-      source: 'Máy gửi xử lý'
+      const group = commissionGroupFromService(serviceName) || serviceName;
+      const amount = lookupCommissionAmount(rules, techName, model, group);
+      const pushKey = imeiKey + '|' + normalizeKey(techName) + '|' + normalizeKey(serviceName);
+      if (pushedSent[pushKey]) return;
+      pushedSent[pushKey] = true;
+
+      out.push({
+        repairId: 'MGXL-' + imeiKey,
+        imei: imeiKey,
+        date: rowDate,
+        tech: techName,
+        model: model,
+        service: serviceName,
+        group: group,
+        amount: amount,
+        hasRule: amount > 0 || hasCommissionRule(rules, techName, model, group),
+        customer: '',
+        source: 'Máy gửi xử lý'
+      });
     });
   });
 
