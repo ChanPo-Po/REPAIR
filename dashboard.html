@@ -13,7 +13,7 @@
         <div class="brand-mark">P</div>
         <div>
           <h1>POPOPHONE</h1>
-          <p>Repair V10 Pro</p>
+          <p>POPO OS V11</p>
         </div>
       </div>
 
@@ -30,6 +30,12 @@
         <button data-tab="masters">⚙️ Danh mục hệ thống</button>
       </nav>
 
+      <div class="sidebar-insight">
+        <span>Repair Command</span>
+        <b id="sidebarHealth">--/100</b>
+        <small>Điểm vận hành hôm nay</small>
+      </div>
+
       <div class="user-card">
         <b id="userName">Người dùng</b>
         <small id="userRole">Vai trò</small>
@@ -41,15 +47,43 @@
       <header class="topbar">
         <div>
           <h1 id="pageTitle">Tổng quan</h1>
+          <p id="pageSubtitle" class="page-subtitle">POPOPHONE Repair Operation Center</p>
         </div>
         <div class="top-actions">
           <select id="globalBranch"><option value="">Tất cả CN</option><option>113</option><option>148</option></select>
+          <button class="ghost-btn theme-toggle" onclick="toggleTheme()" title="Đổi giao diện">🌙</button>
           <button class="ghost-btn" onclick="window.open('index.html', '_blank')">Tiếp nhận</button>
           <button class="primary-btn" onclick="refreshAll()">Làm mới</button>
         </div>
       </header>
 
       <section id="overview" class="tab">
+        <div class="executive-hero">
+          <div class="hero-copy">
+            <span class="eyebrow">POPO Command Center</span>
+            <h2 id="heroGreeting">Tổng quan vận hành</h2>
+            <p id="heroSummary">Theo dõi nhanh máy nhận, máy tồn, quá hẹn và doanh thu trong ngày.</p>
+          </div>
+          <div class="hero-score" id="heroScore">--</div>
+        </div>
+
+        <div class="exec-grid">
+          <div class="exec-card primary"><span>Máy nhận hôm nay</span><b id="execTodayReceived">0</b><small id="execTodayNote">Đơn mới cần theo dõi</small></div>
+          <div class="exec-card"><span>Đang sửa</span><b id="execInProgress">0</b><small>Máy còn trong luồng xử lý</small></div>
+          <div class="exec-card danger"><span>Quá hẹn</span><b id="execOverdue">0</b><small>Cần ưu tiên xử lý ngay</small></div>
+          <div class="exec-card money"><span id="execMoneyLabel">Doanh thu hôm nay</span><b id="execMoneyValue">0</b><small id="execMoneyNote">Theo quyền đang đăng nhập</small></div>
+        </div>
+
+        <div class="dashboard-grid-2 command-grid">
+          <div class="panel command-panel">
+            <div class="panel-head"><div><h3>⚡ Việc cần xử lý ngay</h3><p>Các điểm nghẽn ảnh hưởng vận hành hôm nay.</p></div></div>
+            <div id="execAlerts" class="command-list"></div>
+          </div>
+          <div class="panel command-panel">
+            <div class="panel-head"><div><h3>🧠 Gợi ý điều hành</h3><p>Trả lời nhanh câu hỏi của sếp.</p></div></div>
+            <div id="execInsights" class="insight-grid"></div>
+          </div>
+        </div>
         <div class="dashboard-grid-2 top-overview-grid">
           <div class="panel">
             <div class="panel-head">

@@ -175,6 +175,7 @@ function setupReceive() {
     }
 
     data.estimate = Number(data.estimate || 0);
+    data.clientRequestId = 'WEB-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
 
     apiCall({ action: 'createRepair', data: data }).then(function (res) {
       if (!res.success) {
@@ -189,7 +190,7 @@ function setupReceive() {
         date: new Date().toLocaleString('vi-VN')
       });
 
-      alert('Đã lưu phiếu: ' + repairId);
+      alert((res.duplicate ? 'Phiếu đã tồn tại: ' : 'Đã lưu phiếu: ') + repairId);
 
       form.reset();
       loadPublicMasters();

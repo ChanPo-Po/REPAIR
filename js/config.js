@@ -1,32 +1,10 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbyHLnjGAnk5FcPLQ58Y3PtyFcWxzKaJj7aJ3l6_hkwvhhaoloELmBI_vJOGICLqLuVJVA/exec';
 const DEMO_MODE = false;
 
-const USERS = {
-  ms001: {
-    password: 'pocn113',
-    role: 'tech',
-    name: 'Kỹ thuật',
-    home: 'status'
-  },
-  ms002: {
-    password: 'pocn113',
-    role: 'store',
-    name: 'QL cửa hàng',
-    home: 'overview'
-  },
-  ms003: {
-    password: 'pocn113',
-    role: 'tech_manager',
-    name: 'QL kỹ thuật',
-    home: 'overview'
-  },
-  ms004: {
-    password: 'pocn113',
-    role: 'admin',
-    name: 'Admin',
-    home: 'overview'
-  }
-};
+// Không để mật khẩu thật ở frontend. Đăng nhập được xác thực ở Apps Script (action: login).
+// Chỉ bật LOCAL_AUTH_FALLBACK khi test offline/demo.
+const LOCAL_AUTH_FALLBACK = false;
+const USERS = {};
 
 const ROLE_LABELS = {
   tech: 'Kỹ thuật',
@@ -38,9 +16,25 @@ const ROLE_LABELS = {
 const MONEY_HIDDEN_ROLES = ['store', 'tech'];
 
 function apiCall(payload, options) {
+  payload = payload || {};
   if (DEMO_MODE || !API_URL || API_URL.includes('PASTE_')) {
     return mockApi(payload);
   }
+
+  // Gắn session đăng nhập cho các API quản trị. Public form/tra cứu vẫn chạy không cần token.
+  try {
+    const user = typeof currentUser === 'function' ? currentUser() : JSON.parse(localStorage.getItem('repairUser') || 'null');
+    if (user && user.token) {
+      payload.authToken = user.token;
+      payload.userRole = user.role || payload.userRole || '';
+      payload.actor = user.name || user.username || payload.actor || '';
+      if (payload.data && typeof payload.data === 'object') {
+        payload.data.authToken = user.token;
+        payload.data.userRole = user.role || payload.data.userRole || '';
+        payload.data.actor = user.name || user.username || payload.data.actor || '';
+      }
+    }
+  } catch (e) {}
 
   options = options || {};
   const timeoutMs = options.timeoutMs || 25000;

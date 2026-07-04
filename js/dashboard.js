@@ -9,6 +9,7 @@ let SENT_REPAIRS = [];
 let ACTIVE_TAB = 'overview';
 
 function initDashboard() {
+  applySavedTheme();
   USER = requireLogin();
   document.getElementById('userName').textContent = USER.name;
   document.getElementById('userRole').textContent = ROLE_LABELS[USER.role] || USER.role;
@@ -39,6 +40,8 @@ function openTab(tab) {
   document.getElementById(tab).classList.add('active');
   document.querySelectorAll('#navMenu button').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === tab); });
   document.getElementById('pageTitle').textContent = document.querySelector('#navMenu button[data-tab="' + tab + '"]')?.textContent.trim() || 'POPOPHONE Repair';
+  const sub = document.getElementById('pageSubtitle');
+  if (sub) sub.textContent = getTabSubtitle(tab);
 
   if (tab === 'overview') renderOverview();
   if (tab === 'repairs') renderRepairTable();
@@ -112,6 +115,7 @@ function renderOverview() {
   const data = branchFiltered();
   const d = buildLocalDashboard(data);
   const isMoneyHidden = MONEY_HIDDEN_ROLES.includes(USER.role);
+  updateExecutiveDashboard(d, isMoneyHidden);
 
   const opsCards = [
     ['Điểm vận hành', d.healthScore + '/100', d.healthScore >= 85 ? 'success' : (d.healthScore >= 70 ? 'warn' : 'danger')],
@@ -450,7 +454,7 @@ function renderStatusList() {
 
   if (USER.role === 'tech') rows = rows.filter(x => !String(x.status || '').startsWith('8.'));
   rows.sort(statusPrioritySort);
-  document.getElementById('statusList').innerHTML = statusListHtml(rows) || '<p>Không có máy phù hợp.</p>';
+  document.getElementById('statusList').innerHTML = queueHtml(rows) || statusListHtml(rows) || '<p>Không có máy phù hợp.</p>';
 }
 
 function renderCostTable() {
@@ -1570,6 +1574,96 @@ function updateMaterialPreview() {
 }
 
 function clearRepairFilters() { ['repairQ','repairBranch','repairStatus','repairTech','repairFrom','repairTo'].forEach(id => document.getElementById(id).value = ''); renderRepairTable(); }
+
+
+function getTabSubtitle(tab) {
+  const map = {
+    overview: 'Executive dashboard - nhìn 10 giây nắm toàn bộ vận hành',
+    repairs: 'CRM sửa chữa - lọc, xem timeline, kiểm tra trạng thái từng máy',
+    status: 'Repair board - ưu tiên máy quá hẹn, chờ linh kiện và đang sửa',
+    cost: 'Kiểm soát chi phí, thực thu và lợi nhuận theo quyền',
+    materials: 'Theo dõi vật tư sử dụng và nhà cung cấp',
+    commission: 'Tổng hợp hoa hồng kỹ thuật',
+    salaryAudit: 'Đối chiếu công thợ nhập với dữ liệu hệ thống',
+    sentRepairs: 'Theo dõi máy gửi xử lý ngoài luồng',
+    weeklyReport: 'Báo cáo tuần/tháng để in hoặc trình sếp',
+    masters: 'Danh mục nền của hệ thống'
+  };
+  return map[tab] || 'POPOPHONE Repair Operation Center';
+}
+
+function applySavedTheme() {
+  const theme = localStorage.getItem('popo_os_theme') || 'light';
+  document.body.classList.toggle('dark-mode', theme === 'dark');
+  setTimeout(function () {
+    const btn = document.querySelector('.theme-toggle');
+    if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  }, 0);
+}
+
+function toggleTheme() {
+  const next = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+  localStorage.setItem('popo_os_theme', next);
+  applySavedTheme();
+}
+
+function updateExecutiveDashboard(d, isMoneyHidden) {
+  const name = USER?.name || USER?.username || 'POPO';
+  setText('heroGreeting', 'Xin chào ' + name + ' 👋');
+  setText('heroSummary', executiveSummaryText(d, isMoneyHidden));
+  setText('heroScore', d.healthScore + '/100');
+  setText('sidebarHealth', d.healthScore + '/100');
+  setText('execTodayReceived', d.todayReceived || 0);
+  setText('execInProgress', d.inProgress || 0);
+  setText('execOverdue', d.overdue || 0);
+  if (isMoneyHidden) {
+    setText('execMoneyLabel', 'Đơn tháng');
+    setText('execMoneyValue', d.monthOrders || 0);
+    setText('execMoneyNote', 'Ẩn doanh thu theo phân quyền');
+  } else {
+    setText('execMoneyLabel', 'Doanh thu hôm nay');
+    setText('execMoneyValue', fmtMoney(d.todayRevenue || 0));
+    setText('execMoneyNote', USER.role === 'admin' ? 'Lợi nhuận tháng: ' + fmtMoney(d.monthProfit || 0) : 'Doanh thu theo dữ liệu thực thu');
+  }
+  const alerts = [
+    { title: 'Máy quá hẹn', note: 'Cần gọi KTV / báo khách', count: d.overdue || 0, level: 'danger' },
+    { title: 'Chờ linh kiện', note: 'Kiểm tra vật tư/NCC', count: d.waitingPart || 0, level: 'warn' },
+    { title: 'Tồn quá 3 ngày', note: 'Rà lại nguyên nhân tồn', count: d.stuck || 0, level: (d.stuck ? 'warn' : '') },
+    { title: 'Bảo hành lại', note: 'Theo dõi chất lượng sửa', count: d.warrantyBack || 0, level: (d.warrantyBack ? 'danger' : '') }
+  ];
+  const alertEl = document.getElementById('execAlerts');
+  if (alertEl) alertEl.innerHTML = alerts.map(function (a) {
+    return '<div class="command-item ' + a.level + '"><div><b>' + esc(a.title) + '</b><span>' + esc(a.note) + '</span></div><div class="command-count">' + esc(a.count) + '</div></div>';
+  }).join('');
+  const topService = (d.topServices || [])[0] || { name: 'Chưa có dữ liệu', count: 0 };
+  const topModel = (d.topModels || [])[0] || { name: 'Chưa có dữ liệu', count: 0 };
+  const topTech = (d.techKpi || []).slice().sort(function(a,b){return (b.done||0)-(a.done||0);})[0] || { name: 'Chưa có KTV', done: 0, overdue: 0 };
+  const topType = (d.serviceTypes || [])[0] || { name: 'Chưa có dữ liệu', count: 0 };
+  const insights = [
+    { label: 'Dịch vụ chạy nhất', value: topService.name, note: topService.count + ' phiếu' },
+    { label: 'Dòng máy nhiều nhất', value: topModel.name, note: topModel.count + ' phiếu' },
+    { label: 'KTV nổi bật', value: topTech.name, note: (topTech.done || 0) + ' hoàn thành · QH ' + (topTech.overdue || 0) },
+    { label: 'Loại dịch vụ chính', value: topType.name, note: topType.count + ' phiếu' }
+  ];
+  const insightEl = document.getElementById('execInsights');
+  if (insightEl) insightEl.innerHTML = insights.map(function (x) {
+    return '<div class="insight-card"><span>' + esc(x.label) + '</span><b>' + esc(x.value) + '</b><small>' + esc(x.note) + '</small></div>';
+  }).join('');
+}
+
+function executiveSummaryText(d, isMoneyHidden) {
+  const issues = [];
+  if (d.overdue) issues.push(d.overdue + ' máy quá hẹn');
+  if (d.waitingPart) issues.push(d.waitingPart + ' máy chờ linh kiện');
+  if (d.stuck) issues.push(d.stuck + ' máy tồn quá 3 ngày');
+  if (!issues.length) return 'Vận hành đang ổn. Hôm nay nhận ' + (d.todayReceived || 0) + ' máy, đang sửa ' + (d.inProgress || 0) + ' máy.';
+  return 'Cần xử lý: ' + issues.join(', ') + '. ' + (isMoneyHidden ? 'Doanh thu đang ẩn theo phân quyền.' : 'Doanh thu hôm nay ' + fmtMoney(d.todayRevenue || 0) + '.');
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
 
 function buildLocalDashboard(data) {
   const todayDate = new Date();

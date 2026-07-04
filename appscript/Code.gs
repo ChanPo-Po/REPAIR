@@ -36,6 +36,17 @@ const HEADERS_DATA = [
 const MONEY_HEADERS = ['Giá dự kiến', 'Giá vật tư', 'Công thợ', 'Tổng chi phí', 'Thực thu', 'Lợi nhuận'];
 const TEXT_HEADERS = ['IMEI', 'Số điện thoại'];
 
+// Tài khoản quản trị đặt ở Apps Script, không public trên Netlify.
+// Đổi mật khẩu trước khi deploy thật.
+const USER_ACCOUNTS = {
+  ms001: { password: 'pocn113', role: 'tech', name: 'Kỹ thuật', home: 'status' },
+  ms002: { password: 'pocn113', role: 'store', name: 'QL cửa hàng', home: 'overview' },
+  ms003: { password: 'pocn113', role: 'tech_manager', name: 'QL kỹ thuật', home: 'overview' },
+  ms004: { password: 'pocn113', role: 'admin', name: 'Admin', home: 'overview' }
+};
+const SESSION_TTL_SECONDS = 21600; // 6 giờ
+const PUBLIC_ACTIONS = ['login', 'getMasters', 'createRepair', 'search', 'getDetail'];
+
 
 const DEFAULTS = {
   DM_TRANG_THAI: ['Trạng thái', '1. Đã tiếp nhận', '2. Đang kiểm tra', '3. Chờ báo giá', '4. Chờ khách duyệt', '5. Đang sửa', '6. Chờ linh kiện', '7. Đã sửa xong', '8. Đã trả khách', '9. Back lại khách', '10. Bảo hành lại', '11. Hủy sửa'],
@@ -48,7 +59,7 @@ const DEFAULTS = {
   DM_NHAN_VIEN: [['Tên nhân viên', 'Chi nhánh', 'Bộ phận', 'Trạng thái'], ['Chan', '113', 'SALE', 'Đang làm'], ['Hùng', '113', 'SALE', 'Đang làm'], ['Trường', '113', 'SALE', 'Đang làm']],
   DM_HOA_HONG_THO: [['Kỹ thuật', 'MODEL', 'THAY PIN CÓ SÀN CỔ', 'THAY PIN KHÔNG SÀN CỔ', 'PHẢN QUANG', 'FIX ẢO', 'ÉP KÍNH', 'ÉP CẢM', 'THAY VỎ', 'LƯNG MẮT TO'], ['Thanh', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Thanh', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Thanh', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Thanh', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Thanh', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Thanh', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Thanh', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Thanh', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Thanh', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Thanh', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Thanh', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Thanh', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Thanh', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Thanh', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Thanh', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Thanh', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Thanh', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Thanh', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Thanh', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Thanh', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Thanh', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Thanh', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Thanh', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Thanh', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Trường', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Trường', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Trường', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Trường', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Trường', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Trường', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Trường', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Trường', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Trường', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Trường', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Trường', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Trường', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Trường', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Trường', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Trường', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Trường', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Trường', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Trường', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Trường', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Trường', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Trường', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Trường', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Trường', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Trường', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Phong', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Phong', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Phong', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Phong', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Phong', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Phong', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Phong', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Phong', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Phong', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Phong', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Phong', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Phong', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Phong', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Phong', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Phong', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Phong', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Phong', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Phong', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Phong', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Phong', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Phong', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Phong', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Phong', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Phong', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Thành', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Thành', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Thành', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Thành', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Thành', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Thành', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Thành', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Thành', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Thành', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Thành', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Thành', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Thành', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Thành', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Thành', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Thành', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Thành', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Thành', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Thành', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Thành', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Thành', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Thành', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Thành', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Thành', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Thành', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Hà', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Hà', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Hà', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Hà', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Hà', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Hà', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Hà', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Hà', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Hà', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Hà', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Hà', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Hà', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Hà', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Hà', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Hà', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Hà', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Hà', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Hà', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Hà', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Hà', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Hà', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Hà', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Hà', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Hà', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0]],
   THO_NHAP_CONG: [['Ngày', 'Kỹ thuật', 'IMEI', 'Dòng máy', 'Dịch vụ', 'SL', 'Hoa hồng', 'Ghi chú', 'Nguồn nhập', 'Trạng thái duyệt', 'Ngày tạo', 'Người nhập']],
-  MAY_GUI_XU_LY: [['Ngày gửi', 'IMEI', 'Dòng máy', 'Xử lý 1', 'Xử lý 2', 'Kỹ thuật', 'Người gửi', 'Tại sao chưa nhận', 'Trạng thái', 'Đã đối chiếu công', 'Ngày tạo', 'Ngày cập nhật']]
+  MAY_GUI_XU_LY: [['Ngày gửi', 'IMEI', 'Dòng máy', 'Xử lý 1', 'Xử lý 2', 'Kỹ thuật', 'Người gửi', 'Tại sao chưa nhận', 'Ngày nhận lại', 'Trạng thái', 'Đã đối chiếu công', 'Ngày tạo', 'Ngày cập nhật']]
 };
 
 function doGet() {
@@ -59,25 +70,33 @@ function doGet() {
 function doPost(e) {
   let action = '';
   try {
-    setupSheetsLite_();
     const body = JSON.parse(e && e.postData && e.postData.contents || '{}');
-    action = body.action || '';
+    action = String(body.action || '').trim();
+
+    if (action === 'login') return json(login_(body));
+
+    setupSheetsLite_();
+    const session = getSession_(body);
 
     if (action === 'getMasters') return json({ success: true, data: getMasters() });
     if (action === 'createRepair') return json(createRepair(body.data || {}));
-    if (action === 'list') return json({ success: true, data: listRepairs() });
-    if (action === 'search') return json({ success: true, data: searchRepairs(body.q || '') });
-    if (action === 'getDetail') return json(getDetail(body.repairId));
-    if (action === 'updateStatus') return json(updateStatus(body.repairId, body.data || {}));
-    if (action === 'quickStatus') return json(updateStatus(body.repairId, body.data || {}));
-    if (action === 'updateCost') return json(updateCost(body.repairId, body.data || {}));
-    if (action === 'getDashboard') return json({ success: true, data: getDashboard() });
-    if (action === 'createTechWork') return json(createTechWork(body.data || {}));
-    if (action === 'createSentRepair') return json(createSentRepair(body.data || {}));
-    if (action === 'updateSentRepair') return json(updateSentRepair(body.rowNumber, body.data || {}));
-    if (action === 'backfillOldDataToCT') return json(backfillOldDataToCT());
-    if (action === 'unlockRepair') return json(unlockRepair(body.repairId, body.data || {}));
-    if (action === 'fixMoneyDateColumns') return json(fixMoneyDateColumns());
+    if (action === 'search') return json({ success: true, data: sanitizeRepairsForPublic_(searchRepairs(body.q || '')) });
+    if (action === 'getDetail') return json(session ? getDetail(body.repairId) : sanitizeDetailForPublic_(getDetail(body.repairId)));
+
+    const authError = requireAuth_(session);
+    if (authError) return json(authError);
+
+    if (action === 'list') return json({ success: true, data: listRepairsForRole_(session.role) });
+    if (action === 'getDashboard') return json({ success: true, data: getDashboardForRole_(session.role) });
+    if (action === 'updateStatus') return json(updateStatus(body.repairId, withSession_(body.data || {}, session)));
+    if (action === 'quickStatus') return json(updateStatus(body.repairId, withSession_(body.data || {}, session)));
+    if (action === 'updateCost') return json(updateCost(body.repairId, withSession_(body.data || {}, session)));
+    if (action === 'createTechWork') return json(createTechWork(withSession_(body.data || {}, session)));
+    if (action === 'createSentRepair') return json(createSentRepair(withSession_(body.data || {}, session)));
+    if (action === 'updateSentRepair') return json(updateSentRepair(body.rowNumber, withSession_(body.data || {}, session)));
+    if (action === 'backfillOldDataToCT') return json(requireRole_(session, ['admin']) || backfillOldDataToCT());
+    if (action === 'unlockRepair') return json(unlockRepair(body.repairId, withSession_(body.data || {}, session)));
+    if (action === 'fixMoneyDateColumns') return json(requireRole_(session, ['admin']) || fixMoneyDateColumns());
 
     return json({ success: false, message: 'Unknown action: ' + action });
   } catch (err) {
@@ -88,6 +107,86 @@ function doPost(e) {
       detail: String(err && err.stack || err)
     });
   }
+}
+
+
+function login_(body) {
+  const username = String(body.username || '').trim();
+  const password = String(body.password || '').trim();
+  const account = USER_ACCOUNTS[username];
+  if (!account || String(account.password) !== password) {
+    return { success: false, message: 'Sai tài khoản hoặc mật khẩu.' };
+  }
+  const token = Utilities.getUuid() + Utilities.getUuid().replace(/-/g, '');
+  const user = { username: username, role: account.role, name: account.name, home: account.home };
+  CacheService.getScriptCache().put('SESSION_' + token, JSON.stringify(user), SESSION_TTL_SECONDS);
+  return { success: true, token: token, user: user, expiresIn: SESSION_TTL_SECONDS };
+}
+
+function getSession_(body) {
+  const token = String((body && (body.authToken || (body.data && body.data.authToken))) || '').trim();
+  if (!token || token === 'LOCAL_DEMO') return null;
+  const raw = CacheService.getScriptCache().get('SESSION_' + token);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch (e) { return null; }
+}
+
+function requireAuth_(session) {
+  if (!session || !session.role) return { success: false, message: 'Phiên đăng nhập hết hạn hoặc chưa đăng nhập. Vui lòng đăng nhập lại.' };
+  return null;
+}
+
+function requireRole_(session, roles) {
+  const err = requireAuth_(session);
+  if (err) return err;
+  if (roles.indexOf(session.role) === -1) return { success: false, message: 'Bạn không có quyền thực hiện thao tác này.' };
+  return null;
+}
+
+function withSession_(data, session) {
+  const d = data || {};
+  d.userRole = session.role;
+  d.actor = session.name || session.username || d.actor || '';
+  d.sessionUser = session.username || '';
+  return d;
+}
+
+function sanitizeRepairForPublic_(r) {
+  if (!r) return r;
+  const x = Object.assign({}, r);
+  ['materialCost', 'laborCost', 'totalCost', 'actualRevenue', 'profit', 'ncc', 'billCode', 'paymentStatus'].forEach(function (k) { delete x[k]; });
+  return x;
+}
+
+function sanitizeRepairsForPublic_(rows) {
+  return (rows || []).map(sanitizeRepairForPublic_);
+}
+
+function sanitizeDetailForPublic_(detail) {
+  detail = detail || { success: true };
+  return {
+    success: detail.success !== false,
+    data: sanitizeRepairForPublic_(detail.data),
+    logs: [],
+    services: detail.services || [],
+    materials: []
+  };
+}
+
+function listRepairsForRole_(role) {
+  const rows = listRepairs();
+  if (role === 'store' || role === 'tech') return sanitizeRepairsForPublic_(rows);
+  return rows;
+}
+
+function getDashboardForRole_(role) {
+  const data = getDashboard();
+  if (role === 'store' || role === 'tech') {
+    data.rows = sanitizeRepairsForPublic_(data.rows || []);
+    data.ctMaterials = [];
+    data.materialsCt = [];
+  }
+  return data;
 }
 
 function ss() {
@@ -416,7 +515,7 @@ function forceReceiveColumnFormats_(sheet, map) {
 }
 
 function normCompare_(v) {
-  return String(v || '').trim().toLowerCase().replace('t', ' ').replace(/\s+/g, ' ');
+  return normText_(v);
 }
 
 function sameText_(a, b) {
@@ -473,6 +572,16 @@ function createRepair(d) {
   d = normalizeReceiveData_(d);
   const errors = validateReceiveData_(d);
   if (errors.length) return { success: false, message: errors.join(' ') };
+
+  const previousByRequest = getClientRequestRepair_(d.clientRequestId);
+  if (previousByRequest) return { success: true, repairId: previousByRequest, duplicate: true, message: 'Phiếu này đã được lưu trước đó.' };
+
+  const duplicateId = findRecentDuplicateRepair_(d);
+  if (duplicateId) {
+    rememberClientRequest_(d.clientRequestId, duplicateId);
+    return { success: true, repairId: duplicateId, duplicate: true, message: 'Đã phát hiện phiếu trùng trong hôm nay.' };
+  }
+
   const now = new Date();
   const id = generateRepairCode(d.imei, d.branch);
   const week = weekInMonth(now);
@@ -487,6 +596,7 @@ function createRepair(d) {
     return '';
   });
   sh(SHEETS.DATA).appendRow(row);
+  rememberClientRequest_(d.clientRequestId, id);
   addLog(id, d.staff || 'Sale', 'Tiếp nhận', 'Tạo phiếu tiếp nhận');
   return { success: true, repairId: id };
 }
@@ -498,6 +608,8 @@ function findRow(id) {
 }
 
 function updateStatus(id, d) {
+  const roleCheck = requireRole_({ role: String((d && d.userRole) || '') }, ['tech', 'store', 'tech_manager', 'admin']);
+  if (roleCheck) return roleCheck;
   const sheet = sh(SHEETS.DATA);
   const row = findRow(id);
   if (row < 2) return { success: false, message: 'Không tìm thấy phiếu' };
@@ -547,6 +659,8 @@ function updateStatus(id, d) {
 }
 
 function updateCost(id, d) {
+  const roleCheck = requireRole_({ role: String((d && d.userRole) || '') }, ['tech_manager', 'admin']);
+  if (roleCheck) return roleCheck;
   const sheet = sh(SHEETS.DATA);
   const row = findRow(id);
   if (row < 2) return { success: false, message: 'Không tìm thấy phiếu' };
@@ -783,6 +897,8 @@ function readSentRepairs() {
 }
 
 function createTechWork(d) {
+  const roleCheck = requireRole_({ role: String((d && d.userRole) || '') }, ['tech', 'tech_manager', 'admin']);
+  if (roleCheck) return roleCheck;
   setupSheetsLite_();
   d = d || {};
   const tech = String(d.technician || d.tech || '').trim();
@@ -814,6 +930,8 @@ function createTechWork(d) {
 }
 
 function createSentRepair(d) {
+  const roleCheck = requireRole_({ role: String((d && d.userRole) || '') }, ['tech_manager', 'admin']);
+  if (roleCheck) return roleCheck;
   setupSheetsLite_();
   d = d || {};
   const imei = onlyDigits_(d.imei || '').slice(-6);
@@ -845,6 +963,8 @@ function createSentRepair(d) {
 }
 
 function updateSentRepair(rowNumber, d) {
+  const roleCheck = requireRole_({ role: String((d && d.userRole) || '') }, ['tech_manager', 'admin']);
+  if (roleCheck) return roleCheck;
   setupSheetsLite_();
   const sheet = sh(SHEETS.MAY_GUI_XU_LY);
   const row = Number(rowNumber || 0);
