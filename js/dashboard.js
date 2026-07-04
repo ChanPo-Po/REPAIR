@@ -19,6 +19,15 @@ function initDashboard() {
   });
 }
 
+function toggleMobileMenu(force) {
+  const shouldOpen = typeof force === 'boolean' ? force : !document.body.classList.contains('mobile-menu-open');
+  document.body.classList.toggle('mobile-menu-open', shouldOpen);
+}
+
+window.addEventListener('resize', function () {
+  if (window.innerWidth > 760) toggleMobileMenu(false);
+});
+
 function setupNavByRole() {
   const allowed = {
     tech: ['status', 'salaryAudit'],
@@ -30,7 +39,7 @@ function setupNavByRole() {
   document.querySelectorAll('#navMenu button').forEach(function (btn) {
     const tab = btn.dataset.tab;
     if (!allowed.includes(tab)) btn.remove();
-    btn.addEventListener('click', function () { openTab(tab); });
+    btn.addEventListener('click', function () { openTab(tab); toggleMobileMenu(false); });
   });
 }
 
@@ -354,74 +363,199 @@ function reportPeriodText() {
   return text;
 }
 
-function reportMiniTable(title, items, suffix, limit) {
-  const rows = (items || []).slice(0, limit || 10).map(function (x, i) {
-    return '<tr><td>' + (i + 1) + '</td><td><b>' + esc(x.name) + '</b></td><td>' + esc(x.count) + (suffix ? ' ' + suffix : '') + '</td></tr>';
+function reportPercent(value, total) {
+  if (!total) return 0;
+  return Math.round((Number(value || 0) / Number(total || 1)) * 1000) / 10;
+}
+
+function reportCompletionRate(d, total) {
+  const completedTotal = Number(d.completed || 0) + Number(d.returned || 0);
+  return reportPercent(completedTotal, total || 0);
+}
+
+function reportBar(width, tone) {
+  const w = Math.max(4, Math.min(100, Number(width || 0)));
+  return '<span class="exec-bar"><i class="' + (tone || '') + '" style="width:' + w + '%"></i></span>';
+}
+
+function reportKpiCard(icon, label, value, note, tone) {
+  return '<article class="exec-kpi ' + (tone || '') + '">' +
+    '<div class="exec-kpi-icon">' + icon + '</div>' +
+    '<span>' + esc(label) + '</span>' +
+    '<b>' + esc(value) + '</b>' +
+    '<em>' + esc(note || '') + '</em>' +
+  '</article>';
+}
+
+function reportBullet(text, tone) {
+  return '<li class="' + (tone || '') + '"><span></span>' + esc(text) + '</li>';
+}
+
+function topListCards(items, total, unit, limit) {
+  const list = (items || []).slice(0, limit || 5);
+  if (!list.length) return '<div class="exec-empty">Chưa có dữ liệu đủ để phân tích.</div>';
+  const max = Math.max.apply(null, list.map(x => Number(x.count || x.totalQty || 0))) || 1;
+  return list.map(function (x, i) {
+    const count = Number(x.count || x.totalQty || x.repairCount || 0);
+    const pct = total ? reportPercent(count, total) : Math.round(count / max * 100);
+    return '<div class="exec-rank-row">' +
+      '<div class="exec-rank-no">' + (i + 1) + '</div>' +
+      '<div class="exec-rank-main"><b>' + esc(x.name || x.ncc || '') + '</b>' + reportBar(Math.round(count / max * 100), i === 0 ? 'gold' : '') + '</div>' +
+      '<div class="exec-rank-value"><b>' + count + '</b><span>' + esc(unit || 'phiếu') + (total ? ' · ' + pct + '%' : '') + '</span></div>' +
+    '</div>';
   }).join('');
-  return '<div class="report-box"><h4>' + title + '</h4><table><thead><tr><th>#</th><th>Nội dung</th><th>Số lượng</th></tr></thead><tbody>' + (rows || '<tr><td colspan="3">Chưa có dữ liệu</td></tr>') + '</tbody></table></div>';
 }
 
-function reportMaterialTable(items) {
-  const rows = (items || []).slice(0, 12).map(function (x, i) {
-    return '<tr><td>' + (i + 1) + '</td><td><b>' + esc(x.name) + '</b></td><td>' + esc(x.group || '') + '</td><td>' + (x.repairCount || 0) + '</td><td>' + (x.totalQty || 0) + '</td><td>' + (x.suggest || 0) + '</td></tr>';
-  }).join('');
-  return '<div class="report-box full"><h4>4. Nhu cầu vật tư / đề xuất đặt hàng</h4><table><thead><tr><th>#</th><th>Vật tư</th><th>Nhóm</th><th>Số phiếu dùng</th><th>Tổng SL</th><th>Đề xuất nhập</th></tr></thead><tbody>' + (rows || '<tr><td colspan="6">Chưa có dữ liệu</td></tr>') + '</tbody></table></div>';
-}
-
-function reportMatrixTable(matrix) {
-  matrix = matrix || { models: [], services: [], values: {} };
-  // Báo cáo PDF: cột là dòng máy, dòng là dịch vụ; giới hạn để không tràn A4.
-  const models = (matrix.models || []).slice(0, 10);
-  const services = (matrix.services || []).slice(0, 12);
-  let html = '<div class="report-box full matrix-report-box"><h4>5. Ma trận dịch vụ × dòng máy</h4><table class="report-matrix report-matrix-transposed"><thead><tr><th>Dịch vụ</th>' + models.map(m => '<th>' + esc(m) + '</th>').join('') + '</tr></thead><tbody>';
-  html += services.map(function (s) {
-    return '<tr><td><b>' + esc(s) + '</b></td>' + models.map(function (m) {
-      const v = matrix.values[m + '|' + s] || 0;
-      return '<td>' + (v || '') + '</td>';
-    }).join('') + '</tr>';
-  }).join('') || '<tr><td colspan="' + (models.length + 1) + '">Chưa có dữ liệu</td></tr>';
-  html += '</tbody></table><p class="report-table-note">* Ma trận hiển thị tối đa 10 dòng máy và 12 dịch vụ có phát sinh nhiều nhất để báo cáo không bị tràn trang.</p></div>';
-  return html;
-}
-
-function reportBacklogTable(rows) {
-  const list = (rows || []).filter(function (r) {
+function reportBacklogItems(rows, limit) {
+  return (rows || []).filter(function (r) {
     const s = String(r.status || '');
     return r.overdue === 'Có' || s.startsWith('6.') || s.startsWith('10.') || (parseAnyDate(r.date || r.createdAt) && daysBetween(parseAnyDate(r.date || r.createdAt), new Date()) > 3 && !s.startsWith('8.'));
-  }).slice(0, 15);
-  const trs = list.map(function (r) {
-    return '<tr><td>' + esc(r.repairId || '') + '</td><td>' + esc(r.product || '') + '</td><td>' + esc(r.customer || '') + '</td><td>' + esc(r.technician || '') + '</td><td>' + esc(r.status || '') + '</td></tr>';
-  }).join('');
-  return '<div class="report-box full"><h4>6. Máy tồn / cần theo dõi</h4><table><thead><tr><th>Mã</th><th>Dòng máy</th><th>Khách</th><th>KTV</th><th>Trạng thái</th></tr></thead><tbody>' + (trs || '<tr><td colspan="5">Không có máy tồn đáng chú ý</td></tr>') + '</tbody></table></div>';
+  }).slice(0, limit || 6);
+}
+
+function execReportInsights(d, rows, hideMoney) {
+  const completedTotal = Number(d.completed || 0) + Number(d.returned || 0);
+  const topService = (d.topServices || [])[0];
+  const topModel = (d.topModels || [])[0];
+  const topTech = (d.techKpi || []).slice().sort(function(a,b){ return Number(b.done || 0) - Number(a.done || 0); })[0];
+  const topMat = (d.materials || [])[0];
+  const insights = [];
+  insights.push('Tuần này ghi nhận ' + rows.length + ' máy, đã hoàn thành/giao ' + completedTotal + ' máy, tỷ lệ hoàn thành ' + reportCompletionRate(d, rows.length) + '%.');
+  if (!hideMoney) insights.push('Doanh thu ghi nhận ' + fmtMoney(d.revenue || 0) + ', lợi nhuận ' + fmtMoney(d.profit || 0) + '.');
+  if (topService) insights.push('Dịch vụ nổi bật nhất là ' + topService.name + ' với ' + topService.count + ' phiếu.');
+  if (topModel) insights.push('Dòng máy phát sinh nhiều nhất là ' + topModel.name + ' với ' + topModel.count + ' phiếu.');
+  if (topTech) insights.push('Kỹ thuật xử lý nhiều nhất: ' + topTech.name + ' (' + topTech.done + ' máy hoàn thành).');
+  if (topMat) insights.push('Vật tư cần ưu tiên kiểm tra tồn: ' + topMat.name + ' (đã dùng ' + (topMat.totalQty || topMat.repairCount || 0) + ').');
+  if (d.overdue) insights.push('Có ' + d.overdue + ' máy quá hẹn cần xử lý trước khi sang kỳ tiếp theo.');
+  if (d.waitingPart) insights.push('Có ' + d.waitingPart + ' máy đang chờ linh kiện, cần rà tồn kho và đơn đặt hàng.');
+  return insights;
+}
+
+function executiveCoverPage(periodText, reportDate) {
+  return '<section class="exec-page exec-cover">' +
+    '<div class="exec-cover-brand"><div class="exec-logo-mark">P</div><div><b>POPOPHONE</b><span>Repair Operation System</span></div></div>' +
+    '<div class="exec-cover-title"><span>EXECUTIVE REPORT</span><h1>BÁO CÁO<br>ĐIỀU HÀNH</h1><p>' + esc(periodText) + '</p></div>' +
+    '<div class="exec-cover-meta"><div><span>Ngày xuất</span><b>' + esc(reportDate) + '</b></div><div><span>Người lập</span><b>Quản lý kỹ thuật</b></div></div>' +
+    '<div class="exec-cover-footer">POPOPHONE REPAIR · Báo cáo nội bộ</div>' +
+  '</section>';
+}
+
+function executiveBusinessPage(d, rows, hideMoney) {
+  const completedTotal = Number(d.completed || 0) + Number(d.returned || 0);
+  const completion = reportCompletionRate(d, rows.length);
+  const serviceTotal = (d.topServices || []).reduce((sum, x) => sum + Number(x.count || 0), 0) || rows.length;
+  const insights = execReportInsights(d, rows, hideMoney).slice(0, 3);
+  return '<section class="exec-page">' +
+    '<div class="exec-page-head"><div class="exec-number">01</div><div><h2>Tuần này kinh doanh thế nào?</h2><p>Tổng quan hiệu quả sửa chữa trong kỳ báo cáo.</p></div><div class="exec-mini-brand">POPOPHONE</div></div>' +
+    '<div class="exec-kpi-grid">' +
+      reportKpiCard('📱', 'Máy nhận', rows.length, 'Tổng phiếu trong kỳ', '') +
+      reportKpiCard('✅', 'Hoàn thành / giao', completedTotal, completion + '% hoàn tất', 'ok') +
+      reportKpiCard('🛠️', 'Đang xử lý', d.inProgress || 0, 'Cần theo dõi tiến độ', 'warn') +
+      reportKpiCard('⏰', 'Quá hẹn', d.overdue || 0, d.overdue ? 'Cần xử lý ngay' : 'Không có cảnh báo', d.overdue ? 'danger' : 'ok') +
+      (hideMoney ? reportKpiCard('🔒', 'Doanh thu', 'Đã ẩn', 'Theo phân quyền', '') : reportKpiCard('💰', 'Doanh thu', fmtMoney(d.revenue || 0), 'Ghi nhận trong kỳ', 'money')) +
+      (hideMoney ? reportKpiCard('🔒', 'Lợi nhuận', 'Đã ẩn', 'Theo phân quyền', '') : reportKpiCard('📈', 'Lợi nhuận', fmtMoney(d.profit || 0), 'Sau chi phí', 'money')) +
+    '</div>' +
+    '<div class="exec-two-col">' +
+      '<article class="exec-panel"><h3>Cơ cấu dịch vụ chủ lực</h3>' + topListCards(d.topServices, serviceTotal, 'phiếu', 5) + '</article>' +
+      '<article class="exec-panel exec-center"><h3>Tỷ lệ hoàn thành</h3><div class="exec-donut" style="--p:' + completion + '"><b>' + completion + '%</b><span>' + completedTotal + '/' + rows.length + ' máy</span></div><p class="exec-muted">Tỷ lệ tính trên tổng máy đã hoàn thành hoặc đã bàn giao trong kỳ.</p></article>' +
+    '</div>' +
+    '<article class="exec-note"><h3>Nhận định nhanh</h3><ul>' + insights.map(x => reportBullet(x, 'ok')).join('') + '</ul></article>' +
+    '<div class="exec-footer">Báo cáo điều hành · ' + esc(reportPeriodText()) + '<b>01</b></div>' +
+  '</section>';
+}
+
+function executiveTechPage(d, rows) {
+  const list = (d.techKpi || []).slice().sort(function(a,b){ return Number(b.done || 0) - Number(a.done || 0); }).slice(0, 8);
+  const maxDone = Math.max.apply(null, list.map(x => Number(x.done || 0))) || 1;
+  const top = list[0];
+  return '<section class="exec-page">' +
+    '<div class="exec-page-head"><div class="exec-number">02</div><div><h2>Kỹ thuật hoạt động ra sao?</h2><p>Hiệu suất xử lý và tình trạng vận hành của đội kỹ thuật.</p></div><div class="exec-mini-brand">POPOPHONE</div></div>' +
+    '<div class="exec-two-col">' +
+      '<article class="exec-panel"><h3>Hiệu suất kỹ thuật</h3>' + (list.length ? list.map(function(x){
+        const done = Number(x.done || 0); const total = done + Number(x.overdue || 0); const rate = total ? Math.max(0, Math.round((done / total) * 100)) : (done ? 100 : 0);
+        return '<div class="exec-tech-row"><div class="exec-avatar">' + esc(String(x.name || '?').charAt(0).toUpperCase()) + '</div><div><b>' + esc(x.name || '') + '</b>' + reportBar(Math.round(done / maxDone * 100), '') + '</div><div><b>' + done + '</b><span>hoàn thành · QH ' + (x.overdue || 0) + '</span></div></div>';
+      }).join('') : '<div class="exec-empty">Chưa có dữ liệu kỹ thuật.</div>') + '</article>' +
+      '<article class="exec-panel"><h3>Tình trạng máy</h3>' +
+        '<div class="exec-status-item ok"><b>Đã hoàn thành/giao</b><span>' + ((d.completed || 0) + (d.returned || 0)) + ' máy</span></div>' +
+        '<div class="exec-status-item warn"><b>Đang xử lý</b><span>' + (d.inProgress || 0) + ' máy</span></div>' +
+        '<div class="exec-status-item part"><b>Chờ linh kiện</b><span>' + (d.waitingPart || 0) + ' máy</span></div>' +
+        '<div class="exec-status-item danger"><b>Quá hẹn</b><span>' + (d.overdue || 0) + ' máy</span></div>' +
+      '</article>' +
+    '</div>' +
+    '<div class="exec-feature-card">' +
+      '<div class="exec-trophy">🏆</div><div><span>Kỹ thuật nổi bật trong kỳ</span><h3>' + esc(top ? top.name : 'Chưa có dữ liệu') + '</h3><p>' + (top ? ('Hoàn thành ' + top.done + ' máy. Tiếp tục duy trì tốc độ xử lý và kiểm soát máy quá hẹn.') : 'Chưa đủ dữ liệu để đánh giá.') + '</p></div>' +
+    '</div>' +
+    '<article class="exec-note"><h3>Góc nhìn vận hành</h3><ul>' +
+      reportBullet((d.overdue || 0) ? ('Ưu tiên xử lý ' + d.overdue + ' máy quá hẹn trước khi nhận thêm ca phức tạp.') : 'Chưa phát sinh máy quá hẹn đáng chú ý.', (d.overdue || 0) ? 'danger' : 'ok') +
+      reportBullet((d.waitingPart || 0) ? ('Rà lại ' + d.waitingPart + ' máy chờ linh kiện để tránh kéo dài thời gian hẹn khách.') : 'Nhóm chờ linh kiện đang trong mức kiểm soát.', (d.waitingPart || 0) ? 'warn' : 'ok') +
+      reportBullet('Nên duy trì cập nhật trạng thái ngay sau mỗi mốc xử lý để báo cáo phản ánh đúng thực tế.', '') +
+    '</ul></article>' +
+    '<div class="exec-footer">Báo cáo điều hành · ' + esc(reportPeriodText()) + '<b>02</b></div>' +
+  '</section>';
+}
+
+function executiveMaterialPage(d) {
+  const mats = (d.materials || []).slice(0, 6);
+  const maxQty = Math.max.apply(null, mats.map(x => Number(x.totalQty || 0))) || 1;
+  return '<section class="exec-page">' +
+    '<div class="exec-page-head"><div class="exec-number">03</div><div><h2>Vật tư nào cần nhập?</h2><p>Phân tích vật tư tiêu hao và đề xuất nhập hàng.</p></div><div class="exec-mini-brand">POPOPHONE</div></div>' +
+    '<div class="exec-two-col">' +
+      '<article class="exec-panel"><h3>Vật tư tiêu hao nhiều nhất</h3>' + (mats.length ? mats.map(function(x, i){
+        return '<div class="exec-rank-row"><div class="exec-rank-no">' + (i + 1) + '</div><div class="exec-rank-main"><b>' + esc(x.name || '') + '</b><small>' + esc(x.group || 'Chưa phân nhóm') + '</small>' + reportBar(Math.round(Number(x.totalQty || 0) / maxQty * 100), i === 0 ? 'gold' : '') + '</div><div class="exec-rank-value"><b>' + (x.totalQty || 0) + '</b><span>đã dùng</span></div></div>';
+      }).join('') : '<div class="exec-empty">Chưa có dữ liệu vật tư.</div>') + '</article>' +
+      '<article class="exec-panel"><h3>Đề xuất nhập</h3>' + (mats.length ? mats.slice(0,5).map(function(x){
+        const suggest = Number(x.suggest || 0);
+        return '<div class="exec-order-card"><div>📦</div><div><b>' + esc(x.name || '') + '</b><span>Nên nhập thêm: ' + suggest + ' cái</span></div></div>';
+      }).join('') : '<div class="exec-empty">Chưa có vật tư cần đề xuất.</div>') + '</article>' +
+    '</div>' +
+    '<article class="exec-note amber"><h3>Lưu ý trước khi đặt hàng</h3><ul>' +
+      reportBullet('Kiểm tra tồn thực tế tại kho trước khi đặt để tránh tồn lâu và chôn vốn.', 'warn') +
+      reportBullet('Ưu tiên nhóm pin, kính, màn hình nếu xuất hiện nhiều trong danh sách tiêu hao.', '') +
+      reportBullet('Các vật tư phát sinh ít nên nhập theo nhu cầu thực tế, không nhập dàn trải.', '') +
+    '</ul></article>' +
+    '<div class="exec-footer">Báo cáo điều hành · ' + esc(reportPeriodText()) + '<b>03</b></div>' +
+  '</section>';
+}
+
+function executiveDecisionPage(d, rows, hideMoney) {
+  const backlog = reportBacklogItems(rows, 5);
+  const topMat = (d.materials || [])[0];
+  const topSvc = (d.topServices || [])[0];
+  const bullets = [];
+  if (d.overdue) bullets.push({ text: 'Xử lý dứt điểm ' + d.overdue + ' máy quá hẹn, ưu tiên gọi khách và cập nhật cam kết trả máy.', tone: 'danger' });
+  if (d.waitingPart) bullets.push({ text: 'Duyệt nhập hoặc điều chuyển vật tư cho ' + d.waitingPart + ' máy đang chờ linh kiện.', tone: 'warn' });
+  if (topMat) bullets.push({ text: 'Xem xét nhập thêm ' + topMat.name + ' theo đề xuất để tránh thiếu hàng trong tuần tới.', tone: 'warn' });
+  if (topSvc) bullets.push({ text: 'Tiếp tục theo dõi dịch vụ ' + topSvc.name + ' vì đang chiếm tỷ trọng cao trong cơ cấu sửa chữa.', tone: 'ok' });
+  if (!hideMoney && Number(d.profit || 0) < 0) bullets.push({ text: 'Lợi nhuận đang âm, cần kiểm tra lại chi phí vật tư và thực thu.', tone: 'danger' });
+  if (!bullets.length) bullets.push({ text: 'Chưa có vấn đề nghiêm trọng cần sếp quyết định trong kỳ này.', tone: 'ok' });
+  return '<section class="exec-page">' +
+    '<div class="exec-page-head"><div class="exec-number">04</div><div><h2>Có vấn đề gì cần sếp quyết định?</h2><p>Các điểm cần xử lý để giữ tốc độ và chất lượng dịch vụ.</p></div><div class="exec-mini-brand">POPOPHONE</div></div>' +
+    '<div class="exec-two-col">' +
+      '<article class="exec-panel"><h3>Máy cần chú ý</h3>' + (backlog.length ? backlog.map(function(r){
+        const danger = r.overdue === 'Có' ? 'danger' : 'warn';
+        return '<div class="exec-machine-alert ' + danger + '"><div>' + (danger === 'danger' ? '🔴' : '🟡') + '</div><div><b>' + esc(r.repairId || 'Chưa có mã') + '</b><span>' + esc(r.product || '') + ' · ' + esc(r.customer || '') + '</span><em>' + esc(statusClean(r.status || 'Cần theo dõi')) + '</em></div></div>';
+      }).join('') : '<div class="exec-empty ok">Không có máy tồn đáng chú ý.</div>') + '</article>' +
+      '<article class="exec-panel"><h3>Kiến nghị & quyết định</h3><ul class="exec-decision-list">' + bullets.map(function(x){ return reportBullet(x.text, x.tone); }).join('') + '</ul></article>' +
+    '</div>' +
+    '<article class="exec-quote"><b>“</b><p>Chất lượng sửa chữa là uy tín của POPOPHONE. Tuần tới ưu tiên tốc độ xử lý, cập nhật trạng thái đúng lúc và không để máy quá hẹn kéo dài.</p><span>Quản lý kỹ thuật</span></article>' +
+    '<div class="exec-sign-row"><div><b>Người lập báo cáo</b><span>Ký, ghi rõ họ tên</span></div><div><b>Quản lý duyệt</b><span>Ký, ghi rõ họ tên</span></div></div>' +
+    '<div class="exec-footer">Báo cáo điều hành · ' + esc(reportPeriodText()) + '<b>04</b></div>' +
+  '</section>';
 }
 
 function weeklyReportHtml() {
   const rows = getWeeklyReportRows();
   const d = buildLocalDashboard(rows);
   const hideMoney = MONEY_HIDDEN_ROLES.includes(USER.role);
-  const completedTotal = (d.completed || 0) + (d.returned || 0);
   const reportDate = new Date().toLocaleDateString('vi-VN');
-  return '<section class="weekly-report-sheet">' +
-    '<div class="report-title"><div><h1>POPOPHONE</h1><p>BÁO CÁO SỬA CHỮA ĐỊNH KỲ</p></div><div><b>' + esc(reportPeriodText()) + '</b><span>Ngày xuất: ' + esc(reportDate) + '</span></div></div>' +
-    '<div class="report-kpis">' +
-      '<div><span>Máy nhận</span><b>' + rows.length + '</b></div>' +
-      '<div><span>Hoàn thành / giao</span><b>' + completedTotal + '</b></div>' +
-      '<div><span>Đang xử lý</span><b>' + d.inProgress + '</b></div>' +
-      '<div><span>Quá hẹn</span><b>' + d.overdue + '</b></div>' +
-      '<div><span>Chờ linh kiện</span><b>' + d.waitingPart + '</b></div>' +
-      (hideMoney ? '' : '<div><span>Doanh thu</span><b>' + fmtMoney(d.revenue) + '</b></div><div><span>Lợi nhuận</span><b>' + fmtMoney(d.profit) + '</b></div>') +
-    '</div>' +
-    '<div class="report-grid">' +
-      reportMiniTable('1. Top dịch vụ', d.topServices, 'phiếu', 10) +
-      reportMiniTable('2. Top dòng máy', d.topModels, 'phiếu', 10) +
-      reportMiniTable('3. Hiệu suất kỹ thuật', (d.techKpi || []).map(x => ({ name: x.name, count: x.done + ' hoàn thành · QH ' + x.overdue })), '', 10) +
-      reportMaterialTable(d.materials) +
-      reportMatrixTable(d.matrix) +
-      reportBacklogTable(rows) +
-    '</div>' +
-    '<div class="report-note"><b>Nhận xét / đề xuất:</b><p>Ưu tiên kiểm tra nhóm vật tư có số phiếu dùng cao để đặt hàng kịp thời. Theo dõi các máy quá hẹn, chờ linh kiện và phiếu chưa hoàn tất để xử lý trong tuần tiếp theo.</p></div>' +
-    '<div class="report-sign"><div><b>Người lập báo cáo</b><span>Ký, ghi rõ họ tên</span></div><div><b>Quản lý duyệt</b><span>Ký, ghi rõ họ tên</span></div></div>' +
-  '</section>';
+  const periodText = reportPeriodText();
+  return '<div class="exec-report-book">' +
+    executiveCoverPage(periodText, reportDate) +
+    executiveBusinessPage(d, rows, hideMoney) +
+    executiveTechPage(d, rows) +
+    executiveMaterialPage(d) +
+    executiveDecisionPage(d, rows, hideMoney) +
+  '</div>';
 }
 
 function renderWeeklyReport() {

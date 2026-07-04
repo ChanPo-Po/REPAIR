@@ -7,8 +7,11 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+  <button class="mobile-menu-fab" type="button" onclick="toggleMobileMenu(true)" aria-label="Mở menu">☰</button>
+  <div class="sidebar-overlay" onclick="toggleMobileMenu(false)"></div>
   <div class="app-shell">
-    <aside class="sidebar">
+    <aside class="sidebar" id="appSidebar">
+      <div class="mobile-sidebar-head"><span>Menu POPO OS</span><button type="button" onclick="toggleMobileMenu(false)">×</button></div>
       <div class="brand">
         <div class="brand-mark">P</div>
         <div>
