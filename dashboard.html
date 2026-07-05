@@ -11,12 +11,12 @@
   <div class="sidebar-overlay" onclick="toggleMobileMenu(false)"></div>
   <div class="app-shell">
     <aside class="sidebar" id="appSidebar">
-      <div class="mobile-sidebar-head"><span>Menu POPO OS</span><button type="button" onclick="toggleMobileMenu(false)">×</button></div>
+      <div class="mobile-sidebar-head"><span>Menu</span><button type="button" onclick="toggleMobileMenu(false)">×</button></div>
       <div class="brand">
         <div class="brand-mark">P</div>
         <div>
           <h1>POPOPHONE</h1>
-          <p>POPO OS V11</p>
+          <p>POPO V11</p>
         </div>
       </div>
 
@@ -27,9 +27,9 @@
         <button data-tab="cost">💰 Chi phí & lợi nhuận</button>
         <button data-tab="materials">📦 Vật tư & NCC</button>
         <button data-tab="commission">💵 Hoa hồng kỹ thuật</button>
-        <button data-tab="salaryAudit">🧾 Đối chiếu công kỹ thuật</button>
+        <button data-tab="salaryAudit">🧾 Check công kỹ thuật</button>
         <button data-tab="sentRepairs">🚚 Máy gửi xử lý</button>
-        <button data-tab="weeklyReport">📝 Báo cáo</button>
+        <button data-tab="weeklyReport">📝 Lập báo cáo</button>
         <button data-tab="masters">⚙️ Danh mục hệ thống</button>
       </nav>
 
@@ -65,25 +65,24 @@
           <div class="hero-copy">
             <span class="eyebrow">POPO Command Center</span>
             <h2 id="heroGreeting">Tổng quan vận hành</h2>
-            <p id="heroSummary">Theo dõi nhanh máy nhận, máy tồn, quá hẹn và doanh thu trong ngày.</p>
           </div>
           <div class="hero-score" id="heroScore">--</div>
         </div>
 
         <div class="exec-grid">
-          <div class="exec-card primary"><span>Máy nhận hôm nay</span><b id="execTodayReceived">0</b><small id="execTodayNote">Đơn mới cần theo dõi</small></div>
-          <div class="exec-card"><span>Đang sửa</span><b id="execInProgress">0</b><small>Máy còn trong luồng xử lý</small></div>
-          <div class="exec-card danger"><span>Quá hẹn</span><b id="execOverdue">0</b><small>Cần ưu tiên xử lý ngay</small></div>
-          <div class="exec-card money"><span id="execMoneyLabel">Doanh thu hôm nay</span><b id="execMoneyValue">0</b><small id="execMoneyNote">Theo quyền đang đăng nhập</small></div>
+          <div class="exec-card primary"><span>Máy nhận hôm nay</span><b id="execTodayReceived">0</b></div>
+          <div class="exec-card"><span>Đang sửa</span><b id="execInProgress">0</b></div>
+          <div class="exec-card danger"><span>Quá hẹn</span><b id="execOverdue">0</b></div>
+          <div class="exec-card money"><span id="execMoneyLabel">Doanh thu hôm nay</span><b id="execMoneyValue">0</b></div>
         </div>
 
         <div class="dashboard-grid-2 command-grid">
           <div class="panel command-panel">
-            <div class="panel-head"><div><h3>⚡ Việc cần xử lý ngay</h3><p>Các điểm nghẽn ảnh hưởng vận hành hôm nay.</p></div></div>
+            <div class="panel-head"><div><h3>⚡ Việc cần xử lý ngay</h3></div></div>
             <div id="execAlerts" class="command-list"></div>
           </div>
           <div class="panel command-panel">
-            <div class="panel-head"><div><h3>🧠 Gợi ý điều hành</h3><p>Trả lời nhanh câu hỏi của sếp.</p></div></div>
+            <div class="panel-head"><div><h3>🧠 Nổi bật</h3></div></div>
             <div id="execInsights" class="insight-grid"></div>
           </div>
         </div>
@@ -100,7 +99,7 @@
           <div class="panel">
             <div class="panel-head">
               <div>
-                <h3>🏪 Tình hình kinh doanh</h3>
+                <h3>2. Tình hình kinh doanh</h3>
               </div>
             </div>
             <div class="kpi-grid compact" id="businessGrid"></div>
@@ -109,11 +108,11 @@
 
         <div class="dashboard-grid-2">
           <div class="panel">
-            <div class="panel-head"><div><h3>2. Doanh thu 4 tuần</h3></div></div>
+            <div class="panel-head"><div><h3>3. Doanh thu 4 tuần</h3></div></div>
             <div id="weekChart" class="table-wrap"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><div><h3>📊 Phân bổ loại dịch vụ</h3></div></div>
+            <div class="panel-head"><div><h3>4. Phân bổ loại dịch vụ</h3></div></div>
             <div id="serviceTypeDist" class="service-type-list"></div>
           </div>
         </div>
@@ -127,7 +126,7 @@
         <div class="panel full-width">
           <div class="panel-head">
             <div>
-              <h3>🔎 Ma trận dịch vụ × dòng máy</h3>
+              <h3>🔎 Thống kê dịch vụ theo dòng máy</h3>
             </div>
           </div>
           <div class="matrix-toolbar">
@@ -234,7 +233,6 @@
           <div class="panel-head">
             <div>
               <h3>📋 Chi tiết hoa hồng</h3>
-              <p>Gộp cả máy khách hệ thống và máy gửi xử lý đã được thợ kê công để tính tổng hoa hồng tháng.</p>
             </div>
           </div>
           <div id="commissionDetail" class="table-wrap"></div>
@@ -248,7 +246,6 @@
           <div class="panel-head">
             <div>
               <h3>🧾 Thợ nhập công sửa máy</h3>
-              <p>Dòng máy lấy từ DM_DONG_MAY, dịch vụ lấy từ DM_DICH_VU, SL luôn bằng 1, hoa hồng tự dò DM_HOA_HONG_THO.</p>
             </div>
           </div>
           <form id="techWorkForm" class="form-grid" onsubmit="submitTechWork(event)">
@@ -284,7 +281,7 @@
         </div>
 
         <div class="panel salary-manager-only">
-          <div class="panel-head"><div><h3>🔎 Đối chiếu IMEI</h3><p>Gộp chung máy khách hệ thống và máy gửi xử lý để kiểm tra thợ kê đủ, thiếu hay dư công.</p></div></div>
+          <div class="panel-head"><div><h3>🔎 Đối chiếu IMEI</h3></div></div>
           <div id="salaryAuditTable" class="table-wrap"></div>
         </div>
       </section>
@@ -293,8 +290,7 @@
         <div class="panel salary-manager-only">
           <div class="panel-head">
             <div>
-              <h3>📦 Máy gửi xử lý</h3>
-              <p>QL kỹ thuật/Admin nhập và theo dõi riêng các máy gửi xử lý. Mặc định ưu tiên hiện cây chưa nhận.</p>
+              <h3>📦 Máy gửi xử lý</h3>             
             </div>
           </div>
           <form id="sentRepairForm" class="form-grid sent-repair-form" onsubmit="submitSentRepair(event)">
@@ -318,7 +314,6 @@
           <div class="panel-head">
             <div>
               <h3>📋 Danh sách máy gửi xử lý</h3>
-              <p>Mặc định chỉ hiện Đang gửi xử lý / Chưa nhận. Muốn xem Đã nhận / Hủy thì lọc trạng thái hoặc bật Hiện tất cả.</p>
             </div>
           </div>
           <div id="sentRepairKpis" class="kpi-grid compact"></div>
@@ -362,7 +357,6 @@
           <div class="panel-head">
             <div>
               <h3>📦 Vật tư sử dụng</h3>
-              <p>Tổng hợp vật tư đã dùng theo phiếu sửa chữa.</p>
             </div>
           </div>
           <div id="materialsFull" class="table-wrap"></div>
