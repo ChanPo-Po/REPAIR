@@ -1,7 +1,4 @@
-/* POPOPHONE Repair V9 - Google Apps Script API
-Deploy: Apps Script > Deploy > Web app > Execute as Me > Anyone.
-*/
-const SHEET_ID = 'PASTE_SPREADSHEET_ID_HERE';
+const SHEET_ID = '1GHk9rs_GEM8y-jdz3pL38Txd8ve6jINpRQ_AbwDUCEU';
 const TZ = 'GMT+7';
 
 const SHEETS = {
@@ -19,7 +16,9 @@ const SHEETS = {
   DM_NHAN_VIEN: 'DM_NHAN_VIEN',
   DM_HOA_HONG_THO: 'DM_HOA_HONG_THO',
   THO_NHAP_CONG: 'THO_NHAP_CONG',
-  MAY_GUI_XU_LY: 'MAY_GUI_XU_LY'
+  MAY_GUI_XU_LY: 'MAY_GUI_XU_LY',
+  CHAM_CONG_THO: 'CHAM_CONG_THO',
+  LUONG_THO: 'LUONG_THO'
 };
 
 const HEADERS_DATA = [
@@ -39,14 +38,18 @@ const TEXT_HEADERS = ['IMEI', 'Số điện thoại'];
 // Tài khoản quản trị đặt ở Apps Script, không public trên Netlify.
 // Đổi mật khẩu trước khi deploy thật.
 const USER_ACCOUNTS = {
-  ms001: { password: 'pocn113', role: 'tech', name: 'Kỹ thuật', home: 'status' },
+  thanh: { password: '123456', role: 'tech', name: 'Thanh', home: 'attendance' },
+  phong: { password: '123456', role: 'tech', name: 'Phong', home: 'attendance' },
+  truong: { password: '123456', role: 'tech', name: 'Trường', home: 'attendance' },
+  thanh2: { password: '123456', role: 'tech', name: 'Thành', home: 'attendance' },
+  ha: { password: '123456', role: 'tech', name: 'Hà', home: 'attendance' },
+  ms001: { password: 'pocn113', role: 'tech', name: 'Thanh', home: 'attendance' },
   ms002: { password: 'pocn113', role: 'store', name: 'QL cửa hàng', home: 'overview' },
   ms003: { password: 'pocn113', role: 'tech_manager', name: 'QL kỹ thuật', home: 'overview' },
   ms004: { password: 'pocn113', role: 'admin', name: 'Admin', home: 'overview' }
 };
 const SESSION_TTL_SECONDS = 21600; // 6 giờ
 const PUBLIC_ACTIONS = ['login', 'getMasters', 'createRepair', 'search', 'getDetail'];
-
 
 const DEFAULTS = {
   DM_TRANG_THAI: ['Trạng thái', '1. Đã tiếp nhận', '2. Đang kiểm tra', '3. Chờ báo giá', '4. Chờ khách duyệt', '5. Đang sửa', '6. Chờ linh kiện', '7. Đã sửa xong', '8. Đã trả khách', '9. Back lại khách', '10. Bảo hành lại', '11. Hủy sửa'],
@@ -59,7 +62,9 @@ const DEFAULTS = {
   DM_NHAN_VIEN: [['Tên nhân viên', 'Chi nhánh', 'Bộ phận', 'Trạng thái'], ['Chan', '113', 'SALE', 'Đang làm'], ['Hùng', '113', 'SALE', 'Đang làm'], ['Trường', '113', 'SALE', 'Đang làm']],
   DM_HOA_HONG_THO: [['Kỹ thuật', 'MODEL', 'THAY PIN CÓ SÀN CỔ', 'THAY PIN KHÔNG SÀN CỔ', 'PHẢN QUANG', 'FIX ẢO', 'ÉP KÍNH', 'ÉP CẢM', 'THAY VỎ', 'LƯNG MẮT TO'], ['Thanh', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Thanh', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Thanh', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Thanh', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Thanh', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Thanh', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Thanh', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Thanh', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Thanh', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Thanh', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Thanh', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Thanh', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Thanh', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Thanh', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Thanh', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Thanh', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Thanh', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Thanh', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Thanh', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Thanh', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Thanh', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Thanh', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Thanh', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Thanh', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Trường', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Trường', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Trường', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Trường', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Trường', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Trường', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Trường', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Trường', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Trường', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Trường', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Trường', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Trường', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Trường', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Trường', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Trường', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Trường', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Trường', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Trường', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Trường', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Trường', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Trường', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Trường', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Trường', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Trường', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Phong', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Phong', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Phong', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Phong', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Phong', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Phong', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Phong', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Phong', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Phong', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Phong', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Phong', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Phong', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Phong', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Phong', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Phong', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Phong', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Phong', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Phong', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Phong', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Phong', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Phong', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Phong', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Phong', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Phong', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Thành', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Thành', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Thành', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Thành', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Thành', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Thành', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Thành', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Thành', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Thành', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Thành', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Thành', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Thành', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Thành', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Thành', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Thành', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Thành', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Thành', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Thành', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Thành', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Thành', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Thành', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Thành', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Thành', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Thành', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0], ['Hà', '8P', 0, 0, 50, 0, 50, 0, 90, 0], ['Hà', 'X', 0, 0, 0, 0, 0, 0, 90, 0], ['Hà', 'XS', 50, 30, 0, 30, 80, 180, 90, 80], ['Hà', 'XR', 50, 30, 50, 30, 80, 180, 90, 80], ['Hà', 'XSM', 50, 30, 0, 30, 130, 230, 90, 80], ['Hà', '11', 50, 30, 50, 30, 130, 230, 90, 90], ['Hà', '11PRO', 50, 30, 0, 30, 130, 230, 90, 90], ['Hà', '11PROMAX', 50, 30, 0, 30, 130, 230, 90, 90], ['Hà', '12', 60, 30, 0, 30, 190, 250, 90, 90], ['Hà', '12PRO', 60, 30, 0, 30, 190, 250, 90, 90], ['Hà', '12PROMAX', 80, 30, 0, 30, 220, 280, 90, 100], ['Hà', '13', 90, 30, 0, 30, 180, 0, 90, 100], ['Hà', '13PRO', 90, 30, 0, 30, 180, 0, 90, 130], ['Hà', '13PROMAX', 90, 30, 0, 30, 230, 0, 90, 130], ['Hà', '14', 80, 30, 0, 30, 180, 0, 90, 0], ['Hà', '14PLUS', 80, 30, 0, 30, 220, 0, 100, 0], ['Hà', '14PRO', 120, 30, 0, 30, 250, 0, 100, 170], ['Hà', '14PROMAX', 120, 30, 0, 30, 260, 0, 100, 170], ['Hà', '15', 120, 120, 0, 30, 0, 0, 0, 0], ['Hà', '15PLUS', 120, 120, 0, 30, 0, 0, 0, 0], ['Hà', '15PRO', 130, 130, 0, 30, 0, 0, 0, 0], ['Hà', '15PROMAX', 130, 130, 0, 30, 0, 0, 0, 0], ['Hà', '16PRO', 0, 0, 0, 0, 0, 0, 0, 0], ['Hà', '16PROMAX', 0, 0, 0, 0, 0, 0, 0, 0]],
   THO_NHAP_CONG: [['Ngày', 'Kỹ thuật', 'IMEI', 'Dòng máy', 'Dịch vụ', 'SL', 'Hoa hồng', 'Ghi chú', 'Nguồn nhập', 'Trạng thái duyệt', 'Ngày tạo', 'Người nhập']],
-  MAY_GUI_XU_LY: [['Ngày gửi', 'IMEI', 'Dòng máy', 'Xử lý 1', 'Xử lý 2', 'Kỹ thuật', 'Người gửi', 'Tại sao chưa nhận', 'Ngày nhận lại', 'Trạng thái', 'Đã đối chiếu công', 'Ngày tạo', 'Ngày cập nhật']]
+  LUONG_THO: [['Tháng', 'Kỹ thuật', 'Lương cơ bản', 'Phụ cấp', 'Thưởng', 'Phạt', 'Ghi chú', 'Ngày cập nhật', 'Người nhập']],
+  MAY_GUI_XU_LY: [['Ngày gửi', 'IMEI', 'Dòng máy', 'Xử lý 1', 'Xử lý 2', 'Kỹ thuật', 'Người gửi', 'Tại sao chưa nhận', 'Ngày nhận lại', 'Trạng thái', 'Đã đối chiếu công', 'Ngày tạo', 'Ngày cập nhật']],
+  CHAM_CONG_THO: [['Tháng', 'Kỹ thuật', 'Ngày', 'Trạng thái', 'Ghi chú', 'Ngày cập nhật', 'Người nhập']]
 };
 
 function doGet() {
@@ -87,11 +92,13 @@ function doPost(e) {
     if (authError) return json(authError);
 
     if (action === 'list') return json({ success: true, data: listRepairsForRole_(session.role) });
-    if (action === 'getDashboard') return json({ success: true, data: getDashboardForRole_(session.role) });
+    if (action === 'getDashboard') return json({ success: true, data: getDashboardForSession_(session) });
     if (action === 'updateStatus') return json(updateStatus(body.repairId, withSession_(body.data || {}, session)));
     if (action === 'quickStatus') return json(updateStatus(body.repairId, withSession_(body.data || {}, session)));
     if (action === 'updateCost') return json(updateCost(body.repairId, withSession_(body.data || {}, session)));
     if (action === 'createTechWork') return json(createTechWork(withSession_(body.data || {}, session)));
+    if (action === 'saveTechAttendanceDay') return json(saveTechAttendanceDay(withSession_(body.data || {}, session)));
+    if (action === 'saveTechSalaryConfig') return json(saveTechSalaryConfig(withSession_(body.data || {}, session)));
     if (action === 'createSentRepair') return json(createSentRepair(withSession_(body.data || {}, session)));
     if (action === 'updateSentRepair') return json(updateSentRepair(body.rowNumber, withSession_(body.data || {}, session)));
     if (action === 'backfillOldDataToCT') return json(requireRole_(session, ['admin']) || backfillOldDataToCT());
@@ -108,7 +115,6 @@ function doPost(e) {
     });
   }
 }
-
 
 function login_(body) {
   const username = String(body.username || '').trim();
@@ -179,18 +185,42 @@ function listRepairsForRole_(role) {
   return rows;
 }
 
-function getDashboardForRole_(role) {
+function monthKey_(v) {
+  if (!v) return '';
+  if (Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v)) return Utilities.formatDate(v, TZ, 'yyyy-MM');
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}$/.test(s)) return s;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 7);
+  const d = new Date(s);
+  if (!isNaN(d)) return Utilities.formatDate(d, TZ, 'yyyy-MM');
+  return s.slice(0, 7);
+}
+
+function getDashboardForSession_(session) {
+  const role = session && session.role;
   const data = getDashboard();
   if (role === 'store' || role === 'tech') {
     data.rows = sanitizeRepairsForPublic_(data.rows || []);
     data.ctMaterials = [];
     data.materialsCt = [];
   }
+  if (role === 'tech') {
+    const techName = String(session.name || '').trim();
+    const techKey = normText_(techName);
+    data.techWork = (data.techWork || []).filter(function (x) { return normText_(x.technician || '') === techKey; });
+    data.thoNhapCong = data.techWork;
+    data.attendance = (data.attendance || []).filter(function (x) { return normText_(x.technician || '') === techKey; });
+    data.chamCongTho = data.attendance;
+    data.techSalaryConfig = (data.techSalaryConfig || []).filter(function (x) { return normText_(x.technician || '') === techKey; });
+  }
   return data;
 }
 
+let _SS_CACHE = null;
+
 function ss() {
-  return SpreadsheetApp.openById(SHEET_ID);
+  if (!_SS_CACHE) _SS_CACHE = SpreadsheetApp.openById(SHEET_ID);
+  return _SS_CACHE;
 }
 
 function sh(name) {
@@ -226,7 +256,6 @@ function setupSheets() {
     ensureSheet(book, SHEETS[key], rows);
   });
 }
-
 
 function setupSheetsLite_() {
   // Bản nhẹ dùng trong API hằng ngày: chỉ đảm bảo sheet/header tồn tại, không format nguyên cột để tránh treo Apps Script.
@@ -452,8 +481,10 @@ function repairCodeExists(code) {
   const sheet = sh(SHEETS.DATA);
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return false;
-  const values = sheet.getRange(2, 1, lastRow - 1, 1).getValues().flat();
-  return values.some(function (x) { return String(x || '').trim() === code; });
+  const m = mapHeader(SHEETS.DATA);
+  if (m['Mã sửa chữa'] === undefined) throw new Error('DATA thiếu cột Mã sửa chữa');
+  const values = sheet.getRange(2, m['Mã sửa chữa'] + 1, lastRow - 1, 1).getValues().flat();
+  return values.some(function (x) { return String(x || '').trim() === String(code || '').trim(); });
 }
 
 function generateRepairCode(imei, branch) {
@@ -471,7 +502,6 @@ function generateRepairCode(imei, branch) {
   }
   return code;
 }
-
 
 function normalizeReceiveData_(d) {
   d = d || {};
@@ -560,12 +590,12 @@ function findRecentDuplicateRepair_(d) {
 
 function rememberClientRequest_(requestId, repairId) {
   if (!requestId) return;
-  PropertiesService.getDocumentProperties().setProperty('CREATE_REPAIR_' + requestId, repairId);
+  PropertiesService.getScriptProperties().setProperty('CREATE_REPAIR_' + requestId, repairId);
 }
 
 function getClientRequestRepair_(requestId) {
   if (!requestId) return '';
-  return PropertiesService.getDocumentProperties().getProperty('CREATE_REPAIR_' + requestId) || '';
+  return PropertiesService.getScriptProperties().getProperty('CREATE_REPAIR_' + requestId) || '';
 }
 
 function createRepair(d) {
@@ -587,12 +617,14 @@ function createRepair(d) {
   const week = weekInMonth(now);
   const year = Number(Utilities.formatDate(now, TZ, 'yyyy'));
   const month = Number(Utilities.formatDate(now, TZ, 'M'));
-  const row = HEADERS_DATA.map(function (h) {
-    const dict = {
-      'Mã sửa chữa': id, 'IMEI': d.imei || '', 'Ngày nhận': nowText(), 'Chi nhánh nhận': d.branch || '', 'Sản phẩm': d.product || '', 'Tên khách hàng': d.customer || '', 'Số điện thoại': d.phone || '', 'Loại dịch vụ': d.serviceType || '', 'Tình trạng khi nhận máy': d.receiveStatus || '', 'Yêu cầu sửa chữa': d.request || '', 'Ghi chú tiếp nhận': d.receiveNote || '', 'Hẹn trả': d.appointment || '', 'FaceID': d.faceId || '', 'Màn hình': d.screen || '', 'Camera/Mic': d.cameraMic || '', 'Loa': d.speaker || '', 'Giá dự kiến': moneyValue(d.estimate), 'Nhân viên tiếp nhận': d.staff || '', 'Trạng thái máy': '2. Đang kiểm tra', 'Trạng thái thanh toán': 'Chưa thanh toán', 'Năm': year, 'Tháng': month, 'Tuần': week, 'Ngày tạo': nowText(), 'Ngày cập nhật': nowText()
-    };
-    if (dict[h] !== undefined) return dict[h];
-    if (['Giá vật tư', 'Công thợ', 'Tổng chi phí', 'Thực thu', 'Lợi nhuận'].indexOf(h) > -1) return 0;
+  const dict = {
+    'Mã sửa chữa': id, 'IMEI': d.imei || '', 'Ngày nhận': nowText(), 'Chi nhánh nhận': d.branch || '', 'Sản phẩm': d.product || '', 'Tên khách hàng': d.customer || '', 'Số điện thoại': d.phone || '', 'Loại dịch vụ': d.serviceType || '', 'Tình trạng khi nhận máy': d.receiveStatus || '', 'Yêu cầu sửa chữa': d.request || '', 'Ghi chú tiếp nhận': d.receiveNote || '', 'Hẹn trả': d.appointment || '', 'FaceID': d.faceId || '', 'Màn hình': d.screen || '', 'Camera/Mic': d.cameraMic || '', 'Loa': d.speaker || '', 'Giá dự kiến': moneyValue(d.estimate), 'Nhân viên tiếp nhận': d.staff || '', 'Trạng thái máy': '2. Đang kiểm tra', 'Trạng thái thanh toán': 'Chưa thanh toán', 'Năm': year, 'Tháng': month, 'Tuần': week, 'Ngày tạo': nowText(), 'Ngày cập nhật': nowText()
+  };
+  const dataHeaders = headers(SHEETS.DATA);
+  const row = dataHeaders.map(function (h) {
+    const key = String(h || '').trim();
+    if (dict[key] !== undefined) return dict[key];
+    if (['Giá vật tư', 'Công thợ', 'Tổng chi phí', 'Thực thu', 'Lợi nhuận'].indexOf(key) > -1) return 0;
     return '';
   });
   sh(SHEETS.DATA).appendRow(row);
@@ -602,9 +634,15 @@ function createRepair(d) {
 }
 
 function findRow(id) {
-  const vals = sh(SHEETS.DATA).getRange(1, 1, sh(SHEETS.DATA).getLastRow(), 1).getValues().flat();
-  const idx = vals.indexOf(id);
-  return idx >= 0 ? idx + 1 : -1;
+  const sheet = sh(SHEETS.DATA);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return -1;
+  const m = mapHeader(SHEETS.DATA);
+  if (m['Mã sửa chữa'] === undefined) throw new Error('DATA thiếu cột Mã sửa chữa');
+  const vals = sheet.getRange(2, m['Mã sửa chữa'] + 1, lastRow - 1, 1).getValues().flat();
+  const target = String(id || '').trim();
+  const idx = vals.findIndex(function (x) { return String(x || '').trim() === target; });
+  return idx >= 0 ? idx + 2 : -1;
 }
 
 function updateStatus(id, d) {
@@ -808,6 +846,8 @@ function addLog(id, user, action, content) {
 function getDashboard() {
   const techWork = readTechWork();
   const sentRepairs = readSentRepairs();
+  const attendance = readTechAttendance();
+  const techSalaryConfig = readTechSalaryConfig();
   return {
     rows: listRepairs(),
     ctServices: readCtServices(),
@@ -815,7 +855,10 @@ function getDashboard() {
     techWork: techWork,
     thoNhapCong: techWork,
     sentRepairs: sentRepairs,
-    mayGuiXuLy: sentRepairs
+    mayGuiXuLy: sentRepairs,
+    attendance: attendance,
+    chamCongTho: attendance,
+    techSalaryConfig: techSalaryConfig
   };
 }
 
@@ -848,7 +891,6 @@ function readCtMaterials() {
   }).filter(function (x) { return x.repairId && x.name; });
 }
 
-
 function readTechWork() {
   return readObjects(SHEETS.THO_NHAP_CONG).map(function (x) {
     return {
@@ -866,6 +908,109 @@ function readTechWork() {
       createdBy: x['Người nhập']
     };
   }).filter(function (x) { return x.imei && x.technician; });
+}
+
+function readTechAttendance() {
+  return readObjects(SHEETS.CHAM_CONG_THO).map(function (x) {
+    return {
+      month: monthKey_(x['Tháng']),
+      technician: x['Kỹ thuật'],
+      day: Number(x['Ngày'] || 0) || 0,
+      status: x['Trạng thái'] || 'Đi làm',
+      note: x['Ghi chú'],
+      updatedAt: x['Ngày cập nhật'],
+      createdBy: x['Người nhập']
+    };
+  }).filter(function (x) { return x.technician && x.month && x.day; });
+}
+
+function readTechSalaryConfig() {
+  return readObjects(SHEETS.LUONG_THO).map(function (x) {
+    return {
+      month: monthKey_(x['Tháng']),
+      technician: x['Kỹ thuật'],
+      baseSalary: moneyValue(x['Lương cơ bản']),
+      allowance: moneyValue(x['Phụ cấp']),
+      bonus: moneyValue(x['Thưởng']),
+      penalty: moneyValue(x['Phạt']),
+      note: x['Ghi chú'],
+      updatedAt: x['Ngày cập nhật'],
+      createdBy: x['Người nhập']
+    };
+  }).filter(function (x) { return x.technician && x.month; });
+}
+
+function upsertByKeys_(sheetName, keys, values) {
+  const sheet = sh(sheetName);
+  const vals = sheet.getDataRange().getValues();
+  const h = vals[0] || [];
+  const col = {};
+  h.forEach(function (name, i) { col[String(name).trim()] = i; });
+  let row = -1;
+  for (let i = vals.length - 1; i >= 1; i--) {
+    let ok = true;
+    keys.forEach(function (k) {
+      if (String(vals[i][col[k]] || '') !== String(values[k] || '')) ok = false;
+    });
+    if (ok) { row = i + 1; break; }
+  }
+  if (row < 0) {
+    const out = h.map(function (name) { return values[String(name).trim()] !== undefined ? values[String(name).trim()] : ''; });
+    sheet.appendRow(out);
+    return sheet.getLastRow();
+  }
+  Object.keys(values).forEach(function (name) {
+    if (col[name] !== undefined) sheet.getRange(row, col[name] + 1).setValue(values[name]);
+  });
+  return row;
+}
+
+function saveTechAttendanceDay(d) {
+  const role = String((d && d.userRole) || '');
+  if (['tech_manager', 'admin', 'tech'].indexOf(role) === -1) return { success: false, message: 'Bạn không có quyền chấm công thợ.' };
+  setupSheetsLite_();
+  d = d || {};
+  const month = String(d.month || '').trim();
+  const tech = String(d.technician || '').trim();
+  const day = Number(d.day || 0) || 0;
+  const status = String(d.status || 'Đi làm').trim();
+  if (!/^\d{4}-\d{2}$/.test(month)) return { success: false, message: 'Tháng không hợp lệ.' };
+  if (!tech) return { success: false, message: 'Chưa chọn kỹ thuật.' };
+  if (role === 'tech' && String(d.actor || '').trim() && String(d.actor || '').trim() !== tech) return { success: false, message: 'Thợ chỉ được chấm công của chính mình.' };
+  if (day < 1 || day > 31) return { success: false, message: 'Ngày không hợp lệ.' };
+  upsertByKeys_(SHEETS.CHAM_CONG_THO, ['Tháng', 'Kỹ thuật', 'Ngày'], {
+    'Tháng': month,
+    'Kỹ thuật': tech,
+    'Ngày': day,
+    'Trạng thái': status,
+    'Ghi chú': String(d.note || '').trim(),
+    'Ngày cập nhật': nowText(),
+    'Người nhập': String(d.actor || '').trim()
+  });
+  return { success: true, message: 'Đã lưu công ngày ' + day + ' cho ' + tech + '.' };
+}
+
+function saveTechSalaryConfig(d) {
+  const roleCheck = requireRole_({ role: String((d && d.userRole) || '') }, ['tech_manager', 'admin']);
+  if (roleCheck) return roleCheck;
+  setupSheetsLite_();
+  d = d || {};
+  const month = String(d.month || '').trim();
+  const tech = String(d.technician || '').trim();
+  if (!/^\d{4}-\d{2}$/.test(month)) return { success: false, message: 'Tháng không hợp lệ.' };
+  if (!tech) return { success: false, message: 'Chưa chọn kỹ thuật.' };
+  upsertByKeys_(SHEETS.LUONG_THO, ['Tháng', 'Kỹ thuật'], {
+    'Tháng': month,
+    'Kỹ thuật': tech,
+    'Lương cơ bản': moneyValue(d.baseSalary),
+    'Phụ cấp': moneyValue(d.allowance),
+    'Thưởng': moneyValue(d.bonus),
+    'Phạt': moneyValue(d.penalty),
+    'Ghi chú': String(d.note || '').trim(),
+    'Ngày cập nhật': nowText(),
+    'Người nhập': String(d.actor || '').trim()
+  });
+  return { success: true, message: 'Đã lưu cấu hình lương cho ' + tech + '.' };
 }
 
 function readSentRepairs() {
@@ -1119,3 +1264,5 @@ function clearSheetBody_(sheet) {
     sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
   }
 }
+
+
