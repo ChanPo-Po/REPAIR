@@ -1810,3 +1810,643 @@ body.dark-mode {
   .exec-page:last-child { page-break-after: auto !important; break-after:auto !important; }
   .report-preview-wrap { display:none !important; }
 }
+
+
+/* V12.4 - Bộ lọc thời gian gọn trong topbar, không thay đổi khung topbar gốc */
+.topbar-heading { min-width: 235px; }
+.top-actions {
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.overview-inline-filters {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px;
+  border: 1px solid var(--os-line, var(--line));
+  border-radius: 14px;
+  background: var(--os-card, var(--card));
+}
+.overview-inline-filters select,
+.overview-inline-filters input {
+  width: 142px;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--os-line, var(--line));
+  border-radius: 10px;
+  background: var(--os-card, var(--card));
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  outline: none;
+}
+#overviewMode { width: 145px; }
+.overview-compact-input { display: inline-flex; flex: 0 0 auto; }
+.overview-filter-reset {
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px !important;
+  height: 40px;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  font-size: 18px;
+  line-height: 1;
+}
+.overview-data-status {
+  margin: 3px 0 0 !important;
+  color: var(--muted);
+  font-size: 11px !important;
+  font-weight: 750;
+}
+.overview-data-status.error { color: var(--red, #dc2626); }
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+.business-grid .kpi-card b,
+#businessGrid .kpi-card b { overflow-wrap: anywhere; }
+
+@media (max-width: 1280px) {
+  .topbar { align-items: flex-start; }
+  .top-actions { max-width: 780px; }
+}
+@media (max-width: 900px) {
+  .topbar { flex-direction: column; align-items: stretch; }
+  .top-actions { width: 100%; justify-content: flex-start; max-width: none; }
+}
+@media (max-width: 760px) {
+  .overview-inline-filters {
+    grid-column: 1 / -1;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 40px;
+    width: 100%;
+  }
+  .overview-inline-filters select,
+  .overview-inline-filters input,
+  .overview-compact-input { width: 100%; }
+  .overview-compact-input { grid-column: 1 / -1; }
+  .overview-filter-reset { grid-column: 2; grid-row: 1; }
+  #globalBranch { grid-column: 1 / -1; width: 100%; }
+}
+
+/* =========================================================
+   V12.5 LAPTOP HEIGHT / RESPONSIVE SCROLL FIX
+   - Desktop shell is locked to the visible viewport.
+   - Main content scrolls vertically instead of being clipped.
+   - Sidebar menu scrolls independently.
+   - User / logout card always stays visible at the bottom.
+========================================================= */
+@media (min-width: 981px) {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    overflow: hidden;
+  }
+
+  .app-shell {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+    gap: 0;
+  }
+
+  .sidebar .brand {
+    flex: 0 0 auto;
+  }
+
+  .sidebar .nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0 4px 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.24) transparent;
+  }
+
+  .sidebar .nav::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .sidebar .nav::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(255,255,255,.24);
+  }
+
+  .sidebar .nav::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar .sidebar-insight,
+  .sidebar .user-card {
+    flex: 0 0 auto;
+  }
+
+  .sidebar .user-card {
+    margin-top: 0;
+  }
+
+  .content {
+    min-width: 0;
+    min-height: 0;
+    height: 100vh;
+    height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+}
+
+/* Compact spacing for common 13-inch laptop heights. */
+@media (min-width: 981px) and (max-height: 850px) {
+  .brand {
+    padding: 13px 16px 8px;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+  }
+
+  .brand h1 {
+    font-size: 16px;
+  }
+
+  .brand p {
+    font-size: 11px;
+  }
+
+  .nav button {
+    min-height: 39px;
+    margin: 2px 8px;
+    padding: 9px 12px;
+    border-radius: 13px;
+    font-size: 13px;
+  }
+
+  .sidebar-insight {
+    margin: 8px 12px;
+    padding: 10px 13px;
+    border-radius: 17px;
+  }
+
+  .sidebar-insight b {
+    margin: 2px 0;
+    font-size: 22px;
+  }
+
+  .sidebar-insight span,
+  .sidebar-insight small {
+    font-size: 10px;
+  }
+
+  .user-card {
+    margin: 8px 12px 12px;
+    padding: 10px 12px;
+    border-radius: 17px;
+  }
+
+  .user-card small {
+    margin: 2px 0 7px;
+    font-size: 11px;
+  }
+
+  .user-card .ghost-btn {
+    min-height: 36px;
+    padding: 7px 10px;
+  }
+
+  .content {
+    padding: 18px;
+  }
+
+  .topbar {
+    margin: -18px -18px 16px;
+    padding: 13px 18px;
+  }
+
+  .topbar h1 {
+    font-size: 24px;
+  }
+
+  .topbar p {
+    margin-top: 3px;
+  }
+}
+
+/* Very short laptop windows: keep logout visible and reduce nonessential card height. */
+@media (min-width: 981px) and (max-height: 700px) {
+  .sidebar-insight {
+    display: none;
+  }
+
+  .nav button {
+    min-height: 36px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+}
+
+/* At tablet/mobile widths, return document scrolling to the page. */
+@media (max-width: 980px) {
+  html,
+  body {
+    height: auto;
+    min-height: 100%;
+  }
+
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .content {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+}
+
+/* Narrow laptop / tablet: use the same drawer menu instead of the old
+   horizontal sidebar, so the user card and logout are never removed. */
+@media (min-width: 761px) and (max-width: 980px) {
+  .mobile-menu-fab {
+    display: inline-flex;
+    position: fixed;
+    left: 16px;
+    bottom: 18px;
+    z-index: 1200;
+    width: 54px;
+    height: 54px;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 18px;
+    color: #fff;
+    font-size: 24px;
+    font-weight: 950;
+    background: linear-gradient(135deg, var(--navy), var(--blue));
+    box-shadow: 0 18px 42px rgba(18,59,112,.35);
+  }
+
+  .mobile-sidebar-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 0 0 auto;
+    padding: 2px 0 8px;
+    color: rgba(255,255,255,.78);
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .mobile-sidebar-head button {
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 25px;
+    background: rgba(255,255,255,.13);
+  }
+
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1150;
+    width: min(86vw, 340px);
+    max-width: 340px;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    overflow: hidden;
+    transition: transform .24s ease;
+    transform: translateX(-105%) !important;
+  }
+
+  body.mobile-menu-open .sidebar {
+    transform: translateX(0) !important;
+  }
+
+  .sidebar .brand {
+    flex: 0 0 auto;
+    padding: 10px 8px;
+  }
+
+  .sidebar .brand p,
+  .sidebar .user-card {
+    display: block;
+  }
+
+  .sidebar .nav {
+    display: grid;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 4px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-bottom: 6px;
+  }
+
+  .sidebar .nav button {
+    min-height: 42px;
+    margin: 2px 4px;
+    padding: 9px 12px;
+    white-space: normal;
+  }
+
+  .sidebar .sidebar-insight {
+    display: none;
+  }
+
+  .sidebar .user-card {
+    flex: 0 0 auto;
+    margin: 8px 4px 2px;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: rgba(2,6,23,.48);
+    backdrop-filter: blur(6px);
+  }
+
+  body.mobile-menu-open .sidebar-overlay {
+    display: block;
+  }
+
+  body.mobile-menu-open {
+    overflow: hidden;
+  }
+
+  .content {
+    margin-left: 0 !important;
+    padding-bottom: 84px !important;
+  }
+}
+
+
+/* =========================================================
+   V12.6 - GLOBAL FILTER BAR
+   Một thanh ngang dùng chung cho toàn bộ menu.
+========================================================= */
+.global-topbar {
+  display: grid !important;
+  grid-template-columns: minmax(205px, 245px) minmax(520px, 1fr) auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-height: 82px;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+}
+
+.global-topbar .topbar-heading {
+  min-width: 0;
+  max-width: none !important;
+}
+
+.global-topbar .topbar-heading h1 {
+  margin: 0;
+  font-size: clamp(23px, 1.9vw, 30px);
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.global-topbar .page-subtitle,
+.global-topbar .overview-data-status {
+  margin: 4px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-filter-bar {
+  display: flex !important;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid rgba(18, 59, 112, .11);
+  border-radius: 16px;
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 8px 24px rgba(15,23,42,.065);
+  backdrop-filter: blur(14px);
+}
+
+.dark-mode .global-filter-bar {
+  background: rgba(13,23,41,.9);
+  border-color: rgba(255,255,255,.10);
+}
+
+.global-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  margin: 0;
+}
+
+.global-filter-label {
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+.dark-mode .global-filter-label { color: #9fb0c8; }
+
+.global-filter-bar select,
+.global-filter-bar input {
+  width: auto;
+  min-width: 0;
+  height: 38px;
+  min-height: 38px;
+  margin: 0;
+  padding: 0 29px 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: #f2f6fb;
+  color: var(--text);
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 850;
+  outline: none;
+}
+
+.dark-mode .global-filter-bar select,
+.dark-mode .global-filter-bar input { background: rgba(255,255,255,.07); }
+
+.global-filter-bar select:focus,
+.global-filter-bar input:focus {
+  box-shadow: 0 0 0 3px rgba(46,124,246,.14);
+  background: #fff;
+}
+
+.dark-mode .global-filter-bar select:focus,
+.dark-mode .global-filter-bar input:focus { background: rgba(255,255,255,.1); }
+
+.global-filter-branch select { width: 104px; }
+.global-filter-mode select { width: 124px; }
+.global-filter-value input { width: 132px; }
+.global-filter-date input { width: 132px; }
+
+.global-filter-separator {
+  flex: 0 0 1px;
+  width: 1px;
+  height: 28px;
+  background: rgba(100,116,139,.18);
+}
+
+.global-filter-range {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.global-range-arrow {
+  color: #94a3b8;
+  font-weight: 900;
+}
+
+.global-filter-reset {
+  display: inline-grid !important;
+  place-items: center;
+  flex: 0 0 38px;
+  width: 38px !important;
+  min-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  margin-left: auto;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  background: #edf3fa;
+  color: #334155;
+  font-size: 17px;
+}
+
+.dark-mode .global-filter-reset {
+  background: rgba(255,255,255,.08);
+  color: #e4edf8;
+}
+
+.global-topbar .topbar-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: nowrap;
+}
+
+.global-topbar .topbar-action-buttons > button {
+  height: 46px;
+  min-height: 46px;
+  border-radius: 14px;
+  white-space: nowrap;
+}
+
+.global-topbar .topbar-action-buttons .theme-toggle {
+  width: 46px;
+  min-width: 46px;
+}
+
+/* Laptop: vẫn giữ đúng một hàng ngang, chỉ thu gọn chữ phụ. */
+@media (max-width: 1500px) and (min-width: 981px) {
+  .global-topbar {
+    grid-template-columns: minmax(175px, 215px) minmax(500px, 1fr) auto !important;
+    gap: 9px !important;
+  }
+  .global-topbar .page-subtitle { display: none; }
+  .global-filter-label { font-size: 10px; }
+  .global-filter-branch select { width: 96px; }
+  .global-filter-mode select { width: 116px; }
+  .global-filter-value input,
+  .global-filter-date input { width: 124px; }
+  .global-topbar .topbar-action-buttons > button { padding-left: 13px; padding-right: 13px; }
+}
+
+@media (max-width: 1180px) and (min-width: 981px) {
+  .global-topbar {
+    grid-template-columns: 170px minmax(445px, 1fr) auto !important;
+  }
+  .global-topbar .overview-data-status { display: none !important; }
+  .global-filter-bar { gap: 6px; padding: 6px; }
+  .global-filter-label { display: none; }
+  .global-filter-branch select { width: 92px; }
+  .global-filter-mode select { width: 112px; }
+  .global-filter-value input,
+  .global-filter-date input { width: 118px; }
+  .global-topbar .topbar-action-buttons .ghost-btn:not(.theme-toggle) { display: none; }
+}
+
+/* Mobile/tablet: thanh vẫn là một hàng và cuộn ngang thay vì bung dọc. */
+@media (max-width: 980px) {
+  .global-topbar {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    gap: 9px !important;
+  }
+  .global-topbar .topbar-heading { grid-column: 1; }
+  .global-topbar .topbar-action-buttons { grid-column: 2; grid-row: 1; }
+  .global-topbar .topbar-action-buttons .ghost-btn:not(.theme-toggle) { display: none; }
+  .global-filter-bar {
+    grid-column: 1 / -1;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .global-filter-bar > * { flex: 0 0 auto; }
+}
+
+@media (max-width: 620px) {
+  .global-topbar .overview-data-status,
+  .global-topbar .page-subtitle { display: none !important; }
+  .global-filter-label { display: none; }
+  .global-filter-separator { display: none; }
+  .global-filter-bar { border-radius: 13px; }
+}

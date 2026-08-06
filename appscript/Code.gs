@@ -1,4 +1,4 @@
-const SHEET_ID = '1GHk9rs_GEM8y-jdz3pL38Txd8ve6jINpRQ_AbwDUCEU';
+const SHEET_ID = '1ZsLoZF4hVBpSrbna0sZQ-lg9KNI-TkwuUYmiJP885mo'; // DATA chính POPOPHONE
 const TZ = 'GMT+7';
 
 const SHEETS = {
@@ -285,7 +285,10 @@ function ensureSheet(book, name, rows) {
   if (!expectedHeaders.length) return;
   const lastCol = Math.max(s.getLastColumn(), 1);
   const currentHeaders = s.getRange(1, 1, 1, lastCol).getValues()[0].map(function (x) { return String(x || '').trim(); });
-  const missing = expectedHeaders.filter(function (h) { return currentHeaders.indexOf(String(h).trim()) === -1; });
+  const normalizedCurrentHeaders = currentHeaders.map(normalizeHeader_);
+  const missing = expectedHeaders.filter(function (h) {
+    return normalizedCurrentHeaders.indexOf(normalizeHeader_(h)) === -1;
+  });
   if (missing.length) {
     s.getRange(1, currentHeaders.length + 1, 1, missing.length).setValues([missing]);
   }
@@ -299,7 +302,13 @@ function headers(sheetName) {
 function mapHeader(sheetName) {
   const h = headers(sheetName);
   const m = {};
-  h.forEach(function (x, i) { m[String(x).trim()] = i; });
+  h.forEach(function (x, i) {
+    const key = String(x || '').trim();
+    if (!key) return;
+    // Luôn giữ cột xuất hiện đầu tiên. Nếu DATA lỡ có header trùng ở cuối,
+    // API vẫn đọc và ghi vào cột gốc đang chứa dữ liệu.
+    if (m[key] === undefined) m[key] = i;
+  });
   return m;
 }
 
@@ -383,17 +392,95 @@ function readObjects(sheetName) {
   });
 }
 
+function normalizeHeader_(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function rowValue_(row, headerMap, aliases) {
+  aliases = aliases || [];
+  let firstExisting = '';
+
+  // Ưu tiên cột có dữ liệu. Cách này chịu được sheet cũ có cả header alias
+  // và header chuẩn mới được thêm ở cuối nhưng các dòng cũ vẫn đang nằm ở cột alias.
+  for (let i = 0; i < aliases.length; i++) {
+    const idx = headerMap[aliases[i]];
+    if (idx === undefined) continue;
+    const value = row[idx];
+    if (firstExisting === '') firstExisting = value;
+    if (value !== '' && value !== null && value !== undefined) return value;
+  }
+
+  const normalizedAliases = aliases.map(normalizeHeader_);
+  const keys = Object.keys(headerMap);
+  for (let i = 0; i < keys.length; i++) {
+    if (normalizedAliases.indexOf(normalizeHeader_(keys[i])) === -1) continue;
+    const value = row[headerMap[keys[i]]];
+    if (firstExisting === '') firstExisting = value;
+    if (value !== '' && value !== null && value !== undefined) return value;
+  }
+  return firstExisting || '';
+}
+
 function listRepairs() {
   const sheet = sh(SHEETS.DATA);
   const vals = sheet.getDataRange().getValues();
   if (vals.length <= 1) return [];
   const m = mapHeader(SHEETS.DATA);
-  return vals.slice(1).filter(function (r) { return r[m['Mã sửa chữa']]; }).map(function (r) { return rowToObj(r, m); }).reverse();
+  const rows = vals.slice(1).filter(function (r) {
+    return String(rowValue_(r, m, ['Mã sửa chữa', 'Mã SC', 'Mã sửa', 'MA SUA CHUA']) || '').trim();
+  }).map(function (r) { return rowToObj(r, m); }).reverse();
+
+  return rows;
 }
 
 function rowToObj(r, m) {
+  const v = function (aliases) { return rowValue_(r, m, aliases); };
   return {
-    repairId: r[m['Mã sửa chữa']], imei: r[m['IMEI']], date: r[m['Ngày nhận']], branch: r[m['Chi nhánh nhận']], product: r[m['Sản phẩm']], customer: r[m['Tên khách hàng']], phone: r[m['Số điện thoại']], serviceType: r[m['Loại dịch vụ']], receiveStatus: r[m['Tình trạng khi nhận máy']], request: r[m['Yêu cầu sửa chữa']], receiveNote: r[m['Ghi chú tiếp nhận']], appointment: r[m['Hẹn trả']], faceId: r[m['FaceID']], screen: r[m['Màn hình']], cameraMic: r[m['Camera/Mic']], speaker: r[m['Loa']], estimate: moneyValue(r[m['Giá dự kiến']]), staff: r[m['Nhân viên tiếp nhận']], repairService: r[m['Dịch vụ sửa chữa']], place: r[m['Nơi xử lý']], technician: r[m['Kỹ thuật xử lý']], status: r[m['Trạng thái máy']], completedDate: r[m['Ngày hoàn thành']], handoverDate: r[m['Ngày bàn giao']], overdue: r[m['Trễ hẹn']], techNote: r[m['Ghi chú kỹ thuật']], billCode: r[m['Mã hóa đơn mua vật tư']], materialName: r[m['Tên vật tư']], materialCost: moneyValue(r[m['Giá vật tư']]), laborCost: moneyValue(r[m['Công thợ']]), totalCost: moneyValue(r[m['Tổng chi phí']]), actualRevenue: moneyValue(r[m['Thực thu']]), profit: moneyValue(r[m['Lợi nhuận']]), ncc: r[m['NCC']], paymentStatus: r[m['Trạng thái thanh toán']], year: r[m['Năm']], month: r[m['Tháng']], week: r[m['Tuần']], createdAt: r[m['Ngày tạo']], updatedAt: r[m['Ngày cập nhật']]
+    repairId: v(['Mã sửa chữa', 'Mã SC', 'Mã sửa', 'MA SUA CHUA']),
+    imei: v(['IMEI', 'IMEI/Serial', 'Serial']),
+    date: v(['Ngày nhận', 'Ngày tiếp nhận', 'Dấu thời gian']),
+    branch: v(['Chi nhánh nhận', 'CN nhận', 'Chi nhánh', 'CN']),
+    product: v(['Sản phẩm', 'Dòng máy', 'Tên máy']),
+    customer: v(['Tên khách hàng', 'Họ tên khách hàng', 'Họ và tên', 'Khách hàng']),
+    phone: v(['Số điện thoại', 'SĐT', 'Điện thoại']),
+    serviceType: v(['Loại dịch vụ', 'Loại DV']),
+    receiveStatus: v(['Tình trạng khi nhận máy', 'Tình trạng khi nhận', 'Tình trạng máy']),
+    request: v(['Yêu cầu sửa chữa', 'Yêu cầu', 'Nội dung sửa chữa']),
+    receiveNote: v(['Ghi chú tiếp nhận', 'Ghi chú nhận máy', 'Ghi chú']),
+    appointment: v(['Hẹn trả', 'Ngày hẹn trả', 'Ngày hẹn']),
+    faceId: v(['FaceID', 'Face ID']),
+    screen: v(['Màn hình']),
+    cameraMic: v(['Camera/Mic', 'Camera - Mic', 'Camera Mic']),
+    speaker: v(['Loa']),
+    estimate: moneyValue(v(['Giá dự kiến', 'Giá báo dự kiến', 'Báo giá dự kiến'])),
+    staff: v(['Nhân viên tiếp nhận', 'Nhân viên', 'Người tiếp nhận']),
+    repairService: v(['Dịch vụ sửa chữa', 'Dịch vụ', 'DV sửa chữa']),
+    place: v(['Nơi xử lý', 'Đơn vị xử lý']),
+    technician: v(['Kỹ thuật xử lý', 'Kỹ thuật', 'KTV']),
+    status: v(['Trạng thái máy', 'Trạng thái', 'Tình trạng xử lý']),
+    completedDate: v(['Ngày hoàn thành', 'Ngày sửa xong']),
+    handoverDate: v(['Ngày bàn giao', 'Ngày trả khách']),
+    overdue: v(['Trễ hẹn', 'Quá hẹn']),
+    techNote: v(['Ghi chú kỹ thuật', 'Ghi chú KTV']),
+    billCode: v(['Mã hóa đơn mua vật tư', 'Mã HĐ vật tư', 'Mã bill mua vật tư']),
+    materialName: v(['Tên vật tư', 'Vật tư']),
+    materialCost: moneyValue(v(['Giá vật tư', 'Chi phí vật tư'])),
+    laborCost: moneyValue(v(['Công thợ', 'Tiền công'])),
+    totalCost: moneyValue(v(['Tổng chi phí', 'Chi phí'])),
+    actualRevenue: moneyValue(v(['Thực thu', 'Doanh thu', 'Khách thanh toán'])),
+    profit: moneyValue(v(['Lợi nhuận'])),
+    ncc: v(['NCC', 'Nhà cung cấp']),
+    paymentStatus: v(['Trạng thái thanh toán', 'Thanh toán']),
+    year: v(['Năm']),
+    month: v(['Tháng']),
+    week: v(['Tuần']),
+    createdAt: v(['Ngày tạo', 'Thời gian tạo']),
+    updatedAt: v(['Ngày cập nhật', 'Thời gian cập nhật'])
   };
 }
 
@@ -844,12 +931,21 @@ function addLog(id, user, action, content) {
 }
 
 function getDashboard() {
+  const rows = listRepairs();
   const techWork = readTechWork();
   const sentRepairs = readSentRepairs();
   const attendance = readTechAttendance();
   const techSalaryConfig = readTechSalaryConfig();
+  const dataSheet = sh(SHEETS.DATA);
   return {
-    rows: listRepairs(),
+    rows: rows,
+    dataHealth: {
+      sheetId: SHEET_ID,
+      sheetName: SHEETS.DATA,
+      lastRow: dataSheet.getLastRow(),
+      repairCount: rows.length,
+      checkedAt: nowText()
+    },
     ctServices: readCtServices(),
     ctMaterials: readCtMaterials(),
     techWork: techWork,

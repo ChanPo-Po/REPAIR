@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>POPOPHONE Repair Dashboard</title>
-  <link rel="stylesheet" href="css/style.css?v=12.6.1" />
+  <link rel="stylesheet" href="css/style.css?v=12.6.2" />
 </head>
 <body>
   <button class="mobile-menu-fab" type="button" onclick="toggleMobileMenu(true)" aria-label="Mở menu">☰</button>
@@ -16,7 +16,7 @@
         <div class="brand-mark">P</div>
         <div>
           <h1>POPOPHONE</h1>
-          <p>POPO V13</p>
+          <p>POPO V11</p>
         </div>
       </div>
 
@@ -49,8 +49,9 @@
     <main class="content">
       <header class="topbar global-topbar">
         <div class="topbar-heading">
-          
-          <p id="overviewDataStatus" class="overview-data-status">Đang tải dữ liệu DATA...</p>
+          <h1 id="pageTitle">📊 Tổng quan</h1>
+          <p id="pageSubtitle" class="page-subtitle">POPOPHONE Repair Operation Center</p>
+          <p id="overviewDataStatus" class="overview-data-status">Đã tải 6219 phiếu.</p>
         </div>
 
         <div id="overviewTopFilters" class="global-filter-bar" aria-label="Bộ lọc dùng chung">
@@ -68,14 +69,14 @@
           <label class="global-filter-item global-filter-mode" title="Kiểu thời gian">
             <span class="global-filter-label">Thời gian</span>
             <select id="overviewMode" onchange="changeOverviewMode()" aria-label="Kiểu thời gian">
-              <option value="month">Theo tháng</option>
+              <option value="month" selected>Theo tháng</option>
               <option value="range">Khoảng thời gian</option>
             </select>
           </label>
 
           <label id="overviewMonthWrap" class="global-filter-item global-filter-value" title="Chọn tháng">
             <span class="global-filter-label">Tháng</span>
-            <input type="month" id="overviewMonth" onchange="applyGlobalFilters()" />
+            <input type="month" id="overviewMonth" value="2026-08" onchange="applyGlobalFilters()" />
           </label>
 
           <div id="overviewRangeWrap" class="global-filter-range" style="display:none">
@@ -94,11 +95,13 @@
         </div>
 
         <div class="topbar-action-buttons">
+          <button class="ghost-btn theme-toggle" onclick="toggleTheme()" title="Đổi giao diện">🌙</button>
+          <button class="ghost-btn" onclick="window.open('index.html', '_blank')">Tiếp nhận</button>
           <button class="primary-btn" onclick="refreshAll()">Làm mới</button>
         </div>
       </header>
 
-      <section id="overview" class="tab">
+      <section id="overview" class="tab active">
 
         <div class="executive-hero">
           <div class="hero-copy">
@@ -427,10 +430,5 @@
 
   <div id="modal" class="modal"></div>
   <div id="printArea" class="print-area"></div>
-
-  <script src="js/config.js?v=12.6.1"></script>
-  <script src="js/mock.js?v=12.6.1"></script>
-  <script src="js/auth.js?v=12.6.1"></script>
-  <script src="js/dashboard.js?v=12.6.1"></script>
 </body>
 </html>

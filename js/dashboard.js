@@ -7,6 +7,8 @@ let CT_MATERIALS = [];
 let TECH_WORK = [];
 let SENT_REPAIRS = [];
 let ACTIVE_TAB = 'overview';
+let CURRENT_OVERVIEW_ROWS = [];
+let DATA_HEALTH = {};
 
 function initDashboard() {
   applySavedTheme();
@@ -14,8 +16,12 @@ function initDashboard() {
   document.getElementById('userName').textContent = USER.name;
   document.getElementById('userRole').textContent = ROLE_LABELS[USER.role] || USER.role;
   setupNavByRole();
+  initOverviewFilters();
   loadAll().then(function () {
     openTab(USER.home || 'overview');
+  }).catch(function (err) {
+    openTab(USER.home || 'overview');
+    setOverviewDataStatus('Không tải được DATA: ' + (err.message || err), true);
   });
 }
 
@@ -48,9 +54,18 @@ function openTab(tab) {
   document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('active'); });
   document.getElementById(tab).classList.add('active');
   document.querySelectorAll('#navMenu button').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === tab); });
-  document.getElementById('pageTitle').textContent = document.querySelector('#navMenu button[data-tab="' + tab + '"]')?.textContent.trim() || 'POPOPHONE Repair';
+  const pageTitle = document.getElementById('pageTitle');
+  if (pageTitle) {
+    const activeNav = document.querySelector('#navMenu button[data-tab="' + tab + '"]');
+    pageTitle.textContent = activeNav ? activeNav.textContent.trim() : 'POPOPHONE Repair';
+  }
   const sub = document.getElementById('pageSubtitle');
   if (sub) sub.textContent = getTabSubtitle(tab);
+
+  const overviewTopFilters = document.getElementById('overviewTopFilters');
+  if (overviewTopFilters) overviewTopFilters.style.display = tab === 'overview' ? 'flex' : 'none';
+  const overviewDataStatus = document.getElementById('overviewDataStatus');
+  if (overviewDataStatus) overviewDataStatus.style.display = tab === 'overview' ? 'block' : 'none';
 
   if (tab === 'overview') renderOverview();
   if (tab === 'repairs') renderRepairTable();
@@ -65,26 +80,57 @@ function openTab(tab) {
 }
 
 function loadAll() {
-  return Promise.all([
+  setOverviewDataStatus('Đang tải dữ liệu DATA...');
+  return Promise.allSettled([
     apiCall({ action: 'getMasters' }),
-    apiCall({ action: 'list' }),
-    apiCall({ action: 'getDashboard' })
+    apiCall({ action: 'list' }, { timeoutMs: 45000 }),
+    apiCall({ action: 'getDashboard' }, { timeoutMs: 45000 })
   ]).then(function (all) {
-    MASTERS = all[0].data || {};
-    REPAIRS = all[1].data || [];
-    DASH = all[2].data || {};
+    const masterRes = all[0].status === 'fulfilled' ? all[0].value : null;
+    const listRes = all[1].status === 'fulfilled' ? all[1].value : null;
+    const dashRes = all[2].status === 'fulfilled' ? all[2].value : null;
+    const errors = [];
+
+    if (!masterRes || masterRes.success === false) errors.push((masterRes && masterRes.message) || (all[0].reason && all[0].reason.message) || 'Lỗi danh mục');
+    if (!listRes || listRes.success === false) errors.push((listRes && listRes.message) || (all[1].reason && all[1].reason.message) || 'Lỗi danh sách DATA');
+    if (!dashRes || dashRes.success === false) errors.push((dashRes && dashRes.message) || (all[2].reason && all[2].reason.message) || 'Lỗi dashboard API');
+
+    MASTERS = masterRes && masterRes.success !== false ? (masterRes.data || {}) : {};
+    DASH = dashRes && dashRes.success !== false ? (dashRes.data || {}) : {};
+    DATA_HEALTH = DASH.dataHealth || {};
+
+    const listRows = listRes && listRes.success !== false && Array.isArray(listRes.data) ? listRes.data : [];
+    const dashboardRows = Array.isArray(DASH.rows) ? DASH.rows : [];
+    // Nếu action list bị lỗi/rỗng nhưng getDashboard vẫn có rows thì không để toàn bộ giao diện trắng.
+    REPAIRS = listRows.length ? listRows : dashboardRows;
+    if (!Array.isArray(REPAIRS)) REPAIRS = [];
+
     CT_SERVICES = DASH.ctServices || DASH.services || [];
     CT_MATERIALS = DASH.ctMaterials || DASH.materialsCt || [];
     TECH_WORK = DASH.techWork || DASH.thoNhapCong || [];
     SENT_REPAIRS = DASH.sentRepairs || DASH.mayGuiXuLy || [];
     hydrateFilters();
+
+    if (REPAIRS.length) {
+      const sourceNote = DATA_HEALTH.sheetName ? ' từ sheet ' + DATA_HEALTH.sheetName : '';
+      setOverviewDataStatus('Đã tải ' + REPAIRS.length + ' phiếu' + sourceNote + '.');
+      if (errors.length) showToast('Đã tải dữ liệu bằng nguồn dự phòng. ' + errors.join(' | '), 'warn');
+      return;
+    }
+
+    const healthNote = DATA_HEALTH.lastRow ? ' DATA có ' + DATA_HEALTH.lastRow + ' dòng nhưng API đọc được 0 phiếu.' : '';
+    const message = (errors.length ? errors.join(' | ') : 'API trả về 0 phiếu sửa chữa.') + healthNote;
+    setOverviewDataStatus(message, true);
+    if (errors.length) throw new Error(message);
   });
 }
 
 function refreshAll() {
   loadAll().then(function () {
     openTab(ACTIVE_TAB);
-    showToast('Đã làm mới dữ liệu');
+    showToast('Đã làm mới ' + REPAIRS.length + ' phiếu');
+  }).catch(function (err) {
+    showToast(err.message || 'Không tải được dữ liệu', 'error');
   });
 }
 
@@ -114,23 +160,156 @@ function fillSelect(id, items) {
   el.innerHTML = first + items.map(x => '<option value="' + x + '">' + x + '</option>').join('');
 }
 
+function formatInputDate_(date) {
+  const d = date || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+function parseInputDate_(value, endOfDay) {
+  if (!value) return null;
+  const parts = String(value).split('-').map(Number);
+  if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2], endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+}
+
+function initOverviewFilters() {
+  const now = new Date();
+  const modeEl = document.getElementById('overviewMode');
+  const monthEl = document.getElementById('overviewMonth');
+  const fromEl = document.getElementById('overviewFrom');
+  const toEl = document.getElementById('overviewTo');
+  if (modeEl && !modeEl.value) modeEl.value = 'month';
+  if (monthEl && !monthEl.value) monthEl.value = formatInputDate_(now).slice(0, 7);
+  if (fromEl && !fromEl.value) fromEl.value = formatInputDate_(new Date(now.getFullYear(), now.getMonth(), 1));
+  if (toEl && !toEl.value) toEl.value = formatInputDate_(now);
+  changeOverviewMode(false);
+}
+
+function setOverviewDataStatus(message, isError) {
+  const el = document.getElementById('overviewDataStatus');
+  if (!el) return;
+  el.textContent = message || '';
+  el.classList.toggle('error', !!isError);
+}
+
+function globalFilterState_() {
+  const mode = document.getElementById('overviewMode')?.value || 'month';
+  const monthValue = document.getElementById('overviewMonth')?.value || '';
+  const branch = document.getElementById('globalBranch')?.value || '';
+  let from = null;
+  let to = null;
+  let label = 'toàn bộ thời gian';
+
+  if (mode === 'range') {
+    from = parseInputDate_(document.getElementById('overviewFrom')?.value || '', false);
+    to = parseInputDate_(document.getElementById('overviewTo')?.value || '', true);
+    const f = from ? formatInputDate_(from).split('-').reverse().join('/') : 'đầu kỳ';
+    const t = to ? formatInputDate_(to).split('-').reverse().join('/') : 'hiện tại';
+    label = 'từ ' + f + ' đến ' + t;
+  } else {
+    const parts = monthValue.split('-').map(Number);
+    if (parts[0] && parts[1]) {
+      from = new Date(parts[0], parts[1] - 1, 1, 0, 0, 0, 0);
+      to = new Date(parts[0], parts[1], 0, 23, 59, 59, 999);
+      label = 'tháng ' + String(parts[1]).padStart(2, '0') + '/' + parts[0];
+    }
+  }
+
+  return { mode: mode, monthValue: monthValue, branch: branch, from: from, to: to, label: label };
+}
+
+function globalFilterRows_(rows, dateGetter, branchGetter) {
+  const state = globalFilterState_();
+  const getDate = typeof dateGetter === 'function' ? dateGetter : function (r) { return r.date || r.createdAt; };
+  const getBranch = typeof branchGetter === 'function' ? branchGetter : function (r) { return r.branch; };
+
+  return (Array.isArray(rows) ? rows : []).filter(function (r) {
+    if (state.branch) {
+      const rowBranch = String(getBranch(r) || '').trim();
+      // Dữ liệu không có trường chi nhánh vẫn được giữ, tránh làm trắng các bảng phụ.
+      if (rowBranch && rowBranch !== String(state.branch).trim()) return false;
+    }
+
+    const rawDate = getDate(r);
+    const d = parseAnyDate(rawDate);
+    if (!d) return false;
+    if (state.from && d < state.from) return false;
+    if (state.to && d > state.to) return false;
+    return true;
+  });
+}
+
 function branchFiltered() {
-  const b = document.getElementById('globalBranch').value;
-  if (!b) return REPAIRS;
-  return REPAIRS.filter(x => String(x.branch) === b);
+  return globalFilterRows_(REPAIRS, function (r) { return r.date || r.createdAt; }, function (r) { return r.branch; });
+}
+
+function rerenderActiveTab_() {
+  if (!ACTIVE_TAB) return;
+  openTab(ACTIVE_TAB);
+}
+
+function applyGlobalFilters() {
+  // Bộ lọc chi nhánh/thời gian chỉ dùng cho menu Tổng quan.
+  if (ACTIVE_TAB === 'overview') renderOverview();
+}
+
+function changeOverviewMode(shouldRender) {
+  const mode = document.getElementById('overviewMode')?.value || 'month';
+  const monthWrap = document.getElementById('overviewMonthWrap');
+  const rangeWrap = document.getElementById('overviewRangeWrap');
+  if (monthWrap) monthWrap.style.display = mode === 'month' ? 'flex' : 'none';
+  if (rangeWrap) rangeWrap.style.display = mode === 'range' ? 'flex' : 'none';
+  if (shouldRender !== false && ACTIVE_TAB === 'overview') renderOverview();
+}
+
+function resetOverviewFilters() {
+  const now = new Date();
+  const mode = document.getElementById('overviewMode');
+  const branch = document.getElementById('globalBranch');
+  const month = document.getElementById('overviewMonth');
+  const from = document.getElementById('overviewFrom');
+  const to = document.getElementById('overviewTo');
+  if (mode) mode.value = 'month';
+  if (branch) branch.value = '';
+  if (month) month.value = formatInputDate_(now).slice(0, 7);
+  if (from) from.value = formatInputDate_(new Date(now.getFullYear(), now.getMonth(), 1));
+  if (to) to.value = formatInputDate_(now);
+  changeOverviewMode(false);
+  if (ACTIVE_TAB === 'overview') renderOverview();
+}
+
+function latestRepairDate_(rows) {
+  let latest = null;
+  (rows || []).forEach(function (r) {
+    const d = parseAnyDate(r.date || r.createdAt);
+    if (d && (!latest || d > latest)) latest = d;
+  });
+  return latest;
+}
+
+function overviewFiltered() {
+  const rows = branchFiltered().slice();
+  const state = globalFilterState_();
+  const referenceDate = state.to || state.from || latestRepairDate_(rows) || new Date();
+  return { rows: rows, mode: state.mode, label: state.label, referenceDate: referenceDate };
 }
 
 function renderOverview() {
-  const data = branchFiltered();
-  const d = buildLocalDashboard(data);
+  const filter = overviewFiltered();
+  const data = filter.rows;
+  CURRENT_OVERVIEW_ROWS = data;
+  const d = buildLocalDashboard(data, { referenceDate: filter.referenceDate, periodLabel: filter.label, mode: filter.mode });
   const isMoneyHidden = MONEY_HIDDEN_ROLES.includes(USER.role);
   updateExecutiveDashboard(d, isMoneyHidden);
 
   const opsCards = [
     ['Điểm vận hành', d.healthScore + '/100', d.healthScore >= 85 ? 'success' : (d.healthScore >= 70 ? 'warn' : 'danger')],
-    ['Tổng đơn nhận hôm nay', d.todayReceived, ''],
-    ['Đang sửa', d.inProgress, ''],
-    ['Hoàn thành', d.completed, ''],
+    ['Tổng đơn trong kỳ', d.periodOrders, ''],
+    ['Đang xử lý', d.inProgress, ''],
+    ['Đã sửa xong', d.completed, ''],
     ['Đã giao khách', d.returned, ''],
     ['Quá hẹn', d.overdue, 'danger'],
     ['Chờ linh kiện', d.waitingPart, 'warn']
@@ -141,20 +320,19 @@ function renderOverview() {
   }).join('');
 
   const bizCards = [
-    ['Đơn hôm nay', d.todayOrders, ''],
-    ['Đơn tuần', d.weekOrders, ''],
-    ['Đơn tháng', d.monthOrders, ''],
-    ['Doanh thu hôm nay', fmtMoney(d.todayRevenue), ''],
-    ['Doanh thu tuần', fmtMoney(d.weekRevenue), ''],
-    ['Doanh thu tháng', fmtMoney(d.monthRevenue), '']
+    ['Phạm vi đang xem', d.periodLabel, ''],
+    ['Tổng phiếu', d.periodOrders, ''],
+    ['Doanh thu trong kỳ', fmtMoney(d.periodRevenue), ''],
+    ['Đã giao khách', d.returned, ''],
+    ['Đang xử lý', d.inProgress, ''],
+    ['Ticket trung bình', fmtMoney(d.avgTicket), '']
   ];
 
-  // Chỉ Admin mới thấy chi phí/lợi nhuận/ticket TB ở Tổng quan.
+  // Chỉ Admin mới thấy chi phí/lợi nhuận ở Tổng quan.
   if (USER.role === 'admin') {
     bizCards.push(
-      ['Chi phí tháng', fmtMoney(d.monthCost), 'warn'],
-      ['Lợi nhuận tháng', fmtMoney(d.monthProfit), 'success'],
-      ['Ticket TB', fmtMoney(d.avgTicket), '']
+      ['Chi phí trong kỳ', fmtMoney(d.periodCost), 'warn'],
+      ['Lợi nhuận trong kỳ', fmtMoney(d.periodProfit), 'success']
     );
   }
 
@@ -195,7 +373,8 @@ function renderRank(id, items, suffix) {
 }
 
 function renderMatrix() {
-  const d = buildLocalDashboard(branchFiltered());
+  const sourceRows = ACTIVE_TAB === 'overview' ? branchFiltered() : REPAIRS;
+  const d = buildLocalDashboard(sourceRows);
   let matrix = d.matrix || { models: [], services: [], values: {} };
   const modelQ = (document.getElementById('matrixModelFilter')?.value || '').toLowerCase();
   const serviceQ = (document.getElementById('matrixServiceFilter')?.value || '').toLowerCase();
@@ -218,7 +397,8 @@ function renderMatrix() {
 }
 
 function renderMaterialsNeed() {
-  const d = buildLocalDashboard(branchFiltered());
+  const sourceRows = ACTIVE_TAB === 'overview' ? branchFiltered() : REPAIRS;
+  const d = buildLocalDashboard(sourceRows);
   const q = (document.getElementById('materialSearch')?.value || '').toLowerCase();
   const g = document.getElementById('materialGroup')?.value || '';
   const showAll = document.getElementById('showAllMaterials')?.checked;
@@ -239,7 +419,8 @@ function renderMaterialsNeed() {
 }
 
 function renderMaterialSupplierSummary(targetPrefix) {
-  const d = buildLocalDashboard(branchFiltered());
+  const sourceRows = ACTIVE_TAB === 'overview' ? branchFiltered() : REPAIRS;
+  const d = buildLocalDashboard(sourceRows);
   const rows = d.supplierStats || [];
   const totalCost = rows.reduce(function (sum, x) { return sum + Number(x.totalCost || 0); }, 0);
   const totalQty = rows.reduce(function (sum, x) { return sum + Number(x.totalQty || 0); }, 0);
@@ -319,48 +500,22 @@ function renderOpsAlerts(d) {
 }
 
 function initWeeklyReport() {
-  const m = document.getElementById('reportMonth');
-  if (m && !m.value) {
-    const now = new Date();
-    m.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-  }
   renderWeeklyReport();
 }
 
 function getWeeklyReportRows() {
-  const branch = document.getElementById('reportBranch')?.value || '';
-  const monthVal = document.getElementById('reportMonth')?.value || '';
   const weekVal = document.getElementById('reportWeek')?.value || '';
-  let year = '', month = '';
-  if (monthVal) {
-    const parts = monthVal.split('-');
-    year = Number(parts[0]);
-    month = Number(parts[1]);
-  }
   return REPAIRS.filter(function (r) {
     const d = parseAnyDate(r.date || r.createdAt);
-    const ry = Number(r.year || (d ? d.getFullYear() : 0));
-    const rm = Number(r.month || (d ? d.getMonth() + 1 : 0));
     const rw = Number(r.week || (d ? Math.ceil(d.getDate() / 7) : 0));
-    if (branch && String(r.branch) !== branch) return false;
-    if (year && ry !== year) return false;
-    if (month && rm !== month) return false;
     if (weekVal && rw !== Number(weekVal)) return false;
     return true;
   });
 }
 
 function reportPeriodText() {
-  const branch = document.getElementById('reportBranch')?.value || '';
-  const monthVal = document.getElementById('reportMonth')?.value || '';
   const weekVal = document.getElementById('reportWeek')?.value || '';
-  let text = weekVal ? ('Tuần ' + weekVal) : 'Cả tháng';
-  if (monthVal) {
-    const p = monthVal.split('-');
-    text += ' - Tháng ' + Number(p[1]) + '/' + p[0];
-  }
-  text += branch ? (' - CN ' + branch) : ' - Tất cả chi nhánh';
-  return text;
+  return weekVal ? ('Tuần ' + weekVal + ' · toàn bộ dữ liệu') : 'Toàn bộ dữ liệu';
 }
 
 function reportPercent(value, total) {
@@ -775,7 +930,8 @@ function costPriority(r) {
 }
 
 function filterRepairs(rows, mode) {
-  let out = Array.isArray(rows) ? rows.slice() : [];
+  // Các menu Danh sách/Xử lý/Chi phí dùng toàn bộ dữ liệu; không nhận bộ lọc Tổng quan.
+  let out = (Array.isArray(rows) ? rows : []).slice();
 
   const get = function (id) {
     const el = document.getElementById(id);
@@ -793,9 +949,7 @@ function filterRepairs(rows, mode) {
     mode === 'status' ? get('statusTech') :
     get(mode + 'Tech');
 
-  const branchValue =
-    mode === 'repair' ? get('repairBranch') :
-    get('globalBranch');
+  const branchValue = mode === 'repair' ? get('repairBranch') : '';
 
   const from =
     mode === 'status' ? get('statusFrom') :
@@ -1023,23 +1177,11 @@ function renderMaterialsFull() {
 
 
 function initCommissionTab() {
-  const m = document.getElementById('commissionMonth');
-  if (m && !m.value) {
-    const now = new Date();
-    m.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-  }
   renderCommissionDashboard();
 }
 
 function getCommissionRows() {
-  const monthVal = document.getElementById('commissionMonth')?.value || '';
   const techFilter = document.getElementById('commissionTech')?.value || '';
-  let year = 0, month = 0;
-  if (monthVal) {
-    const parts = monthVal.split('-');
-    year = Number(parts[0] || 0);
-    month = Number(parts[1] || 0);
-  }
 
   const rules = buildCommissionRuleMap();
   const serviceCt = normalizeCtServices(CT_SERVICES);
@@ -1052,16 +1194,11 @@ function getCommissionRows() {
   const out = [];
 
   // 1) Hoa hồng từ máy khách trên hệ thống: DATA + CT_DICH_VU
-  branchFiltered().forEach(function (r) {
+  REPAIRS.forEach(function (r) {
     const techName = String(r.technician || '').trim();
     if (!techName) return;
     if (techFilter && techName !== techFilter) return;
 
-    const dt = parseAnyDate(r.completedDate || r.updatedAt || r.date || r.createdAt);
-    const rowYear = Number(r.year || (dt ? dt.getFullYear() : 0));
-    const rowMonth = Number(r.month || (dt ? dt.getMonth() + 1 : 0));
-    if (year && rowYear !== year) return;
-    if (month && rowMonth !== month) return;
 
     const model = canonicalModelName(r.product || 'Khác');
     const services = uniqueTextList((serviceByRepair[r.repairId] && serviceByRepair[r.repairId].length) ? serviceByRepair[r.repairId] : splitItems(r.repairService || ''));
@@ -1091,13 +1228,12 @@ function getCommissionRows() {
   // THO_NHAP_CONG chỉ dùng cho tab Đối chiếu công kỹ thuật để kiểm tra thợ nhập thiếu/dư,
   // tuyệt đối không dùng THO_NHAP_CONG làm nguồn chuẩn tính hoa hồng.
   const pushedSent = {};
-  (SENT_REPAIRS || []).forEach(function (sent) {
+  SENT_REPAIRS.forEach(function (sent) {
     const techName = String(sent.technician || sent.tech || sent['Kỹ thuật'] || sent['Kỹ Thuật'] || '').trim();
     if (!techName) return;
     if (techFilter && techName !== techFilter) return;
 
     const rowDate = sent.receivedBackDate || sent.sentDate || sent.updatedAt || sent.createdAt || '';
-    if (!matchMonth_(rowDate, monthVal)) return;
 
     const imeiKey = imei6_(sent.imei);
     if (!imeiKey) return;
@@ -1219,9 +1355,8 @@ function renderCommissionDashboard() {
 
 function commissionReportHtml() {
   const rows = getCommissionRows();
-  const monthVal = document.getElementById('commissionMonth')?.value || '';
   const techFilter = document.getElementById('commissionTech')?.value || '';
-  const titleMonth = monthVal ? ('Tháng ' + monthVal.split('-')[1] + '/' + monthVal.split('-')[0]) : 'Tất cả thời gian';
+  const titleMonth = 'Toàn bộ dữ liệu';
   const titleTech = techFilter || 'Tất cả kỹ thuật';
   const total = rows.reduce(function (sum, x) { return sum + Number(x.amount || 0); }, 0);
   const systemTotal = rows.filter(x => x.source === 'Khách hệ thống').reduce((s,x)=>s+Number(x.amount||0),0);
@@ -1349,11 +1484,6 @@ function uniqueTextList(items) {
 
 
 function initSalaryAuditTab() {
-  const m = document.getElementById('salaryMonth');
-  if (m && !m.value) {
-    const now = new Date();
-    m.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-  }
   ['techWorkForm'].forEach(function (id) {
     const f = document.getElementById(id);
     if (f && f.querySelector('input[type="date"]') && !f.querySelector('input[type="date"]').value) {
@@ -1417,23 +1547,17 @@ function isSentRepairOpen_(status) {
 }
 
 function getSentRepairFilteredRows_() {
-  const from = document.getElementById('sentRepairFrom')?.value || '';
-  const to = document.getElementById('sentRepairTo')?.value || '';
   const q = normalizeTextNoAccent(document.getElementById('sentRepairKeyword')?.value || '');
   const tech = document.getElementById('sentRepairTechFilter')?.value || '';
   const sender = normalizeTextNoAccent(document.getElementById('sentRepairSenderFilter')?.value || '');
   const status = document.getElementById('sentRepairStatusFilter')?.value || '';
   const showAll = !!document.getElementById('sentRepairShowAll')?.checked;
 
-  return (SENT_REPAIRS || []).filter(function (r) {
+  return SENT_REPAIRS.filter(function (r) {
     if (!showAll && !status && !isSentRepairOpen_(r.status)) return false;
     if (status && String(r.status || '') !== status) return false;
     if (tech && String(r.technician || '') !== tech) return false;
     if (sender && normalizeTextNoAccent(r.sender || '').indexOf(sender) === -1) return false;
-
-    const d = parseAnyDate(r.sentDate || r.createdAt);
-    if (from && d && d < new Date(from + 'T00:00:00')) return false;
-    if (to && d && d > new Date(to + 'T23:59:59')) return false;
 
     if (q) {
       const text = normalizeTextNoAccent([r.imei, r.model || r.name, r.process1, r.process2, r.technician, r.sender, r.status].join(' '));
@@ -1456,7 +1580,7 @@ function sentRepairHasTechWork_(r) {
 }
 
 function renderSentRepairList() {
-  const all = SENT_REPAIRS || [];
+  const all = SENT_REPAIRS.slice();
   const rows = getSentRepairFilteredRows_();
   const kpis = document.getElementById('sentRepairKpis');
   if (kpis) {
@@ -1563,17 +1687,14 @@ function renderSalaryAudit() {
 }
 
 function salaryFilteredTechWork() {
-  const monthVal = document.getElementById('salaryMonth')?.value || '';
   const techFilter = document.getElementById('salaryTech')?.value || '';
-  return (TECH_WORK || []).filter(function (r) {
+  return TECH_WORK.filter(function (r) {
     if (techFilter && String(r.technician || '') !== techFilter) return false;
-    if (!matchMonth_(r.date || r.createdAt, monthVal)) return false;
     return true;
   });
 }
 
 function buildSalaryAuditRows() {
-  const monthVal = document.getElementById('salaryMonth')?.value || '';
   const techFilter = document.getElementById('salaryTech')?.value || '';
   const inputRows = salaryFilteredTechWork();
   const inputKeys = {};
@@ -1585,17 +1706,15 @@ function buildSalaryAuditRows() {
     servicesByRepair[svc.repairId] = servicesByRepair[svc.repairId] || [];
     servicesByRepair[svc.repairId].push(svc.name);
   });
-  branchFiltered().forEach(function (r) {
+  REPAIRS.forEach(function (r) {
     if (!r.imei || !r.technician) return;
     if (techFilter && r.technician !== techFilter) return;
-    if (!matchMonth_(r.completedDate || r.updatedAt || r.date || r.createdAt, monthVal)) return;
     const services = uniqueTextList((servicesByRepair[r.repairId] && servicesByRepair[r.repairId].length) ? servicesByRepair[r.repairId] : splitItems(r.repairService || ''));
     systemSources.push({ imei: r.imei, technician: r.technician, model: r.product, service: services.join(', '), source: 'Khách lẻ hệ thống' });
   });
 
-  const sentSources = (SENT_REPAIRS || []).filter(function (r) {
+  const sentSources = SENT_REPAIRS.filter(function (r) {
     if (techFilter && String(r.technician || '') !== techFilter) return false;
-    if (!matchMonth_(r.sentDate || r.createdAt, monthVal)) return false;
     return true;
   }).map(function (r) { return { imei: r.imei, technician: r.technician, model: r.model || r.name, service: [r.process1, r.process2].filter(Boolean).join(', '), source: 'Máy gửi xử lý' }; });
 
@@ -1707,7 +1826,7 @@ function updateMaterialPreview() {
   document.getElementById('totalCostPreview').textContent = fmtMoney(materialTotal + labor);
 }
 
-function clearRepairFilters() { ['repairQ','repairBranch','repairStatus','repairTech','repairFrom','repairTo'].forEach(id => document.getElementById(id).value = ''); renderRepairTable(); }
+function clearRepairFilters() { ['repairQ','repairBranch','repairStatus','repairTech','repairFrom','repairTo'].forEach(function (id) { const el = document.getElementById(id); if (el) el.value = ''; }); renderRepairTable(); }
 
 
 function getTabSubtitle(tab) {
@@ -1743,21 +1862,22 @@ function toggleTheme() {
 
 function updateExecutiveDashboard(d, isMoneyHidden) {
   const name = USER?.name || USER?.username || 'POPO';
-  setText('heroGreeting', 'Xin chào ' + name + ' 👋');
+  setText('heroGreeting', 'Xin chào ' + name + ' 👋 · ' + (d.periodLabel || 'tổng quan'));
+  setText('execReceivedLabel', 'Tổng đơn ' + (d.periodLabel || 'trong kỳ'));
   setText('heroSummary', executiveSummaryText(d, isMoneyHidden));
   setText('heroScore', d.healthScore + '/100');
   setText('sidebarHealth', d.healthScore + '/100');
-  setText('execTodayReceived', d.todayReceived || 0);
+  setText('execTodayReceived', d.periodOrders || 0);
   setText('execInProgress', d.inProgress || 0);
   setText('execOverdue', d.overdue || 0);
   if (isMoneyHidden) {
-    setText('execMoneyLabel', 'Đơn tháng');
-    setText('execMoneyValue', d.monthOrders || 0);
+    setText('execMoneyLabel', 'Đã giao trong kỳ');
+    setText('execMoneyValue', d.returned || 0);
     setText('execMoneyNote', 'Ẩn doanh thu theo phân quyền');
   } else {
-    setText('execMoneyLabel', 'Doanh thu hôm nay');
-    setText('execMoneyValue', fmtMoney(d.todayRevenue || 0));
-    setText('execMoneyNote', USER.role === 'admin' ? 'Lợi nhuận tháng: ' + fmtMoney(d.monthProfit || 0) : 'Doanh thu theo dữ liệu thực thu');
+    setText('execMoneyLabel', 'Doanh thu trong kỳ');
+    setText('execMoneyValue', fmtMoney(d.periodRevenue || 0));
+    setText('execMoneyNote', USER.role === 'admin' ? 'Lợi nhuận trong kỳ: ' + fmtMoney(d.periodProfit || 0) : 'Doanh thu theo dữ liệu thực thu');
   }
   const alerts = [
     { title: 'Máy quá hẹn', note: 'Cần gọi KTV / báo khách', count: d.overdue || 0, level: 'danger' },
@@ -1790,8 +1910,8 @@ function executiveSummaryText(d, isMoneyHidden) {
   if (d.overdue) issues.push(d.overdue + ' máy quá hẹn');
   if (d.waitingPart) issues.push(d.waitingPart + ' máy chờ linh kiện');
   if (d.stuck) issues.push(d.stuck + ' máy tồn quá 3 ngày');
-  if (!issues.length) return 'Vận hành đang ổn. Hôm nay nhận ' + (d.todayReceived || 0) + ' máy, đang sửa ' + (d.inProgress || 0) + ' máy.';
-  return 'Cần xử lý: ' + issues.join(', ') + '. ' + (isMoneyHidden ? 'Doanh thu đang ẩn theo phân quyền.' : 'Doanh thu hôm nay ' + fmtMoney(d.todayRevenue || 0) + '.');
+  if (!issues.length) return 'Phạm vi ' + (d.periodLabel || 'đang chọn') + ' có ' + (d.periodOrders || 0) + ' phiếu, đang xử lý ' + (d.inProgress || 0) + ' máy.';
+  return 'Cần xử lý: ' + issues.join(', ') + '. ' + (isMoneyHidden ? 'Doanh thu đang ẩn theo phân quyền.' : 'Doanh thu trong kỳ ' + fmtMoney(d.periodRevenue || 0) + '.');
 }
 
 function setText(id, value) {
@@ -1799,14 +1919,16 @@ function setText(id, value) {
   if (el) el.textContent = value;
 }
 
-function buildLocalDashboard(data) {
-  const todayDate = new Date();
+function buildLocalDashboard(data, options) {
+  options = options || {};
+  data = Array.isArray(data) ? data : [];
+  const todayDate = options.referenceDate instanceof Date ? options.referenceDate : new Date();
   const currentYear = todayDate.getFullYear();
   const currentMonth = todayDate.getMonth() + 1;
   const currentWeek = Math.ceil(todayDate.getDate() / 7);
 
   const top = {}, models = {}, types = {}, tech = {}, mats = {}, matrix = { models: [], services: [], values: {} };
-  let revenue = 0, profit = 0, inProgress = 0, completed = 0, waitingPart = 0, returned = 0, overdue = 0, warrantyBack = 0, stuck = 0;
+  let revenue = 0, profit = 0, periodCost = 0, inProgress = 0, completed = 0, waitingPart = 0, returned = 0, overdue = 0, warrantyBack = 0, stuck = 0;
   let todayReceived = 0, todayOrders = 0, weekOrders = 0, monthOrders = 0, todayRevenue = 0, weekRevenue = 0, monthRevenue = 0, monthCost = 0, monthProfit = 0;
   const weeklyMap = {};
   [1, 2, 3, 4, 5].forEach(function (w) { weeklyMap[w] = { week: w, count: 0, revenue: 0, profit: 0 }; });
@@ -1829,6 +1951,7 @@ function buildLocalDashboard(data) {
 
     revenue += rowRevenue;
     profit += rowProfit;
+    periodCost += rowCost;
     if (['2.', '3.', '4.', '5.'].some(function (s) { return String(r.status).startsWith(s); })) inProgress++;
     if (String(r.status).startsWith('7.')) completed++;
     if (String(r.status).startsWith('6.')) waitingPart++;
@@ -2034,8 +2157,17 @@ function buildLocalDashboard(data) {
 
   const healthScore = Math.max(0, Math.min(100, 100 - (overdue * 8) - (waitingPart * 4) - (stuck * 6) - (warrantyBack * 5)));
 
+  const periodLabel = options.periodLabel || 'toàn bộ dữ liệu';
+  const weekTitle = '3. Doanh thu theo tuần · tháng ' + String(currentMonth).padStart(2, '0') + '/' + currentYear;
+  if (options.periodLabel) setText('weekChartTitle', weekTitle);
+
   return {
     healthScore: healthScore,
+    periodLabel: periodLabel,
+    periodOrders: data.length,
+    periodRevenue: revenue,
+    periodCost: periodCost,
+    periodProfit: profit,
     todayReceived: todayReceived,
     todayOrders: todayOrders,
     weekOrders: weekOrders,
@@ -2045,7 +2177,7 @@ function buildLocalDashboard(data) {
     monthRevenue: monthRevenue,
     monthCost: monthCost,
     monthProfit: monthProfit,
-    avgTicket: monthOrders ? Math.round(monthRevenue / monthOrders) : 0,
+    avgTicket: data.length ? Math.round(revenue / data.length) : 0,
     todayCount: todayReceived,
     revenue: revenue,
     profit: profit,
