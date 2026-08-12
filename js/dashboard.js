@@ -13,6 +13,7 @@ let DATA_HEALTH = {};
 function initDashboard() {
   applySavedTheme();
   USER = requireLogin();
+  if (!USER) return;
   document.getElementById('userName').textContent = USER.name;
   document.getElementById('userRole').textContent = ROLE_LABELS[USER.role] || USER.role;
   setupNavByRole();
