@@ -4,10 +4,205 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>POPOPHONE Repair</title>
-  <meta http-equiv="refresh" content="0; url=login.html" />
-  <script>
-    window.location.replace('login.html');
-  </script>
+  <link rel="stylesheet" href="css/style.css?v=16.0-mobile-sheet-ui" />
 </head>
-<body></body>
+<body class="public-body">
+  <header class="public-header">
+    <div class="public-brand">
+      <div class="brand-mark">P</div>
+      <div>
+        POPOPHONE Repair
+        <small>Tiếp nhận & tra cứu</small>
+      </div>
+    </div>
+    <a class="ghost-btn" href="login.html">Đăng nhập quản trị</a>
+  </header>
+
+  <main class="public-main">
+    <section class="public-hero">
+      <div>
+        <span class="eyebrow">POPOPHONE</span>
+        <h1>PHIẾU TIẾP NHẬN SỮA CHỮA</h1>
+        <p>1. Nhập thông tin 2. Lưu phiếu 3. In phiếu.</p>
+      </div>
+      <div class="public-hero-steps">
+        <span>1. Nhận máy</span>
+        <span>2. KTV xử lý</span>
+        <span>3. Trả khách</span>
+      </div>
+    </section>
+    <div class="mobile-tabs">
+      <button class="active" data-public-tab="receive">📥 Tiếp nhận</button>
+      <button data-public-tab="search">🔍 Tra cứu</button>
+    </div>
+
+    <section id="receive" class="public-tab form-panel">
+      <div class="panel-head">
+        <div>
+          <h2>Tiếp nhận sửa chữa</h2>
+        </div>
+      </div>
+
+      <form id="receiveForm" class="form-grid">
+        <label>
+          <span>IMEI / Serial *</span>
+          <input name="imei" required inputmode="numeric" maxlength="6" pattern="\d{6}" placeholder="Nhập đúng 6 số cuối IMEI" autocomplete="off" />
+          
+        </label>
+
+        <label>
+          <span>Sản phẩm / Dòng máy *</span>
+          <select name="product" id="receiveProduct" required></select>
+        </label>
+
+        <label>
+          <span>Chi nhánh nhận *</span>
+          <select name="branch" required>
+            <option>113</option>
+            <option>148</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Tên khách hàng *</span>
+          <input name="customer" required placeholder="Tên khách" />
+        </label>
+
+        <label>
+          <span>Số điện thoại *</span>
+          <input name="phone" required inputmode="numeric" maxlength="10" pattern="0\d{9}" placeholder="VD: 0901234567" autocomplete="off" />
+          
+        </label>
+
+        <label>
+          <span>Loại dịch vụ *</span>
+          <select name="serviceType" id="receiveServiceType" required></select>
+        </label>
+
+        <label class="span-3">
+          <span>Tình trạng khi nhận máy *</span>
+          <textarea name="receiveStatus" required placeholder="VD: full chức năng, pin bảo trì, màn trầy..."></textarea>
+        </label>
+
+        <div class="span-3 form-field request-field">
+          <span>Yêu cầu sửa chữa *</span>
+          <div class="multi-service" id="receiveRequestBox">
+            <button type="button" class="multi-service-trigger" id="receiveRequestTrigger" onclick="openServicePicker(event)">
+              <span id="receiveRequestTriggerText">+ Chọn dịch vụ sửa chữa</span>
+              <span class="multi-service-trigger-arrow" aria-hidden="true">›</span>
+            </button>
+            <div class="multi-service-tags" id="receiveRequestTags"></div>
+
+          </div>
+          <input type="hidden" name="request" id="receiveRequest" value="" />
+        </div>
+
+        <label class="span-3">
+          <span>Ghi chú tiếp nhận</span>
+          <textarea name="receiveNote" placeholder="VD: mật khẩu, phụ kiện kèm theo..."></textarea>
+        </label>
+
+        <label>
+          <span>Hẹn trả</span>
+          <input name="appointment" type="datetime-local" />
+        </label>
+
+        <label>
+          <span>Giá dự kiến / Báo giá</span>
+          <input name="estimate" type="number" placeholder="0" />
+        </label>
+
+        <label>
+          <span>Nhân viên tiếp nhận *</span>
+          <select name="staff" id="receiveStaff" required></select>
+        </label>
+
+        <label>
+          <span>FaceID</span>
+          <select name="faceId">
+            <option>Bình thường</option>
+            <option>Lỗi</option>
+            <option>Không test được</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Màn hình</span>
+          <select name="screen">
+            <option>Bình thường</option>
+            <option>Lỗi</option>
+            <option>Không test được</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Camera/Mic</span>
+          <select name="cameraMic">
+            <option>Bình thường</option>
+            <option>Lỗi</option>
+            <option>Không test được</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Loa</span>
+          <select name="speaker">
+            <option>Bình thường</option>
+            <option>Lỗi</option>
+            <option>Không test được</option>
+          </select>
+        </label>
+
+        <div class="form-actions">
+          <button type="reset" class="ghost-btn">Nhập lại</button>
+          <button type="submit" class="primary-btn">Lưu phiếu</button>
+          <button id="btnPrint" type="button" class="ghost-btn">In phiếu nhận</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="search" class="public-tab form-panel hidden">
+      <div class="panel-head">
+        <div>
+          <h2>Tra cứu sửa chữa</h2>
+          <p>Tìm nhanh theo mã sửa chữa, IMEI, SĐT hoặc tên khách hàng.</p>
+        </div>
+      </div>
+
+      <div class="search-row" style="grid-template-columns: 1fr auto;">
+        <input id="publicKeyword" placeholder="Nhập mã SC / IMEI / SĐT / tên khách" />
+        <button class="primary-btn" onclick="publicSearch()">Tìm</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã</th>
+              <th>Máy</th>
+              <th>Khách</th>
+              <th>SĐT</th>
+              <th>Dịch vụ sửa chữa</th>
+              <th>Trạng thái</th>
+              <th>Hẹn trả</th>
+              <th>Báo giá</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="publicResults">
+            <tr><td colspan="9">Nhập từ khóa để tra cứu.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+
+  <div id="modal" class="modal"></div>
+  <div id="printArea" class="print-area"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/mock.js"></script>
+  <script src="js/public.js?v=17.0-service-picker"></script>
+</body>
 </html>
