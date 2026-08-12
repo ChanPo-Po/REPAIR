@@ -8,16 +8,13 @@ function currentUser() {
 
 function requireLogin() {
   const user = currentUser();
-  if (!user) {
-    window.location.replace('index.html');
-    return null;
-  }
+  if (!user) window.location.href = 'login.html';
   return user;
 }
 
 function logout() {
   localStorage.removeItem('repairUser');
-  window.location.replace('index.html');
+  window.location.href = 'login.html';
 }
 
 function setupLogin() {
