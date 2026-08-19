@@ -81,17 +81,30 @@ function openTab(tab) {
 
 function loadAll() {
   setOverviewDataStatus('Đang tải dữ liệu DATA...');
-  return apiCall({ action: 'bootstrap' }, { timeoutMs: 45000 }).then(function (res) {
-    if (!res || res.success === false) {
-      throw new Error((res && res.message) || 'Không tải được dữ liệu hệ thống');
-    }
+  return Promise.allSettled([
+    apiCall({ action: 'getMasters' }),
+    apiCall({ action: 'list' }, { timeoutMs: 45000 }),
+    apiCall({ action: 'getDashboard' }, { timeoutMs: 45000 })
+  ]).then(function (all) {
+    const masterRes = all[0].status === 'fulfilled' ? all[0].value : null;
+    const listRes = all[1].status === 'fulfilled' ? all[1].value : null;
+    const dashRes = all[2].status === 'fulfilled' ? all[2].value : null;
+    const errors = [];
 
-    const boot = res.data || {};
-    MASTERS = boot.masters || {};
-    DASH = boot.dashboard || {};
+    if (!masterRes || masterRes.success === false) errors.push((masterRes && masterRes.message) || (all[0].reason && all[0].reason.message) || 'Lỗi danh mục');
+    if (!listRes || listRes.success === false) errors.push((listRes && listRes.message) || (all[1].reason && all[1].reason.message) || 'Lỗi danh sách DATA');
+    if (!dashRes || dashRes.success === false) errors.push((dashRes && dashRes.message) || (all[2].reason && all[2].reason.message) || 'Lỗi dashboard API');
+
+    MASTERS = masterRes && masterRes.success !== false ? (masterRes.data || {}) : {};
+    DASH = dashRes && dashRes.success !== false ? (dashRes.data || {}) : {};
     DATA_HEALTH = DASH.dataHealth || {};
 
-    REPAIRS = Array.isArray(DASH.rows) ? DASH.rows : [];
+    const listRows = listRes && listRes.success !== false && Array.isArray(listRes.data) ? listRes.data : [];
+    const dashboardRows = Array.isArray(DASH.rows) ? DASH.rows : [];
+    // Nếu action list bị lỗi/rỗng nhưng getDashboard vẫn có rows thì không để toàn bộ giao diện trắng.
+    REPAIRS = listRows.length ? listRows : dashboardRows;
+    if (!Array.isArray(REPAIRS)) REPAIRS = [];
+
     CT_SERVICES = DASH.ctServices || DASH.services || [];
     CT_MATERIALS = DASH.ctMaterials || DASH.materialsCt || [];
     TECH_WORK = DASH.techWork || DASH.thoNhapCong || [];
@@ -101,13 +114,14 @@ function loadAll() {
     if (REPAIRS.length) {
       const sourceNote = DATA_HEALTH.sheetName ? ' từ sheet ' + DATA_HEALTH.sheetName : '';
       setOverviewDataStatus('Đã tải ' + REPAIRS.length + ' phiếu' + sourceNote + '.');
+      if (errors.length) showToast('Đã tải dữ liệu bằng nguồn dự phòng. ' + errors.join(' | '), 'warn');
       return;
     }
 
     const healthNote = DATA_HEALTH.lastRow ? ' DATA có ' + DATA_HEALTH.lastRow + ' dòng nhưng API đọc được 0 phiếu.' : '';
-    const message = 'API trả về 0 phiếu sửa chữa.' + healthNote;
+    const message = (errors.length ? errors.join(' | ') : 'API trả về 0 phiếu sửa chữa.') + healthNote;
     setOverviewDataStatus(message, true);
-    throw new Error(message);
+    if (errors.length) throw new Error(message);
   });
 }
 

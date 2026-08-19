@@ -80,17 +80,17 @@ function doPost(e) {
 
     if (action === 'login') return json(login_(body));
 
+    setupSheetsLite_();
     const session = getSession_(body);
 
-    if (action === 'getMasters') return json({ success: true, data: getMastersCached_() });
-    if (action === 'createRepair') { setupSheetsLite_(); return json(createRepair(body.data || {})); }
+    if (action === 'getMasters') return json({ success: true, data: getMasters() });
+    if (action === 'createRepair') return json(createRepair(body.data || {}));
     if (action === 'search') return json({ success: true, data: sanitizeRepairsForPublic_(searchRepairs(body.q || '')) });
     if (action === 'getDetail') return json(session ? getDetail(body.repairId) : sanitizeDetailForPublic_(getDetail(body.repairId)));
 
     const authError = requireAuth_(session);
     if (authError) return json(authError);
 
-    if (action === 'bootstrap') return json({ success: true, data: getBootstrapForSession_(session) });
     if (action === 'list') return json({ success: true, data: listRepairsForRole_(session.role) });
     if (action === 'getDashboard') return json({ success: true, data: getDashboardForSession_(session) });
     if (action === 'updateStatus') return json(updateStatus(body.repairId, withSession_(body.data || {}, session)));
@@ -351,25 +351,6 @@ function pick_(obj, keys) {
     if (obj[k] !== undefined && obj[k] !== '') return obj[k];
   }
   return '';
-}
-
-function getMastersCached_() {
-  const cache = CacheService.getScriptCache();
-  const key = 'REPAIR_MASTERS_V1';
-  const cached = cache.get(key);
-  if (cached) {
-    try { return JSON.parse(cached); } catch (e) {}
-  }
-  const data = getMasters();
-  try { cache.put(key, JSON.stringify(data), 300); } catch (e) {}
-  return data;
-}
-
-function getBootstrapForSession_(session) {
-  return {
-    masters: getMastersCached_(),
-    dashboard: getDashboardForSession_(session)
-  };
 }
 
 function getMasters() {
