@@ -1040,12 +1040,21 @@ function openStatusEditor(id) {
     data.estimate = Number(data.estimate || 0);
     data.userRole = USER.role;
     data.actor = USER.name || USER.username || '';
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang lưu...'; }
     apiCall({ action: 'updateStatus', repairId: id, data: data }).then(function (res) {
-      if (!res.success) return showToast(res.message || 'Lỗi lưu', 'error');
+      if (!res.success) {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Lưu cập nhật'; }
+        return showToast(res.message || 'Lỗi lưu', 'error');
+      }
+      applyStatusUpdateLocal_(id, res.data || {}, res.services || data.repairServices || []);
       closeModal();
       showToast('Đã cập nhật trạng thái');
       ACTIVE_TAB = USER.role === 'tech' ? 'status' : ACTIVE_TAB;
-      refreshAll();
+      openTab(ACTIVE_TAB);
+    }).catch(function (err) {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Lưu cập nhật'; }
+      showToast(err.message || 'Lỗi lưu', 'error');
     });
   });
 }
@@ -1151,8 +1160,43 @@ function detailHtml(r, logs, services, materials, showMoney) {
 function openDetail(id) { apiCall({ action: 'getDetail', repairId: id }).then(res => showModal('<div class="modal-card wide">' + detailHtml(res.data, res.logs || [], res.services || [], res.materials || [], !MONEY_HIDDEN_ROLES.includes(USER.role)) + '</div>')); }
 function closeModal() { document.getElementById('modal').classList.remove('show'); }
 function showModal(html) { const m = document.getElementById('modal'); m.innerHTML = html; m.classList.add('show'); }
-function quickDone(id) { const r = REPAIRS.find(x => x.repairId === id); if (!canEditStatus(r)) return showToast('Không có quyền hoặc đơn đã khóa', 'error'); apiCall({ action: 'quickStatus', repairId: id, data: { status: '7. Đã sửa xong', userRole: USER.role, actor: USER.name || USER.username || '' } }).then(() => { showToast('Đã cập nhật Đã sửa xong'); refreshAll(); }); }
-function quickReturn(id) { const r = REPAIRS.find(x => x.repairId === id); if (!canQuickReturn(r) && USER.role !== 'admin') return showToast('Không có quyền trả khách hoặc đơn đã khóa', 'error'); apiCall({ action: 'quickStatus', repairId: id, data: { status: '8. Đã trả khách', userRole: USER.role, actor: USER.name || USER.username || '' } }).then((res) => { if (!res.success) return showToast(res.message || 'Lỗi cập nhật', 'error'); showToast('Đã cập nhật Đã trả khách'); refreshAll(); }); }
+function applyStatusUpdateLocal_(id, updated, services) {
+  const idx = REPAIRS.findIndex(function (x) { return x.repairId === id; });
+  if (idx >= 0 && updated && Object.keys(updated).length) {
+    REPAIRS[idx] = Object.assign({}, REPAIRS[idx], updated);
+  }
+
+  if (Array.isArray(CT_SERVICES)) {
+    CT_SERVICES = CT_SERVICES.filter(function (x) {
+      return String(x.repairId || x['Mã sửa chữa'] || '').trim() !== String(id || '').trim();
+    });
+    (services || []).forEach(function (svc) {
+      const name = typeof svc === 'string' ? svc : (svc.name || svc['Tên dịch vụ'] || '');
+      if (name) CT_SERVICES.push({ repairId: id, 'Mã sửa chữa': id, name: name, 'Tên dịch vụ': name });
+    });
+  }
+}
+
+function quickDone(id) {
+  const r = REPAIRS.find(x => x.repairId === id);
+  if (!canEditStatus(r)) return showToast('Không có quyền hoặc đơn đã khóa', 'error');
+  apiCall({ action: 'quickStatus', repairId: id, data: { status: '7. Đã sửa xong', userRole: USER.role, actor: USER.name || USER.username || '' } }).then(function (res) {
+    if (!res.success) return showToast(res.message || 'Lỗi cập nhật', 'error');
+    applyStatusUpdateLocal_(id, res.data || {}, res.services || []);
+    showToast('Đã cập nhật Đã sửa xong');
+    openTab(ACTIVE_TAB);
+  });
+}
+function quickReturn(id) {
+  const r = REPAIRS.find(x => x.repairId === id);
+  if (!canQuickReturn(r) && USER.role !== 'admin') return showToast('Không có quyền trả khách hoặc đơn đã khóa', 'error');
+  apiCall({ action: 'quickStatus', repairId: id, data: { status: '8. Đã trả khách', userRole: USER.role, actor: USER.name || USER.username || '' } }).then(function (res) {
+    if (!res.success) return showToast(res.message || 'Lỗi cập nhật', 'error');
+    applyStatusUpdateLocal_(id, res.data || {}, res.services || []);
+    showToast('Đã cập nhật Đã trả khách');
+    openTab(ACTIVE_TAB);
+  });
+}
 function renderMaterialsFull() {
   renderMaterialsNeed();
   const full = document.getElementById('materialsFull');

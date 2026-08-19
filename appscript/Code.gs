@@ -761,45 +761,67 @@ function updateStatus(id, d) {
   const role = String(d.userRole || d.role || '').trim();
   const actor = String(d.actor || d.userName || d.technician || '').trim();
   const m = mapHeader(SHEETS.DATA);
-  const old = getDetail(id).data || {};
+
+  // FAST PATH: chỉ đọc đúng 1 dòng đang sửa, không gọi getDetail() / không quét DATA + LOG + CT.
+  const lastCol = sheet.getLastColumn();
+  const rowRange = sheet.getRange(row, 1, 1, lastCol);
+  const rowValues = rowRange.getValues()[0];
+  const old = rowToObj(rowValues, m) || {};
   const oldStatus = String(old.status || '');
   const newStatus = String(d.status || old.status || '');
+  const stamp = nowText();
 
-  // Đơn đã trả khách = khóa dữ liệu, chỉ Admin được sửa/mở khóa.
   if (oldStatus.startsWith('8.') && role !== 'admin') {
     return { success: false, message: 'Đơn đã trả khách, dữ liệu đã khóa. Chỉ Admin được mở khóa/sửa.' };
   }
 
-  // QL cửa hàng chỉ được xác nhận đã trả khách, không sửa dịch vụ/giá/KTV/ghi chú.
+  // Gán trực tiếp vào mảng rồi setValues 1 lần để tránh 8-10 lần gọi Spreadsheet service.
+  function put(header, value) {
+    if (m[header] !== undefined) rowValues[m[header]] = value;
+  }
+
   if (role === 'store') {
     if (!newStatus.startsWith('8.')) {
       return { success: false, message: 'QL cửa hàng chỉ được cập nhật trạng thái Đã trả khách.' };
     }
-    setCell(sheet, row, m, 'Trạng thái máy', '8. Đã trả khách');
-    setCell(sheet, row, m, 'Ngày bàn giao', nowText());
-    setCell(sheet, row, m, 'Ngày cập nhật', nowText());
+    put('Trạng thái máy', '8. Đã trả khách');
+    put('Ngày bàn giao', stamp);
+    put('Ngày cập nhật', stamp);
+    rowRange.setValues([rowValues]);
     addLog(id, actor || 'QL cửa hàng', 'Đã trả khách', 'QL cửa hàng xác nhận đã trả máy cho khách');
-    return { success: true };
+    return { success: true, data: rowToObj(rowValues, m), services: [] };
   }
 
-  // KTV / QLKT / Admin được cập nhật sửa chữa trước khi trả khách.
   const services = normalizeServices(d, old);
   const serviceText = services.map(function (x) { return x.name; }).join(', ');
 
-  setCell(sheet, row, m, 'Dịch vụ sửa chữa', serviceText);
-  setCell(sheet, row, m, 'Nơi xử lý', d.place || old.place || '');
-  setCell(sheet, row, m, 'Kỹ thuật xử lý', d.technician || old.technician || '');
-  setCell(sheet, row, m, 'Trạng thái máy', newStatus);
-  setCell(sheet, row, m, 'Giá dự kiến', moneyValue(d.estimate || old.estimate || 0));
-  setCell(sheet, row, m, 'Ghi chú kỹ thuật', d.techNote || old.techNote || '');
-  setCell(sheet, row, m, 'Trễ hẹn', calcOverdue(row, m));
-  if (newStatus.startsWith('7.')) setCell(sheet, row, m, 'Ngày hoàn thành', nowText());
-  if (newStatus.startsWith('8.')) setCell(sheet, row, m, 'Ngày bàn giao', nowText());
-  setCell(sheet, row, m, 'Ngày cập nhật', nowText());
+  put('Dịch vụ sửa chữa', serviceText);
+  put('Nơi xử lý', d.place || old.place || '');
+  put('Kỹ thuật xử lý', d.technician || old.technician || '');
+  put('Trạng thái máy', newStatus);
+  put('Giá dự kiến', moneyValue(d.estimate !== undefined ? d.estimate : old.estimate || 0));
+  put('Ghi chú kỹ thuật', d.techNote !== undefined ? d.techNote : (old.techNote || ''));
+  put('Trễ hẹn', calcOverdueValue_(old.appointment));
+  if (newStatus.startsWith('7.')) put('Ngày hoàn thành', old.completedDate || stamp);
+  if (newStatus.startsWith('8.')) put('Ngày bàn giao', old.handoverDate || stamp);
+  put('Ngày cập nhật', stamp);
 
-  writeCtServices(id, services, d.technician || actor || old.technician || '');
+  rowRange.setValues([rowValues]);
+  writeCtServicesFast_(id, services, d.technician || actor || old.technician || '');
   addLog(id, actor || d.technician || old.technician || 'Kỹ thuật', 'Cập nhật trạng thái', newStatus + (serviceText ? ' | DV: ' + serviceText : '') + (d.techNote ? ' | ' + d.techNote : ''));
-  return { success: true };
+
+  return { success: true, data: rowToObj(rowValues, m), services: services };
+}
+
+function calcOverdueValue_(appointment) {
+  if (!appointment) return 'Không';
+  try {
+    const dt = appointment instanceof Date ? appointment : new Date(appointment);
+    if (isNaN(dt.getTime())) return 'Không';
+    return dt < new Date() ? 'Có' : 'Không';
+  } catch (e) {
+    return 'Không';
+  }
 }
 
 function updateCost(id, d) {
@@ -906,11 +928,42 @@ function uniqueText(arr) {
 }
 
 function writeCtServices(id, services, user) {
+  // Giữ hàm cũ cho tương thích các luồng khác, nhưng dùng implementation nhanh.
+  return writeCtServicesFast_(id, services, user);
+}
+
+function writeCtServicesFast_(id, services, user) {
   const sheet = sh(SHEETS.CT_DICH_VU);
-  removeByRepair(sheet, id);
-  normalizeServices({ services: services }, {}).forEach(function (svc) {
-    sheet.appendRow([id, svc.name, moneyValue(svc.price || 0), svc.note || '', user || '', nowText()]);
+  const normalized = normalizeServices({ services: services }, {});
+  const stamp = nowText();
+  const rows = normalized.map(function (svc) {
+    return [id, svc.name, moneyValue(svc.price || 0), svc.note || '', user || '', stamp];
   });
+
+  const lastRow = sheet.getLastRow();
+  const matches = [];
+  if (lastRow >= 2) {
+    const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (let i = 0; i < ids.length; i++) {
+      if (String(ids[i][0] || '').trim() === String(id || '').trim()) matches.push(i + 2);
+    }
+  }
+
+  // Ghi đè các dòng cũ trước, không deleteRow (deleteRow rất chậm và làm dịch chuyển sheet).
+  const shared = Math.min(matches.length, rows.length);
+  for (let i = 0; i < shared; i++) {
+    sheet.getRange(matches[i], 1, 1, 6).setValues([rows[i]]);
+  }
+  // Dòng cũ dư thì clear nội dung, không xóa row.
+  for (let i = shared; i < matches.length; i++) {
+    sheet.getRange(matches[i], 1, 1, 6).clearContent();
+  }
+  // Dịch vụ mới nhiều hơn thì append 1 lần theo block.
+  if (rows.length > shared) {
+    const extra = rows.slice(shared);
+    const start = Math.max(sheet.getLastRow() + 1, 2);
+    sheet.getRange(start, 1, extra.length, 6).setValues(extra);
+  }
 }
 
 function writeCtMaterials(id, materials) {
