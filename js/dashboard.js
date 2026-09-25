@@ -100,7 +100,8 @@ function loadAll() {
 
     if (REPAIRS.length) {
       const sourceNote = DATA_HEALTH.sheetName ? ' từ sheet ' + DATA_HEALTH.sheetName : '';
-      setOverviewDataStatus('Đã tải ' + REPAIRS.length + ' phiếu' + sourceNote + '.');
+      setOverviewDataStatus('Đã tải ' + REPAIRS.length + ' phiếu' + sourceNote + '. Đang tải dữ liệu phụ...');
+      loadHeavyData();
       return;
     }
 
@@ -108,6 +109,33 @@ function loadAll() {
     const message = 'API trả về 0 phiếu sửa chữa.' + healthNote;
     setOverviewDataStatus(message, true);
     throw new Error(message);
+  });
+}
+
+let HEAVY_LOADING = false;
+let HEAVY_LOADED = false;
+function loadHeavyData(force) {
+  if (HEAVY_LOADING || (HEAVY_LOADED && !force)) return Promise.resolve();
+  HEAVY_LOADING = true;
+  return apiCall({ action: 'dashboardHeavy' }, { timeoutMs: 35000, retries: 2 }).then(function (res) {
+    if (!res || res.success === false) throw new Error((res && res.message) || 'Không tải được dữ liệu phụ');
+    const d = res.data || {};
+    CT_SERVICES = d.ctServices || d.services || [];
+    CT_MATERIALS = d.ctMaterials || d.materialsCt || [];
+    TECH_WORK = d.techWork || d.thoNhapCong || [];
+    SENT_REPAIRS = d.sentRepairs || d.mayGuiXuLy || [];
+    DASH.attendance = d.attendance || d.chamCongTho || [];
+    DASH.chamCongTho = DASH.attendance;
+    DASH.techSalaryConfig = d.techSalaryConfig || [];
+    HEAVY_LOADED = true;
+    setOverviewDataStatus('Đã tải ' + REPAIRS.length + ' phiếu. Dữ liệu phụ đã sẵn sàng.');
+    if (ACTIVE_TAB) openTab(ACTIVE_TAB);
+  }).catch(function (err) {
+    // Không làm sập Dashboard chính nếu module phụ chậm/lỗi.
+    console.error('dashboardHeavy failed:', err);
+    setOverviewDataStatus('Đã tải ' + REPAIRS.length + ' phiếu. Một số dữ liệu phụ chưa tải được; hệ thống sẽ thử lại khi làm mới.', true);
+  }).finally(function () {
+    HEAVY_LOADING = false;
   });
 }
 

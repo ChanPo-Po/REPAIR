@@ -17,11 +17,8 @@ const MONEY_HIDDEN_ROLES = ['store', 'tech'];
 
 function apiCall(payload, options) {
   payload = payload || {};
-  if (DEMO_MODE || !API_URL || API_URL.includes('PASTE_')) {
-    return mockApi(payload);
-  }
+  if (DEMO_MODE || !API_URL || API_URL.includes('PASTE_')) return mockApi(payload);
 
-  // Gắn session đăng nhập cho các API quản trị. Public form/tra cứu vẫn chạy không cần token.
   try {
     const user = typeof currentUser === 'function' ? currentUser() : JSON.parse(localStorage.getItem('repairUser') || 'null');
     if (user && user.token) {
@@ -38,42 +35,53 @@ function apiCall(payload, options) {
 
   options = options || {};
   const timeoutMs = options.timeoutMs || 25000;
-  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs) : null;
+  const readOnlyActions = ['bootstrap', 'dashboardHeavy', 'list', 'getDashboard', 'getMasters', 'search', 'getDetail'];
+  const maxRetries = options.retries !== undefined ? options.retries : (readOnlyActions.includes(payload.action) ? 2 : 0);
 
-  return fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: {
-      'Content-Type': 'text/plain;charset=utf-8'
-    },
-    signal: controller ? controller.signal : undefined
-  }).then(function (res) {
-    if (!res.ok) {
-      throw new Error('API trả lỗi HTTP ' + res.status + '. Kiểm tra lại link Apps Script đã deploy chưa.');
-    }
-    return res.text();
-  }).then(function (text) {
-    try {
-      const data = JSON.parse(text);
-      if (data && data.success === false && typeof showToast === 'function') {
-        showToast(data.message || 'Lỗi API', 'error');
+  function attempt(attemptNo) {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs) : null;
+
+    return fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      signal: controller ? controller.signal : undefined
+    }).then(function (res) {
+      if (!res.ok) {
+        const err = new Error('API trả lỗi HTTP ' + res.status + '.');
+        err.retryable = res.status >= 500 || res.status === 408 || res.status === 429;
+        throw err;
       }
-      return data;
-    } catch (e) {
-      const preview = String(text || '').slice(0, 140);
-      throw new Error('API không trả JSON. Có thể Apps Script deploy sai quyền/link sai. Response: ' + preview);
-    }
+      return res.text();
+    }).then(function (bodyText) {
+      try {
+        return JSON.parse(bodyText);
+      } catch (e) {
+        const err = new Error('API không trả JSON. Response: ' + String(bodyText || '').slice(0, 140));
+        err.retryable = true;
+        throw err;
+      }
+    }).catch(function (err) {
+      const isTimeout = err && err.name === 'AbortError';
+      const retryable = isTimeout || err.retryable || (err instanceof TypeError);
+      if (retryable && attemptNo < maxRetries) {
+        return new Promise(function (resolve) { setTimeout(resolve, 700 * (attemptNo + 1)); })
+          .then(function () { return attempt(attemptNo + 1); });
+      }
+      if (isTimeout) throw new Error('API quá lâu không phản hồi sau ' + Math.round(timeoutMs / 1000) + ' giây (' + (attemptNo + 1) + ' lần thử).');
+      throw err;
+    }).finally(function () {
+      if (timer) clearTimeout(timer);
+    });
+  }
+
+  return attempt(0).then(function (data) {
+    if (data && data.success === false && typeof showToast === 'function') showToast(data.message || 'Lỗi API', 'error');
+    return data;
   }).catch(function (err) {
-    if (err && err.name === 'AbortError') {
-      err = new Error('API quá lâu không phản hồi sau ' + Math.round(timeoutMs / 1000) + ' giây. Kiểm tra mạng hoặc Apps Script.');
-    }
-    if (typeof showToast === 'function') {
-      showToast(err.message || 'Lỗi API', 'error');
-    }
+    if (typeof showToast === 'function') showToast(err.message || 'Lỗi API', 'error');
     throw err;
-  }).finally(function () {
-    if (timer) clearTimeout(timer);
   });
 }
 

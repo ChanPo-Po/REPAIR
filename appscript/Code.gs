@@ -91,6 +91,7 @@ function doPost(e) {
     if (authError) return json(authError);
 
     if (action === 'bootstrap') return json({ success: true, data: getBootstrapForSession_(session) });
+    if (action === 'dashboardHeavy') return json({ success: true, data: getDashboardHeavyForSession_(session) });
     if (action === 'list') return json({ success: true, data: listRepairsForRole_(session.role) });
     if (action === 'getDashboard') return json({ success: true, data: getDashboardForSession_(session) });
     if (action === 'updateStatus') return json(updateStatus(body.repairId, withSession_(body.data || {}, session)));
@@ -123,15 +124,59 @@ function login_(body) {
   if (!account || String(account.password) !== password) {
     return { success: false, message: 'Sai tài khoản hoặc mật khẩu.' };
   }
-  const token = Utilities.getUuid() + Utilities.getUuid().replace(/-/g, '');
   const user = { username: username, role: account.role, name: account.name, home: account.home };
-  CacheService.getScriptCache().put('SESSION_' + token, JSON.stringify(user), SESSION_TTL_SECONDS);
+  const token = createSessionToken_(user);
   return { success: true, token: token, user: user, expiresIn: SESSION_TTL_SECONDS };
+}
+
+// Session V2 là token có chữ ký + thời hạn, không phụ thuộc CacheService.
+// CacheService có thể tự loại key trước TTL khi thiếu tài nguyên, đây là nguyên nhân
+// phiên cũ thỉnh thoảng biến mất dù người dùng mới đăng nhập.
+function sessionSecret_() {
+  const props = PropertiesService.getScriptProperties();
+  let secret = props.getProperty('REPAIR_SESSION_SECRET_V2');
+  if (!secret) {
+    secret = Utilities.getUuid() + Utilities.getUuid() + Utilities.getUuid();
+    props.setProperty('REPAIR_SESSION_SECRET_V2', secret);
+  }
+  return secret;
+}
+
+function base64WebSafeText_(text) {
+  return Utilities.base64EncodeWebSafe(String(text), Utilities.Charset.UTF_8).replace(/=+$/, '');
+}
+
+function createSessionToken_(user) {
+  const payload = {
+    v: 2,
+    u: user.username,
+    r: user.role,
+    n: user.name,
+    h: user.home,
+    exp: Date.now() + SESSION_TTL_SECONDS * 1000
+  };
+  const encoded = base64WebSafeText_(JSON.stringify(payload));
+  const sig = Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(encoded, sessionSecret_())).replace(/=+$/, '');
+  return 'v2.' + encoded + '.' + sig;
 }
 
 function getSession_(body) {
   const token = String((body && (body.authToken || (body.data && body.data.authToken))) || '').trim();
   if (!token || token === 'LOCAL_DEMO') return null;
+
+  if (token.indexOf('v2.') === 0) {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const expected = Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(parts[1], sessionSecret_())).replace(/=+$/, '');
+      if (expected !== parts[2]) return null;
+      const payload = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(parts[1])).getDataAsString('UTF-8'));
+      if (!payload.exp || Date.now() > Number(payload.exp)) return null;
+      return { username: payload.u, role: payload.r, name: payload.n, home: payload.h };
+    } catch (e) { return null; }
+  }
+
+  // Tương thích token V1 trong thời gian chuyển phiên bản; token mới không dùng cache nữa.
   const raw = CacheService.getScriptCache().get('SESSION_' + token);
   if (!raw) return null;
   try { return JSON.parse(raw); } catch (e) { return null; }
@@ -366,10 +411,53 @@ function getMastersCached_() {
 }
 
 function getBootstrapForSession_(session) {
+  // Bootstrap chỉ mang dữ liệu bắt buộc để Dashboard vẽ được ngay.
+  // CT dịch vụ/vật tư, công thợ, máy gửi xử lý, chấm công, lương được tải ở request riêng.
+  const rows = listRepairsForRole_(session.role);
+  const dataSheet = sh(SHEETS.DATA);
   return {
     masters: getMastersCached_(),
-    dashboard: getDashboardForSession_(session)
+    dashboard: {
+      rows: rows,
+      dataHealth: {
+        sheetId: SHEET_ID,
+        sheetName: SHEETS.DATA,
+        lastRow: dataSheet.getLastRow(),
+        repairCount: rows.length,
+        checkedAt: nowText()
+      },
+      heavyDeferred: true
+    }
   };
+}
+
+function getDashboardHeavyForSession_(session) {
+  const role = session && session.role;
+  const techWork = readTechWork();
+  const sentRepairs = readSentRepairs();
+  const attendance = readTechAttendance();
+  const salary = readTechSalaryConfig();
+  let data = {
+    ctServices: readCtServices(),
+    ctMaterials: readCtMaterials(),
+    techWork: techWork,
+    thoNhapCong: techWork,
+    sentRepairs: sentRepairs,
+    mayGuiXuLy: sentRepairs,
+    attendance: attendance,
+    chamCongTho: attendance,
+    techSalaryConfig: salary
+  };
+  if (role === 'store' || role === 'tech') data.ctMaterials = [];
+  if (role === 'tech') {
+    const techKey = normText_(String(session.name || '').trim());
+    data.techWork = data.techWork.filter(function (x) { return normText_(x.technician || '') === techKey; });
+    data.thoNhapCong = data.techWork;
+    data.attendance = data.attendance.filter(function (x) { return normText_(x.technician || '') === techKey; });
+    data.chamCongTho = data.attendance;
+    data.techSalaryConfig = data.techSalaryConfig.filter(function (x) { return normText_(x.technician || '') === techKey; });
+  }
+  return data;
 }
 
 function getMasters() {
