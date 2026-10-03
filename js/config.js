@@ -1,5 +1,5 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbyHAJ31ObeKGW8Xttu8KMpgrGuY3zSCTH66gKuY8qfLYuYYLepEZj0hnddsZon8h_X-8g/exec';
-const DEMO_MODE = false;
+const API_URL = 'https://script.google.com/macros/s/AKfycbzWzkRhxjRywVy81oK7yxaD5qLIloKITcHFFhmvgEsDS7HP3ff6n1w7cXfXn1SXZfrE/exec';
+const EXPECTED_API_VERSION = '17.1';
 
 // Không để mật khẩu thật ở frontend. Đăng nhập được xác thực ở Apps Script (action: login).
 // Chỉ bật LOCAL_AUTH_FALLBACK khi test offline/demo.
@@ -8,16 +8,20 @@ const USERS = {};
 
 const ROLE_LABELS = {
   tech: 'Kỹ thuật',
-  store: 'QL cửa hàng',
+  store: 'Cửa hàng',
+  cskh: 'CSKH',
   tech_manager: 'QL kỹ thuật',
+  department_head: 'Quản lý',
   admin: 'Admin'
 };
 
-const MONEY_HIDDEN_ROLES = ['store', 'tech'];
+const MONEY_HIDDEN_ROLES = ['tech', 'tech_manager'];
 
 function apiCall(payload, options) {
   payload = payload || {};
-  if (DEMO_MODE || !API_URL || API_URL.includes('PASTE_')) return mockApi(payload);
+  if (!API_URL || API_URL.includes('PASTE_')) {
+    return Promise.reject(new Error('Chưa cấu hình URL Apps Script /exec trong js/config.js.'));
+  }
 
   try {
     const user = typeof currentUser === 'function' ? currentUser() : JSON.parse(localStorage.getItem('repairUser') || 'null');
@@ -35,53 +39,53 @@ function apiCall(payload, options) {
 
   options = options || {};
   const timeoutMs = options.timeoutMs || 25000;
-  const readOnlyActions = ['bootstrap', 'dashboardHeavy', 'list', 'getDashboard', 'getMasters', 'search', 'getDetail'];
-  const maxRetries = options.retries !== undefined ? options.retries : (readOnlyActions.includes(payload.action) ? 2 : 0);
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs) : null;
 
-  function attempt(attemptNo) {
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs) : null;
+  // Trên Netlify: gọi proxy cùng domain để tránh CORS/redirect từ Apps Script.
+  // Khi chạy file/local preview: fallback gọi Apps Script trực tiếp.
+  const isHttpPage = /^https?:$/i.test(window.location.protocol || '');
+  const isNetlifyLike = isHttpPage && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+  const requestUrl = isNetlifyLike ? '/.netlify/functions/repair-api' : API_URL;
 
-    return fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      signal: controller ? controller.signal : undefined
-    }).then(function (res) {
+  return fetch(requestUrl, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    signal: controller ? controller.signal : undefined
+  }).then(function (res) {
+    return res.text().then(function (text) {
       if (!res.ok) {
-        const err = new Error('API trả lỗi HTTP ' + res.status + '.');
-        err.retryable = res.status >= 500 || res.status === 408 || res.status === 429;
-        throw err;
+        let msg = 'API HTTP ' + res.status;
+        try {
+          const e = JSON.parse(text);
+          msg = e.message || msg;
+        } catch (_) {}
+        const err=new Error(msg);err.httpStatus=res.status;throw err;
       }
-      return res.text();
-    }).then(function (bodyText) {
-      try {
-        return JSON.parse(bodyText);
-      } catch (e) {
-        const err = new Error('API không trả JSON. Response: ' + String(bodyText || '').slice(0, 140));
-        err.retryable = true;
-        throw err;
-      }
-    }).catch(function (err) {
-      const isTimeout = err && err.name === 'AbortError';
-      const retryable = isTimeout || err.retryable || (err instanceof TypeError);
-      if (retryable && attemptNo < maxRetries) {
-        return new Promise(function (resolve) { setTimeout(resolve, 700 * (attemptNo + 1)); })
-          .then(function () { return attempt(attemptNo + 1); });
-      }
-      if (isTimeout) throw new Error('API quá lâu không phản hồi sau ' + Math.round(timeoutMs / 1000) + ' giây (' + (attemptNo + 1) + ' lần thử).');
-      throw err;
-    }).finally(function () {
-      if (timer) clearTimeout(timer);
+      return text;
     });
-  }
-
-  return attempt(0).then(function (data) {
-    if (data && data.success === false && typeof showToast === 'function') showToast(data.message || 'Lỗi API', 'error');
-    return data;
+  }).then(function (text) {
+    try {
+      const data = JSON.parse(text);
+      if (data && data.success === false && typeof showToast === 'function') {
+        showToast(data.message || 'Lỗi API', 'error');
+      }
+      return data;
+    } catch (e) {
+      const preview = String(text || '').slice(0, 180);
+      throw new Error('API không trả JSON. Response: ' + preview);
+    }
   }).catch(function (err) {
+    if (err && err.name === 'AbortError') {
+      err = new Error('API quá lâu không phản hồi sau ' + Math.round(timeoutMs / 1000) + ' giây.');
+    } else if (String(err && err.message || err).includes('Failed to fetch')) {
+      err = new Error('Không kết nối được API. Bản này cần deploy cả thư mục netlify/functions để dùng proxy chống CORS.');
+    }
     if (typeof showToast === 'function') showToast(err.message || 'Lỗi API', 'error');
     throw err;
+  }).finally(function () {
+    if (timer) clearTimeout(timer);
   });
 }
 
