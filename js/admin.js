@@ -291,79 +291,20 @@ function overviewFiltered() {
 }
 
 function renderOverview() {
-  const filter = overviewFiltered();
-  const data = filter.rows;
-  CURRENT_OVERVIEW_ROWS = data;
-  const d = buildLocalDashboard(data, { referenceDate: filter.referenceDate, periodLabel: filter.label, mode: filter.mode });
-  const isMoneyHidden = MONEY_HIDDEN_ROLES.includes(USER.role);
-  updateExecutiveDashboard(d, isMoneyHidden);
-
-  const opsCards = [
-    ['Điểm vận hành', d.healthScore + '/100', d.healthScore >= 85 ? 'success' : (d.healthScore >= 70 ? 'warn' : 'danger')],
-    ['Tổng đơn trong kỳ', d.periodOrders, ''],
-    ['Đang xử lý', d.inProgress, ''],
-    ['Kết thúc khác (9–11)', d.completed, ''],
-    ['Đã giao khách', d.returned, ''],
-    ['Quá hẹn', d.overdue, 'danger'],
-    ['Chờ linh kiện', d.waitingPart, 'warn']
-  ];
-  const kpiEl = document.getElementById('kpiGrid');
-  if (kpiEl) kpiEl.innerHTML = opsCards.map(function (c) {
-    return '<div class="kpi-card ' + c[2] + '"><span>' + c[0] + '</span><b>' + c[1] + '</b></div>';
-  }).join('');
-
-  const bizCards = [
-    ['Phạm vi đang xem', d.periodLabel, ''],
-    ['Tổng phiếu', d.periodOrders, ''],
-    ['Doanh thu trong kỳ', fmtMoney(d.periodRevenue), ''],
-    ['Đã giao khách', d.returned, ''],
-    ['Đang xử lý', d.inProgress, ''],
-    ['Ticket trung bình', fmtMoney(d.avgTicket), '']
-  ];
-
-  // Chỉ Admin mới thấy chi phí/lợi nhuận ở Tổng quan.
-  if (USER.role === 'admin') {
-    bizCards.push(
-      ['Chi phí trong kỳ', fmtMoney(d.periodCost), 'warn'],
-      ['Lợi nhuận trong kỳ', fmtMoney(d.periodProfit), 'success']
-    );
-  }
-
-  const bizEl = document.getElementById('businessGrid');
-  if (bizEl) bizEl.innerHTML = bizCards.map(function (c) {
-    return '<div class="kpi-card ' + c[2] + '"><span>' + c[0] + '</span><b>' + c[1] + '</b></div>';
-  }).join('');
-
-  renderWeekChart(d.weekly, isMoneyHidden);
-  renderServiceTypeDist(d.serviceTypes);
-  renderRank('topServices', d.topServices, 'đơn');
-  renderRank('topModels', d.topModels, 'đơn');
-  renderRank('techKpi', d.techKpi.map(x => ({ name: x.name, count: x.done + ' đơn · QH ' + x.overdue })), '');
-  renderMatrix();
-  renderMaterialsNeed();
-  renderOpsAlerts(d);
+ const f=overviewFiltered(),d=buildLocalDashboard(f.rows,{referenceDate:f.referenceDate,periodLabel:f.label,mode:f.mode});CURRENT_OVERVIEW_ROWS=f.rows;
+ document.getElementById('adminPeriodLabel').textContent=f.label;
+ const metrics=[['Doanh thu',d.periodRevenue,''],['Chi phí',d.periodCost,''],['Lợi nhuận',d.periodProfit,'profit'],['Chi phí vật tư',f.rows.reduce((s,r)=>s+Number(r.materialCost||0),0),'']];
+ document.getElementById('adminFinance').innerHTML=metrics.map(x=>'<div class="admin-metric '+x[2]+'"><strong>'+esc(fmtMoney(x[1]))+'</strong><span>'+esc(x[0])+'</span></div>').join('');
+ document.getElementById('adminSummary').innerHTML='<div><span>Đơn trong kỳ</span><b>'+d.periodOrders+'</b></div><div><span>Thực thu trung bình / đơn</span><b>'+esc(fmtMoney(d.avgTicket))+'</b></div>';
+ renderWeekChart(d.weekly,false);renderServiceTypeDist(d.serviceTypes);renderRank('topServices',d.topServices,'đơn');renderMatrix();
 }
-
-function renderWeekChart(weekly, hideMoney) {
-  const rows = (weekly || []).map(function (w) {
-    return '<tr><td><b>Tuần ' + w.week + '</b></td><td>' + w.count + '</td><td>' + fmtMoney(w.revenue) + '</td>' + (hideMoney ? '' : '<td>' + fmtMoney(w.profit) + '</td>') + '</tr>';
-  }).join('');
-  document.getElementById('weekChart').innerHTML = '<table><thead><tr><th>Tuần</th><th>Đơn</th><th>Doanh thu</th>' + (hideMoney ? '' : '<th>Lợi nhuận</th>') + '</tr></thead><tbody>' + rows + '</tbody></table>';
+function renderWeekChart(weekly,hideMoney){
+ document.getElementById('weekChart').innerHTML=(weekly||[]).map(w=>'<div class="admin-week"><b>Tuần '+w.week+'<small>'+w.count+' đơn</small></b><div><span>Doanh thu</span><strong>'+esc(fmtMoney(w.revenue))+'</strong></div><div><span>Lợi nhuận</span><strong>'+esc(fmtMoney(w.profit))+'</strong></div></div>').join('')||'<div class="ops-empty">Chưa có dữ liệu.</div>';
 }
-
-function renderServiceTypeDist(items) {
-  const total = (items || []).reduce((s, x) => s + x.count, 0) || 1;
-  document.getElementById('serviceTypeDist').innerHTML = (items || []).map(function (x) {
-    const pct = Math.round(x.count * 100 / total);
-    return '<div class="type-row"><b>' + x.name + '</b><span>' + x.count + ' · ' + pct + '%</span><div class="type-bar"><i style="width:' + pct + '%"></i></div></div>';
-  }).join('') || '<p>Chưa có dữ liệu.</p>';
+function renderServiceTypeDist(items){const total=(items||[]).reduce((s,x)=>s+x.count,0)||1;
+ document.getElementById('serviceTypeDist').innerHTML=(items||[]).map(x=>'<div class="ops-status-row"><span>'+esc(x.name)+'</span><b>'+x.count+' đơn · '+Math.round(x.count*100/total)+'%</b></div>').join('')||'<div class="ops-empty">Chưa có dữ liệu.</div>';
 }
-
-function renderRank(id, items, suffix) {
-  document.getElementById(id).innerHTML = (items || []).slice(0, 8).map(function (x, i) {
-    return '<div class="rank-row"><b>' + (i + 1) + '. ' + x.name + '</b><span>' + x.count + (suffix ? ' ' + suffix : '') + '</span></div>';
-  }).join('') || '<p>Chưa có dữ liệu.</p>';
-}
+function renderRank(id,items,suffix){const el=document.getElementById(id);if(!el)return;el.innerHTML=(items||[]).slice(0,8).map((x,i)=>'<div class="ops-status-row"><span>'+esc(x.name)+'</span><b>'+esc(x.count)+' '+esc(suffix||'')+'</b></div>').join('')||'<div class="ops-empty">Chưa có dữ liệu.</div>';}
 
 function renderMatrix() {
   const sourceRows = ACTIVE_TAB === 'overview' ? branchFiltered() : REPAIRS;
@@ -377,16 +318,8 @@ function renderMatrix() {
   const models = matrix.models.filter(x => x.toLowerCase().includes(modelQ)).slice(0, limit);
   const services = matrix.services.filter(x => x.toLowerCase().includes(serviceQ));
 
-  let html = '<table class="matrix-table matrix-transposed"><thead><tr><th>Dịch vụ</th>' + models.map(m => '<th>' + esc(m) + '</th>').join('') + '</tr></thead><tbody>';
-  html += services.map(function (s) {
-    return '<tr><td><b>' + esc(s) + '</b></td>' + models.map(function (m) {
-      const v = matrix.values[m + '|' + s] || 0;
-      const heat = v === 0 ? 0 : v < 3 ? 1 : v < 6 ? 2 : v < 10 ? 3 : 4;
-      return '<td class="heat-' + heat + '">' + (v || '') + '</td>';
-    }).join('') + '</tr>';
-  }).join('');
-  html += '</tbody></table>';
-  document.getElementById('serviceMatrix').innerHTML = html;
+  const entries=[];services.forEach(s=>models.forEach(m=>{const count=matrix.values[m+'|'+s]||0;if(count)entries.push({service:s,model:m,count});}));entries.sort((a,b)=>b.count-a.count);
+  document.getElementById('serviceMatrix').innerHTML=entries.map(x=>'<div class="ops-status-row"><span>'+esc(x.service)+'<small>'+esc(x.model)+'</small></span><b>'+x.count+' đơn</b></div>').join('')||'<div class="ops-empty">Không có dịch vụ phù hợp.</div>';
 }
 
 function renderMaterialsNeed() {
@@ -394,7 +327,7 @@ function renderMaterialsNeed() {
   const d = buildLocalDashboard(sourceRows);
   const q = (document.getElementById('materialSearch')?.value || '').toLowerCase();
   const g = document.getElementById('materialGroup')?.value || '';
-  const showAll = document.getElementById('showAllMaterials')?.checked;
+  const showAll = document.getElementById('materialCatalogScope')?.value==='all';
   let rows = d.materials || [];
 
   if (showAll) {
@@ -406,7 +339,7 @@ function renderMaterialsNeed() {
   }
 
   rows = rows.filter(x => (!q || normalizeKey(x.name).includes(normalizeKey(q))) && (!g || x.group === g));
-  document.getElementById('materialsNeed').innerHTML = '<table><thead><tr><th>Vật tư</th><th>Nhóm</th><th>Số phiếu dùng</th><th>Tổng SL</th><th>Đề xuất nhập</th></tr></thead><tbody>' +
+  const materialTarget=document.getElementById('materialsFull');if(!materialTarget)return;materialTarget.innerHTML = '<table><thead><tr><th>Vật tư</th><th>Nhóm</th><th>Số phiếu dùng</th><th>Tổng SL</th><th>Đề xuất nhập</th></tr></thead><tbody>' +
     rows.map(x => '<tr><td><b>' + esc(x.name) + '</b></td><td>' + esc(x.group || '') + '</td><td>' + (x.repairCount || 0) + '</td><td>' + (x.totalQty || 0) + '</td><td>' + (x.suggest || 0) + '</td></tr>').join('') +
     '</tbody></table>';
 }
@@ -482,15 +415,7 @@ function getTopMaterialFromSuppliers(rows) {
   return Object.values(map).sort(function (a, b) { return b.qty - a.qty; })[0] || null;
 }
 
-function renderOpsAlerts(d) {
-  const items = [
-    { name: 'Máy quá hẹn', count: d.overdue },
-    { name: 'Chờ linh kiện', count: d.waitingPart },
-    { name: 'Bảo hành lại', count: d.warrantyBack },
-    { name: 'Máy ngâm > 3 ngày', count: d.stuck }
-  ];
-  renderRank('opsAlerts', items, 'máy');
-}
+
 
 function initWeeklyReport() {
   renderWeeklyReport();
@@ -1185,9 +1110,6 @@ function quickReturn(id) {
 }
 function renderMaterialsFull() {
   renderMaterialsNeed();
-  const full = document.getElementById('materialsFull');
-  const need = document.getElementById('materialsNeed');
-  if (full && need) full.innerHTML = need.innerHTML;
   renderMaterialSupplierSummary('materialsFull');
 }
 
@@ -1876,59 +1798,9 @@ function toggleTheme() {
 
 }
 
-function updateExecutiveDashboard(d, isMoneyHidden) {
-  const name = USER?.name || USER?.username || 'POPO';
-  setText('heroGreeting', 'Xin chào ' + name + ' 👋 · ' + (d.periodLabel || 'tổng quan'));
-  setText('execReceivedLabel', 'Tổng đơn ' + (d.periodLabel || 'trong kỳ'));
-  setText('heroSummary', executiveSummaryText(d, isMoneyHidden));
-  setText('heroScore', d.healthScore + '/100');
-  setText('sidebarHealth', d.healthScore + '/100');
-  setText('execTodayReceived', d.periodOrders || 0);
-  setText('execInProgress', d.inProgress || 0);
-  setText('execOverdue', d.overdue || 0);
-  if (isMoneyHidden) {
-    setText('execMoneyLabel', 'Đã giao trong kỳ');
-    setText('execMoneyValue', d.returned || 0);
-    setText('execMoneyNote', 'Ẩn doanh thu theo phân quyền');
-  } else {
-    setText('execMoneyLabel', 'Doanh thu trong kỳ');
-    setText('execMoneyValue', fmtMoney(d.periodRevenue || 0));
-    setText('execMoneyNote', USER.role === 'admin' ? 'Lợi nhuận trong kỳ: ' + fmtMoney(d.periodProfit || 0) : 'Doanh thu theo dữ liệu thực thu');
-  }
-  const alerts = [
-    { title: 'Máy quá hẹn', note: 'Cần gọi KTV / báo khách', count: d.overdue || 0, level: 'danger' },
-    { title: 'Chờ linh kiện', note: 'Kiểm tra vật tư/NCC', count: d.waitingPart || 0, level: 'warn' },
-    { title: 'Tồn quá 3 ngày', note: 'Rà lại nguyên nhân tồn', count: d.stuck || 0, level: (d.stuck ? 'warn' : '') },
-    { title: 'Bảo hành lại', note: 'Theo dõi chất lượng sửa', count: d.warrantyBack || 0, level: (d.warrantyBack ? 'danger' : '') }
-  ];
-  const alertEl = document.getElementById('execAlerts');
-  if (alertEl) alertEl.innerHTML = alerts.map(function (a) {
-    return '<div class="command-item ' + a.level + '"><div><b>' + esc(a.title) + '</b><span>' + esc(a.note) + '</span></div><div class="command-count">' + esc(a.count) + '</div></div>';
-  }).join('');
-  const topService = (d.topServices || [])[0] || { name: 'Chưa có dữ liệu', count: 0 };
-  const topModel = (d.topModels || [])[0] || { name: 'Chưa có dữ liệu', count: 0 };
-  const topTech = (d.techKpi || []).slice().sort(function(a,b){return (b.done||0)-(a.done||0);})[0] || { name: 'Chưa có KTV', done: 0, overdue: 0 };
-  const topType = (d.serviceTypes || [])[0] || { name: 'Chưa có dữ liệu', count: 0 };
-  const insights = [
-    { label: 'Dịch vụ chạy nhất', value: topService.name, note: topService.count + ' phiếu' },
-    { label: 'Dòng máy nhiều nhất', value: topModel.name, note: topModel.count + ' phiếu' },
-    { label: 'KTV nổi bật', value: topTech.name, note: (topTech.done || 0) + ' hoàn thành · QH ' + (topTech.overdue || 0) },
-    { label: 'Loại dịch vụ chính', value: topType.name, note: topType.count + ' phiếu' }
-  ];
-  const insightEl = document.getElementById('execInsights');
-  if (insightEl) insightEl.innerHTML = insights.map(function (x) {
-    return '<div class="insight-card"><span>' + esc(x.label) + '</span><b>' + esc(x.value) + '</b><small>' + esc(x.note) + '</small></div>';
-  }).join('');
-}
 
-function executiveSummaryText(d, isMoneyHidden) {
-  const issues = [];
-  if (d.overdue) issues.push(d.overdue + ' máy quá hẹn');
-  if (d.waitingPart) issues.push(d.waitingPart + ' máy chờ linh kiện');
-  if (d.stuck) issues.push(d.stuck + ' máy tồn quá 3 ngày');
-  if (!issues.length) return 'Phạm vi ' + (d.periodLabel || 'đang chọn') + ' có ' + (d.periodOrders || 0) + ' phiếu, đang xử lý ' + (d.inProgress || 0) + ' máy.';
-  return 'Cần xử lý: ' + issues.join(', ') + '. ' + (isMoneyHidden ? 'Doanh thu đang ẩn theo phân quyền.' : 'Doanh thu trong kỳ ' + fmtMoney(d.periodRevenue || 0) + '.');
-}
+
+
 
 function setText(id, value) {
   const el = document.getElementById(id);

@@ -1,3 +1,10 @@
+GIAO DIỆN ADMIN 17.2 – API giữ 17.1
+Chỉ cần deploy lại source Netlify nếu Apps Script 17.1 đang chạy.
+Bỏ các khối trùng vận hành: việc cần xử lý, nổi bật, top dòng máy, KPI KTV,
+tồn vận hành, điểm vận hành và các bộ đếm trạng thái lặp lại.
+Admin dùng operations.css giống màn hình sửa chữa; không nạp style giao diện
+source tham khảo. Nhu cầu vật tư chuyển về tab Vật tư.
+
 POPOPHONE V17.1 – ADMIN RIÊNG VÀ TẢI NHẸ
 
 TRIỂN KHAI
