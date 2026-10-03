@@ -1,46 +1,13 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>POPOPHONE · Admin</title><link rel="stylesheet" href="css/operations.css?v=17.2"><link rel="stylesheet" href="css/admin.css?v=17.2"></head>
-<body class="ops-app admin-app"><div class="ops-shell"><header class="ops-header"><div><span class="ops-brand">POPOPHONE · ADMIN</span><h1 id="pageTitle">Tổng quan</h1></div><button onclick="refreshAll()" aria-label="Làm mới">↻</button></header><div class="ops-user"><div><b id="userName"></b><span id="userRole"></span></div><button onclick="logout()">Đăng xuất</button></div><a class="admin-operations-link" href="dashboard.html">Theo dõi sửa chữa · KT nhận / CH nhận →</a>
-<div id="overviewTopFilters" class="global-filter-bar" aria-label="Bộ lọc dùng chung">
-          <label class="global-filter-item global-filter-branch" title="Lọc theo chi nhánh">
-            <span class="global-filter-label">Chi nhánh</span>
-            <select id="globalBranch" onchange="applyGlobalFilters()" aria-label="Chi nhánh">
-              <option value="">Tất cả CN</option>
-              
-            </select>
-          </label>
-
-          <span class="global-filter-separator" aria-hidden="true"></span>
-
-          <label class="global-filter-item global-filter-mode" title="Kiểu thời gian">
-            <span class="global-filter-label">Thời gian</span>
-            <select id="overviewMode" onchange="changeOverviewMode()" aria-label="Kiểu thời gian">
-              <option value="month">Theo tháng</option>
-              <option value="range">Khoảng thời gian</option>
-            </select>
-          </label>
-
-          <label id="overviewMonthWrap" class="global-filter-item global-filter-value" title="Chọn tháng">
-            <span class="global-filter-label">Tháng</span>
-            <input type="month" id="overviewMonth" onchange="applyGlobalFilters()" />
-          </label>
-
-          <div id="overviewRangeWrap" class="global-filter-range" style="display:none">
-            <label class="global-filter-item global-filter-date" title="Từ ngày">
-              <span class="global-filter-label">Từ ngày</span>
-              <input type="date" id="overviewFrom" onchange="applyGlobalFilters()" />
-            </label>
-            <span class="global-range-arrow" aria-hidden="true">→</span>
-            <label class="global-filter-item global-filter-date" title="Đến ngày">
-              <span class="global-filter-label">Đến ngày</span>
-              <input type="date" id="overviewTo" onchange="applyGlobalFilters()" />
-            </label>
-          </div>
-
-          <button class="ghost-btn global-filter-reset" type="button" onclick="resetOverviewFilters()" title="Đặt lại bộ lọc" aria-label="Đặt lại bộ lọc">↺</button>
-        </div>
-
-        <div class="ops-toolbar"><nav id="navMenu" class="ops-nav"><button data-tab="overview">Tổng quan</button><button data-tab="cost">Chi phí lợi nhuận</button><button data-tab="materials">Vật tư</button><button data-tab="weeklyReport">Báo cáo</button></nav></div><p id="overviewDataStatus" class="overview-data-status" role="status"></p><main><section id="overview" class="tab">
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>POPOPHONE · Admin</title><link rel="stylesheet" href="css/operations.css?v=17.3"><link rel="stylesheet" href="css/admin.css?v=17.3"></head>
+<body class="ops-app admin-app"><div class="ops-shell"><header class="ops-header"><div><span class="ops-brand">POPOPHONE · ADMIN</span><h1 id="pageTitle">Tổng quan</h1></div><button onclick="refreshAll()" aria-label="Làm mới">↻</button></header><div class="ops-user"><div><b id="userName"></b><span id="userRole"></span></div><button onclick="logout()">Đăng xuất</button></div><nav class="ops-workspaces" aria-label="Không gian làm việc"><a href="admin.html" aria-current="page">Admin</a><a href="dashboard.html">Theo dõi đơn</a></nav>
+<div id="overviewTopFilters" class="admin-filter-card" aria-label="Lọc dữ liệu">
+<input id="overviewMonth" type="hidden"><select id="overviewMode" hidden><option value="month">Tháng</option><option value="range">Khoảng ngày</option></select>
+<div id="overviewMonthWrap" class="admin-period-row"><label><span>Năm</span><select id="adminYear" onchange="selectAdminPeriod()" aria-label="Năm"></select></label><label><span>Tháng</span><select id="adminMonth" onchange="selectAdminPeriod()" aria-label="Tháng"></select></label></div>
+<label class="admin-branch-filter"><span>Chi nhánh</span><select id="globalBranch" onchange="applyGlobalFilters()" aria-label="Chi nhánh"><option value="">Tất cả chi nhánh</option></select></label>
+<div class="admin-filter-footer"><details id="adminRangeOptions"><summary>Chọn khoảng ngày</summary><div id="overviewRangeWrap" class="admin-range-fields"><label><span>Từ ngày</span><input type="date" id="overviewFrom"></label><label><span>Đến ngày</span><input type="date" id="overviewTo"></label><button type="button" class="primary-btn" onclick="applyAdminRange()">Áp dụng</button></div></details><button type="button" class="admin-reset" onclick="resetOverviewFilters()">Tháng hiện tại</button></div>
+</div>
+<div class="ops-toolbar"><nav id="navMenu" class="ops-nav"><button data-tab="overview">Tổng quan</button><button data-tab="cost">Chi phí lợi nhuận</button><button data-tab="materials">Vật tư</button><button data-tab="weeklyReport">Báo cáo</button></nav></div><p id="overviewDataStatus" class="overview-data-status" role="status"></p><main><section id="overview" class="tab">
 <div class="ops-daily-head"><h2>Tài chính trong kỳ</h2><span id="adminPeriodLabel"></span></div>
 <div id="adminFinance" class="ops-kpis admin-finance"></div>
 <div id="adminSummary" class="ops-period-summary"></div>
@@ -117,4 +84,4 @@
           </div>
           <div id="weeklyReportPreview" class="report-preview-wrap"></div>
         </div>
-      </section></main></div><div id="modal" class="modal"></div><div id="printArea" class="print-area"></div><script src="js/config.js?v=17.1"></script><script src="js/auth.js?v=17.1"></script><script src="js/admin.js?v=17.2"></script></body></html>
+      </section></main></div><div id="modal" class="modal"></div><div id="printArea" class="print-area"></div><script src="js/config.js?v=17.1"></script><script src="js/auth.js?v=17.1"></script><script src="js/admin.js?v=17.3"></script></body></html>

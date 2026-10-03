@@ -1,3 +1,8 @@
+GIAO DIỆN 17.3 – THANH CHUYỂN MÀN HÌNH VÀ BỘ LỌC
+Chỉ deploy Netlify. API giữ 17.1. Admin và Theo dõi đơn dùng chung thanh chuyển.
+Bộ lọc Admin: năm/tháng đều nhau, chi nhánh toàn chiều ngang, khoảng ngày mở
+khi cần. Bỏ input tháng của iOS và nút reset nổi.
+
 GIAO DIỆN ADMIN 17.2 – API giữ 17.1
 Chỉ cần deploy lại source Netlify nếu Apps Script 17.1 đang chạy.
 Bỏ các khối trùng vận hành: việc cần xử lý, nổi bật, top dòng máy, KPI KTV,

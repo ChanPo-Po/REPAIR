@@ -16,7 +16,7 @@ function initDashboard() {
 
   USER = requireLogin();if(!USER)return;if(USER.role!=='admin'){window.location.replace('dashboard.html');return;}
   document.getElementById('userName').textContent = USER.name;
-  document.getElementById('userRole').textContent = ROLE_LABELS[USER.role] || USER.role;
+  document.getElementById('userRole').textContent = 'Quản trị';
   setupNavByRole();
   initOverviewFilters();
   loadAll().then(function () {
@@ -66,7 +66,7 @@ function openTab(tab) {
   if (sub) sub.textContent = getTabSubtitle(tab);
 
   const overviewTopFilters = document.getElementById('overviewTopFilters');
-  if(overviewTopFilters)overviewTopFilters.style.display='flex';
+  
   const overviewDataStatus = document.getElementById('overviewDataStatus');
   if(overviewDataStatus)overviewDataStatus.style.display='block';
 
@@ -249,14 +249,15 @@ function rerenderActiveTab_() {
 
 function applyGlobalFilters(){return refreshAll();}
 
-function changeOverviewMode(shouldRender) {
-  const mode = document.getElementById('overviewMode')?.value || 'month';
-  const monthWrap = document.getElementById('overviewMonthWrap');
-  const rangeWrap = document.getElementById('overviewRangeWrap');
-  if (monthWrap) monthWrap.style.display = mode === 'month' ? 'flex' : 'none';
-  if (rangeWrap) rangeWrap.style.display = mode === 'range' ? 'flex' : 'none';
-  if(shouldRender!==false)applyGlobalFilters();
+function syncAdminPeriod(){
+ const value=document.getElementById('overviewMonth').value||formatInputDate_(new Date()).slice(0,7),parts=value.split('-');
+ const year=document.getElementById('adminYear'),month=document.getElementById('adminMonth');if(!year||!month)return;
+ const max=Math.max(new Date().getFullYear(),Number(parts[0]));year.innerHTML=Array.from({length:max-2022+1},(_,i)=>'<option value="'+(max-i)+'">'+(max-i)+'</option>').join('');
+ month.innerHTML=Array.from({length:12},(_,i)=>'<option value="'+String(i+1).padStart(2,'0')+'">Tháng '+(i+1)+'</option>').join('');year.value=parts[0];month.value=parts[1];
 }
+function selectAdminPeriod(){document.getElementById('overviewMonth').value=document.getElementById('adminYear').value+'-'+document.getElementById('adminMonth').value;document.getElementById('overviewMode').value='month';document.getElementById('adminRangeOptions').open=false;applyGlobalFilters();}
+function applyAdminRange(){const from=document.getElementById('overviewFrom').value,to=document.getElementById('overviewTo').value;if(!from||!to||from>to){showToast('Chọn khoảng ngày hợp lệ.','error');return;}document.getElementById('overviewMode').value='range';document.getElementById('adminRangeOptions').open=false;applyGlobalFilters();}
+function changeOverviewMode(shouldRender){syncAdminPeriod();if(shouldRender!==false)applyGlobalFilters();}
 
 function resetOverviewFilters() {
   const now = new Date();
@@ -271,6 +272,7 @@ function resetOverviewFilters() {
   if (from) from.value = formatInputDate_(new Date(now.getFullYear(), now.getMonth(), 1));
   if (to) to.value = formatInputDate_(now);
   changeOverviewMode(false);
+  const rangeOptions=document.getElementById('adminRangeOptions');if(rangeOptions)rangeOptions.open=false;
   applyGlobalFilters();
 }
 
