@@ -1,5 +1,5 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbyHAJ31ObeKGW8Xttu8KMpgrGuY3zSCTH66gKuY8qfLYuYYLepEZj0hnddsZon8h_X-8g/exec';
-const EXPECTED_API_VERSION = '17.1';
+const EXPECTED_API_VERSION = '17.5';
 
 // Không để mật khẩu thật ở frontend. Đăng nhập được xác thực ở Apps Script (action: login).
 // Chỉ bật LOCAL_AUTH_FALLBACK khi test offline/demo.
@@ -8,14 +8,14 @@ const USERS = {};
 
 const ROLE_LABELS = {
   tech: 'Kỹ thuật',
-  store: 'Cửa hàng',
+  store: 'QL cửa hàng',
   cskh: 'CSKH',
   tech_manager: 'QL kỹ thuật',
   department_head: 'Quản lý',
   admin: 'Admin'
 };
 
-const MONEY_HIDDEN_ROLES = ['tech', 'tech_manager'];
+const MONEY_HIDDEN_ROLES = ['tech','store','cskh'];
 
 function apiCall(payload, options) {
   payload = payload || {};

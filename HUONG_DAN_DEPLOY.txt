@@ -1,0 +1,14 @@
+SOURCE WEB QUẢN LÝ/ADMIN 17.5
+
+Deploy thư mục REPAIR-main này lên đúng site Netlify đang dùng.
+API hiện đã báo 17.5 thì không cần deploy lại Apps Script.
+Đăng xuất, tải lại trang, đăng nhập lại.
+
+kt: Kỹ thuật; qlkt: QL kỹ thuật; cskh: CSKH; qlch: QL cửa hàng; admin: Admin.
+QL kỹ thuật mặc định Chi phí lợi nhuận, có Vật tư/Báo cáo/Theo dõi đơn,
+không có Tổng quan Admin. Các quyền được chặn ở API và ẩn trên UI.
+
+appscript gồm Sale.gs giữ nguyên bản đã test và QuanLy.gs 17.5.
+Chỉ thay QuanLy.gs nếu cần khôi phục backend; cùng dự án và /exec.
+Không dán thêm Code.gs cũ gây trùng router. Không đổi link /exec hay DATA.
+Không cần sửa hoặc deploy lại website Sale.

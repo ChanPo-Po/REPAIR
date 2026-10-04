@@ -43,7 +43,7 @@ function setupLogin() {
           loginAt: Date.now()
         };
         localStorage.setItem('repairUser', JSON.stringify(user));
-        window.location.href = (user.role==='admin'?'admin.html':'dashboard.html');
+        window.location.href = (['admin','tech_manager'].includes(user.role)?'admin.html':'dashboard.html');
       })
       .catch(function (err) {
         // Chỉ dùng fallback khi cố ý bật LOCAL_AUTH_FALLBACK để test offline.

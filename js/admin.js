@@ -14,9 +14,11 @@ let DATA_HEALTH = {};
 
 function initDashboard() {
 
-  USER = requireLogin();if(!USER)return;if(USER.role!=='admin'){window.location.replace('dashboard.html');return;}
+  USER = requireLogin();if(!USER)return;if(!['admin','tech_manager'].includes(USER.role)){window.location.replace('dashboard.html');return;}
   document.getElementById('userName').textContent = USER.name;
-  document.getElementById('userRole').textContent = 'Quản trị';
+  document.getElementById('userRole').textContent = ROLE_LABELS[USER.role]||USER.role;
+  ACTIVE_TAB=USER.role==='tech_manager'?'cost':'overview';
+  if(USER.role==='tech_manager')document.getElementById('overview').hidden=true;
   setupNavByRole();
   initOverviewFilters();
   loadAll().then(function () {
@@ -40,7 +42,7 @@ function setupNavByRole() {
   const allowed = {
     tech: ['status', 'salaryAudit'],
     store: ['overview', 'repairs'],
-    tech_manager: ['overview', 'repairs', 'status', 'cost', 'materials', 'commission', 'salaryAudit', 'sentRepairs', 'weeklyReport'],
+    tech_manager: ['cost','materials','weeklyReport'],
     admin: ['overview','cost','materials','weeklyReport']
   }[USER.role] || [];
 
@@ -51,8 +53,9 @@ function setupNavByRole() {
   });
 }
 
+function adminTabs(){return USER&&USER.role==='tech_manager'?['cost','materials','weeklyReport']:['overview','cost','materials','weeklyReport'];}
 function openTab(tab) {
-  if(!['overview','cost','materials','weeklyReport'].includes(tab))tab='overview';
+  if(!adminTabs().includes(tab))tab=adminTabs()[0];
   ACTIVE_TAB = tab;
   document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('active'); });
   document.getElementById(tab).classList.add('active');
@@ -91,7 +94,7 @@ function openTab(tab) {
 
 function loadAll() {const ticket=++ADMIN_BOOT_TICKET;
   setOverviewDataStatus('Đang tải dữ liệu DATA...');
-  return apiCall({ action: 'adminBootstrap', ...adminBounds() }, { timeoutMs: 45000 }).then(function (res) {
+  return apiCall({ action: USER.role==='tech_manager'?'adminData':'adminBootstrap', ...adminBounds() }, { timeoutMs: 45000 }).then(function (res) {
     if(ticket!==ADMIN_BOOT_TICKET)return;
     if (!res || res.success === false) {
       throw new Error((res && res.message) || 'Không tải được dữ liệu hệ thống');
@@ -293,6 +296,7 @@ function overviewFiltered() {
 }
 
 function renderOverview() {
+  if(USER&&USER.role!=='admin')return;
  const f=overviewFiltered(),d=buildLocalDashboard(f.rows,{referenceDate:f.referenceDate,periodLabel:f.label,mode:f.mode});CURRENT_OVERVIEW_ROWS=f.rows;
  document.getElementById('adminPeriodLabel').textContent=f.label;
  const metrics=[['Doanh thu',d.periodRevenue,''],['Chi phí',d.periodCost,''],['Lợi nhuận',d.periodProfit,'profit'],['Chi phí vật tư',f.rows.reduce((s,r)=>s+Number(r.materialCost||0),0),'']];
@@ -693,8 +697,6 @@ function renderCostTable() {
 function isReturned(r) { return String(r.status || '').startsWith('8.'); }
 function canEditStatus(r){return false;}
 function canEditCost(r) {
-  if (MONEY_HIDDEN_ROLES.includes(USER.role)) return false;
-  if (isReturned(r) && USER.role !== 'admin') return false;
   return ['tech_manager', 'admin'].includes(USER.role);
 }
 function canQuickReturn(r) {

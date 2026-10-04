@@ -1,16 +1,16 @@
-GIAO DIỆN 17.3 – THANH CHUYỂN MÀN HÌNH VÀ BỘ LỌC
-Chỉ deploy Netlify. API giữ 17.1. Admin và Theo dõi đơn dùng chung thanh chuyển.
+GIAO DIỆN 17.5 – THANH CHUYỂN MÀN HÌNH VÀ BỘ LỌC
+Chỉ deploy Netlify. API giữ 17.5. Admin và Theo dõi đơn dùng chung thanh chuyển.
 Bộ lọc Admin: năm/tháng đều nhau, chi nhánh toàn chiều ngang, khoảng ngày mở
 khi cần. Bỏ input tháng của iOS và nút reset nổi.
 
-GIAO DIỆN ADMIN 17.2 – API giữ 17.1
-Chỉ cần deploy lại source Netlify nếu Apps Script 17.1 đang chạy.
+GIAO DIỆN ADMIN 17.2 – API giữ 17.5
+Chỉ cần deploy lại source Netlify nếu Apps Script 17.5 đang chạy.
 Bỏ các khối trùng vận hành: việc cần xử lý, nổi bật, top dòng máy, KPI KTV,
 tồn vận hành, điểm vận hành và các bộ đếm trạng thái lặp lại.
 Admin dùng operations.css giống màn hình sửa chữa; không nạp style giao diện
 source tham khảo. Nhu cầu vật tư chuyển về tab Vật tư.
 
-POPOPHONE V17.1 – ADMIN RIÊNG VÀ TẢI NHẸ
+POPOPHONE V17.5 – ADMIN RIÊNG VÀ TẢI NHẸ
 
 TRIỂN KHAI
 Thay Code.gs rồi Manage deployments > Edit > New version > Deploy.
@@ -58,7 +58,7 @@ Không thêm chấm công/lương. Không xóa/đổi cấu trúc DATA hoặc lu
 KIỂM TRA
 Kiểm tra cục bộ/mô phỏng; chưa đo trên deployment thật hoặc dữ liệu thật của bạn.
 
-Kiểm tra V17.1: tài khoản chung và quy tắc bàn giao, ẩn nút theo quyền,
+Kiểm tra V17.5: tài khoản chung và quy tắc bàn giao, ẩn nút theo quyền,
 Admin kỳ/chi nhánh và quyền API tài chính, chi phí/giá vốn/lợi nhuận,
 lưu/xem lại vật tư, tổng quan Admin, kỳ không có đơn, tải module theo nhu cầu,
 startup vận hành một request, form sửa không đọc lịch sử. Chưa đo deployment thật.
