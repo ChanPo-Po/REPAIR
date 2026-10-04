@@ -1,5 +1,5 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbyHAJ31ObeKGW8Xttu8KMpgrGuY3zSCTH66gKuY8qfLYuYYLepEZj0hnddsZon8h_X-8g/exec';
-const EXPECTED_API_VERSION = '17.5';
+const EXPECTED_API_VERSION = '17.8';
 
 // Không để mật khẩu thật ở frontend. Đăng nhập được xác thực ở Apps Script (action: login).
 // Chỉ bật LOCAL_AUTH_FALLBACK khi test offline/demo.
@@ -160,3 +160,12 @@ window.addEventListener('unhandledrejection', function (e) {
   if (typeof showToast === 'function') showToast(msg, 'error');
   console.error(e.reason || e);
 });
+
+function repairBranchLine(r){return (r.branch||'Chưa có chi nhánh')+' - '+(r.serviceType||'Chưa phân loại')+' - '+(Number(r.machineVisit)>0?'Sửa lần '+Number(r.machineVisit):'Chưa xác định lần sửa');}
+
+// Short-lived page bundles are bound to the authenticated user and API version.
+function readWarmBundle(scope,period){try{const u=currentUser(),v=JSON.parse(sessionStorage.getItem('repairWarm:'+scope)||'null');return v&&u&&v.token===u.token&&v.role===u.role&&v.version===EXPECTED_API_VERSION&&v.period===period&&Date.now()-v.at<1800000?v:null;}catch(e){return null;}}
+function saveWarmBundle(scope,period,data){try{const u=currentUser();if(u&&u.token)sessionStorage.setItem('repairWarm:'+scope,JSON.stringify({token:u.token,role:u.role,version:EXPECTED_API_VERSION,period,at:Date.now(),data}));}catch(e){}}
+function dropWarmBundles(){try{sessionStorage.removeItem('repairWarm:ops');sessionStorage.removeItem('repairWarm:admin');}catch(e){}}
+
+function patchWarmBundles(patches){try{const u=currentUser();for(const scope of ['ops','admin']){const key='repairWarm:'+scope,v=JSON.parse(sessionStorage.getItem(key)||'null');if(!v||!u||v.token!==u.token||v.role!==u.role||v.version!==EXPECTED_API_VERSION)continue;const rows=scope==='ops'?v.data.snapshot.rows:v.data.data.dashboard.rows;patches.forEach(p=>{const i=rows.findIndex(r=>String(r.repairId)===String(p.id));if(p.deleted){if(i>=0)rows.splice(i,1);return;}if(i>=0){const row={...rows[i],...p.row};if(scope==='ops')['materialCost','laborCost','totalCost','actualRevenue','profit','ncc','billCode','paymentStatus'].forEach(k=>delete row[k]);rows[i]=row;}});sessionStorage.setItem(key,JSON.stringify(v));}}catch(e){}}

@@ -13,6 +13,7 @@ function requireLogin() {
 }
 
 function logout() {
+  if(typeof dropWarmBundles==='function')dropWarmBundles();
   localStorage.removeItem('repairUser');
   window.location.href = 'login.html';
 }

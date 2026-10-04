@@ -1,5 +1,5 @@
-const adminBaseApiCall=apiCall;apiCall=function(p,o){if(p.action==='getDetail')p={...p,action:'adminDetail'};return adminBaseApiCall(p,o);};
-let ADMIN_EPOCH=0,ADMIN_BOOT_TICKET=0;
+const adminBaseApiCall=apiCall;apiCall=function(p,o){if(p.action==='getDetail')p={...p,action:'adminDetail'};if(p.action==='adminDetail'&&REPAIRS.some(r=>String(r.repairId)===String(p.repairId))){return readyAdminDetail(p.repairId);}return adminBaseApiCall(p,o).then(res=>{if(res&&res.success&&res.patch)applyAdminPatches([res.patch]);return res;});};
+let ADMIN_EPOCH=0,ADMIN_BOOT_TICKET=0,ADMIN_LOADED_PERIOD='',ADMIN_REVISION='0',ADMIN_LAST_CHECK=0,ADMIN_SYNCING=false;let ADMIN_LOGS=[];const ADMIN_PATCH_OVERLAY=new Map();let ADMIN_PATCH_TICKET=0;
 let USER = null;
 let REPAIRS = [];
 let MASTERS = {};
@@ -92,39 +92,27 @@ function openTab(tab) {
   if (tab === 'masters') renderMasters();
 }
 
-function loadAll() {const ticket=++ADMIN_BOOT_TICKET;
-  setOverviewDataStatus('Đang tải dữ liệu DATA...');
-  return apiCall({ action: USER.role==='tech_manager'?'adminData':'adminBootstrap', ...adminBounds() }, { timeoutMs: 45000 }).then(function (res) {
-    if(ticket!==ADMIN_BOOT_TICKET)return;
-    if (!res || res.success === false) {
-      throw new Error((res && res.message) || 'Không tải được dữ liệu hệ thống');
-    }
-
-    if(res.version!==EXPECTED_API_VERSION)throw Error('Cần cập nhật API '+EXPECTED_API_VERSION);
-    const boot = res.data || {};
-    MASTERS = boot.masters || {};
-    DASH = boot.dashboard || {};
-    DATA_HEALTH = DASH.dataHealth || {};
-
-    REPAIRS = Array.isArray(DASH.rows) ? DASH.rows : [];
-    CT_SERVICES = DASH.ctServices || DASH.services || [];
-    CT_MATERIALS = DASH.ctMaterials || DASH.materialsCt || [];
-    TECH_WORK = DASH.techWork || DASH.thoNhapCong || [];
-    SENT_REPAIRS = DASH.sentRepairs || DASH.mayGuiXuLy || [];
-    hydrateFilters();
-
-    hydrateAdminBranches();setOverviewDataStatus(REPAIRS.length+' đơn trong kỳ đã chọn');return;
-  });
+function applyAdminBoot(res){
+ if(!res||res.success===false)throw Error(res&&res.message||'Không tải được dữ liệu hệ thống');if(res.version!==EXPECTED_API_VERSION)throw Error('Cần cập nhật API '+EXPECTED_API_VERSION);
+ ADMIN_PATCH_OVERLAY.clear();ADMIN_REVISION=res.revision||'0';ADMIN_LAST_CHECK=Date.now();const boot=res.data||{};ADMIN_LOADED_PERIOD=adminPeriodKey();MASTERS=boot.masters||{};DASH=boot.dashboard||{};DATA_HEALTH=DASH.dataHealth||{};REPAIRS=Array.isArray(DASH.rows)?DASH.rows:[];
+ CT_SERVICES=DASH.ctServices||[];CT_MATERIALS=DASH.ctMaterials||[];TECH_WORK=DASH.techWork||[];SENT_REPAIRS=DASH.sentRepairs||[];hydrateFilters();hydrateAdminBranches();setOverviewDataStatus(REPAIRS.length+' đơn trong kỳ đã chọn');
+ if(res.heavy){CT_SERVICES=res.heavy.ctServices||[];CT_MATERIALS=res.heavy.ctMaterials||[];ADMIN_LOGS=res.heavy.logs||[];ADMIN_HEAVY_DONE.add('materials');ADMIN_HEAVY_DONE.add('weeklyReport');}
+}
+function saveAdminWarm(){if(typeof saveWarmBundle!=='function')return;saveWarmBundle('admin',adminPeriodKey(),{success:true,revision:ADMIN_REVISION,version:EXPECTED_API_VERSION,data:{masters:MASTERS,dashboard:{rows:REPAIRS,dataHealth:DATA_HEALTH}},heavy:ADMIN_HEAVY_DONE.has('materials')?{ctServices:CT_SERVICES,ctMaterials:CT_MATERIALS,logs:ADMIN_LOGS}:null});}
+function loadAll(){const ticket=++ADMIN_BOOT_TICKET,period=adminPeriodKey(),cached=typeof readWarmBundle==='function'?readWarmBundle('admin',period):null;
+ if(cached){applyAdminBoot(cached.data);setTimeout(()=>syncAdmin(true),0);return Promise.resolve();}else setOverviewDataStatus('Đang tải dữ liệu DATA…');
+ const req=apiCall({action:USER.role==='tech_manager'?'adminData':'adminBootstrap',...adminLoadBounds()},{timeoutMs:45000}).then(res=>{if(ticket!==ADMIN_BOOT_TICKET||period!==adminPeriodKey())return;ADMIN_EPOCH++;ADMIN_HEAVY_DONE.clear();ADMIN_HEAVY_PENDING.clear();ADMIN_LOGS=[];applyAdminBoot(res);saveAdminWarm();setTimeout(()=>loadHeavyData(false,'materials').catch(e=>console.debug('Tải nền Admin:',e.message)),0);if(cached)return openTab(ACTIVE_TAB);});
+ if(cached){req.catch(e=>setOverviewDataStatus('Không làm mới được dữ liệu: '+e.message,true));return Promise.resolve();}return req;
 }
 
 const ADMIN_HEAVY_DONE=new Set(),ADMIN_HEAVY_PENDING=new Map();
-function loadHeavyData(force,tab){tab=tab||ACTIVE_TAB;if(force)ADMIN_HEAVY_DONE.delete(tab);if(ADMIN_HEAVY_DONE.has(tab))return Promise.resolve();if(ADMIN_HEAVY_PENDING.has(tab))return ADMIN_HEAVY_PENDING.get(tab);
+function loadHeavyData(force,tab){tab=tab||ACTIVE_TAB;if(tab==='weeklyReport')tab='materials';if(force)ADMIN_HEAVY_DONE.delete(tab);if(ADMIN_HEAVY_DONE.has(tab))return Promise.resolve();if(ADMIN_HEAVY_PENDING.has(tab))return ADMIN_HEAVY_PENDING.get(tab);
  setOverviewDataStatus('Đang tải '+({materials:'vật tư',commission:'hoa hồng',sentRepairs:'máy gửi xử lý',weeklyReport:'báo cáo',masters:'danh mục'}[tab]||tab)+'…');
- const epoch=ADMIN_EPOCH;const req=apiCall({action:'adminHeavy',tab:tab,...adminBounds()},{timeoutMs:28000}).then(res=>{if(epoch!==ADMIN_EPOCH)return;if(!res.success)throw Error(res.message);const d=res.data||{};if(d.ctServices)CT_SERVICES=d.ctServices;if(d.ctMaterials)CT_MATERIALS=d.ctMaterials;if(d.techWork)TECH_WORK=d.techWork;if(d.sentRepairs)SENT_REPAIRS=d.sentRepairs;if(d.masters)MASTERS=Object.assign({},MASTERS,d.masters);hydrateFilters();ADMIN_HEAVY_DONE.add(tab);setOverviewDataStatus(REPAIRS.length+' đơn trong kỳ đã chọn');}).finally(()=>{if(ADMIN_HEAVY_PENDING.get(tab)===req)ADMIN_HEAVY_PENDING.delete(tab);});ADMIN_HEAVY_PENDING.set(tab,req);return req;
+ const epoch=ADMIN_EPOCH;const req=apiCall({action:'adminHeavy',tab:tab,...adminLoadBounds()},{timeoutMs:28000}).then(res=>{if(epoch!==ADMIN_EPOCH)return;if(!res.success)throw Error(res.message);const d=res.data||{};if(d.logs)ADMIN_LOGS=d.logs;if(d.ctServices)CT_SERVICES=d.ctServices;if(d.ctMaterials)CT_MATERIALS=d.ctMaterials;if(d.techWork)TECH_WORK=d.techWork;if(d.sentRepairs)SENT_REPAIRS=d.sentRepairs;if(d.masters)MASTERS=Object.assign({},MASTERS,d.masters);if(ADMIN_PATCH_OVERLAY.size)applyAdminPatches(Array.from(ADMIN_PATCH_OVERLAY.values()),false);hydrateFilters();ADMIN_HEAVY_DONE.add(tab);if(tab==='materials')ADMIN_HEAVY_DONE.add('weeklyReport');saveAdminWarm();setOverviewDataStatus(REPAIRS.length+' đơn trong kỳ đã chọn');}).finally(()=>{if(ADMIN_HEAVY_PENDING.get(tab)===req)ADMIN_HEAVY_PENDING.delete(tab);});ADMIN_HEAVY_PENDING.set(tab,req);return req;
 }
 function adminBounds(){const state=globalFilterState_();return {from:state.from?formatInputDate_(state.from):formatInputDate_(new Date(new Date().getFullYear(),new Date().getMonth(),1)),to:state.to?formatInputDate_(state.to):formatInputDate_(new Date()),branch:state.branch};}
 function hydrateAdminBranches(){const el=document.getElementById('globalBranch'),value=el.value,names=Array.from(new Set(REPAIRS.map(r=>r.branch).filter(Boolean)));el.innerHTML='<option value="">Tất cả CN</option>'+Array.from(new Set(names.concat(value?[value]:[]))).map(b=>'<option '+(b===value?'selected':'')+'>'+esc(b)+'</option>').join('');}
-function refreshAll() {ADMIN_EPOCH++;ADMIN_HEAVY_DONE.clear();ADMIN_HEAVY_PENDING.clear();CT_SERVICES=[];CT_MATERIALS=[];TECH_WORK=[];SENT_REPAIRS=[];
+function refreshAll() {try{sessionStorage.removeItem('repairWarm:admin');}catch(e){}ADMIN_EPOCH++;ADMIN_HEAVY_DONE.clear();ADMIN_HEAVY_PENDING.clear();ADMIN_LOGS=[];CT_SERVICES=[];CT_MATERIALS=[];TECH_WORK=[];SENT_REPAIRS=[];
   loadAll().then(function () {
     openTab(ACTIVE_TAB);
     showToast('Đã làm mới ' + REPAIRS.length + ' phiếu');
@@ -250,7 +238,7 @@ function rerenderActiveTab_() {
   openTab(ACTIVE_TAB);
 }
 
-function applyGlobalFilters(){return refreshAll();}
+function applyGlobalFilters(){if(ADMIN_LOADED_PERIOD===adminPeriodKey())return openTab(ACTIVE_TAB);return refreshAll();}
 
 function syncAdminPeriod(){
  const value=document.getElementById('overviewMonth').value||formatInputDate_(new Date()).slice(0,7),parts=value.split('-');
@@ -691,7 +679,7 @@ function renderCostTable() {
     el.innerHTML = '<p>Không có phiếu phù hợp.</p>';
     return;
   }
-  el.innerHTML = costListHtml(rows);
+  const total=rows.length,pages=Math.max(1,Math.ceil(total/30));COST_PAGE=Math.min(Math.max(1,COST_PAGE),pages);el.innerHTML=costListHtml(rows.slice((COST_PAGE-1)*30,COST_PAGE*30),total)+(pages>1?'<div class="ops-pager"><button onclick="changeCostPage(-1)" '+(COST_PAGE<=1?'disabled':'')+'>Trước</button><span>'+COST_PAGE+'/'+pages+'</span><button onclick="changeCostPage(1)" '+(COST_PAGE>=pages?'disabled':'')+'>Sau</button></div>':'');
 }
 
 function isReturned(r) { return String(r.status || '').startsWith('8.'); }
@@ -758,13 +746,13 @@ function statusListHtml(rows) {
     }).join('') + '</tbody></table></div>';
 }
 
-function costListHtml(rows) {
+function costListHtml(rows,total=rows.length) {
   if(!rows.length)return '<div class="ops-empty">Không có đơn phù hợp.</div>';
-  return '<p class="ops-count">'+rows.length+' đơn · Ưu tiên đơn chưa đủ chi phí</p><div class="admin-cost-list">'+rows.map(function(r){
+  return '<p class="ops-count">'+total+' đơn · Ưu tiên đơn chưa đủ chi phí</p><div class="admin-cost-list">'+rows.map(function(r){
     const actionId=esc(JSON.stringify(String(r.repairId||'')));
     const warnings=missingCostWarnings(r);
     const cells=[['Dòng máy',r.product||'—'],['Kỹ thuật',r.technician||'Chưa chọn'],['Báo giá',fmtMoney(r.estimate||0)],['Chi phí',fmtMoney(r.totalCost||0)],['Thực thu',fmtMoney(r.actualRevenue||0)],['Lợi nhuận',fmtMoney(r.profit||0)]];
-    return '<article class="ops-card"><div class="ops-branch">'+esc(r.branch||'Chưa có chi nhánh')+'</div><div class="ops-card-head"><div><b class="ops-imei-main">IMEI '+esc(r.imei||'Chưa có')+'</b><h3>'+esc(r.customer||'Chưa có tên khách')+'</h3></div><span class="ops-badge">'+esc(statusClean(r.status))+'</span></div><div class="ops-info">'+cells.map(x=>'<div><span>'+esc(x[0])+'</span><b>'+esc(x[1])+'</b></div>').join('')+'</div><p class="ops-service">'+esc(r.repairService||'Chưa có dịch vụ')+'</p><p class="admin-material-note">'+esc(r.materialName||'Chưa có vật tư')+' · '+esc(r.ncc||'Chưa có NCC')+'</p><p class="admin-payment">'+esc(r.paymentStatus||'Chưa có thanh toán')+'</p>'+(warnings?'<div class="warning-line">'+warnings+'</div>':'')+'<div class="ops-actions"><button onclick="openDetail('+actionId+')">Xem</button><button class="primary" onclick="openCostEditor('+actionId+')">Cập nhật chi phí</button></div></article>';
+    return '<article class="ops-card"><div class="ops-branch">'+esc(repairBranchLine(r))+'</div><div class="ops-card-head"><div><b class="ops-imei-main">IMEI '+esc(r.imei||'Chưa có')+'</b><h3>'+esc(r.customer||'Chưa có tên khách')+'</h3></div><span class="ops-badge">'+esc(statusClean(r.status))+'</span></div><div class="ops-info">'+cells.map(x=>'<div><span>'+esc(x[0])+'</span><b>'+esc(x[1])+'</b></div>').join('')+'</div><p class="ops-service">'+esc(r.repairService||'Chưa có dịch vụ')+'</p><p class="admin-material-note">'+esc(r.materialName||'Chưa có vật tư')+' · '+esc(r.ncc||'Chưa có NCC')+'</p><p class="admin-payment">'+esc(r.paymentStatus||'Chưa có thanh toán')+'</p>'+(warnings?'<div class="warning-line">'+warnings+'</div>':'')+'<div class="ops-actions"><button onclick="openDetail('+actionId+')">Xem</button><button class="primary" onclick="openCostEditor('+actionId+')">Cập nhật chi phí</button></div></article>';
   }).join('')+'</div>';
 }
 
@@ -1017,7 +1005,7 @@ function openCostEditor(id) {
         if (!res.success) return showToast(res.message || 'Lỗi lưu', 'error');
         closeModal();
         showToast('Đã cập nhật chi phí');
-        refreshAll();
+        openTab(ACTIVE_TAB);
       });
     });
   });
@@ -2262,3 +2250,16 @@ function printRepairReceipt(id) {
 }
 
 document.addEventListener('DOMContentLoaded', initDashboard);
+
+function adminLoadBounds(){return {...adminBounds(),branch:''};}
+function adminPeriodKey(){const b=adminBounds();return b.from+'|'+b.to;}
+function localAdminDetail(id){const r=REPAIRS.find(r=>String(r.repairId)===String(id));if(!r)return {success:false,message:'Không tìm thấy đơn.'};return {success:true,data:r,logs:ADMIN_LOGS.filter(x=>String(x.repairId)===String(id)),services:CT_SERVICES.filter(x=>String(x.repairId)===String(id)),materials:CT_MATERIALS.filter(x=>String(x.repairId)===String(id))};}
+
+function readyAdminDetail(id){const epoch=ADMIN_EPOCH;return loadHeavyData(false,'materials').then(()=>epoch!==ADMIN_EPOCH||!ADMIN_HEAVY_DONE.has('materials')?readyAdminDetail(id):localAdminDetail(id));}
+
+function applyAdminPatches(patches,remember=true){if(remember){ADMIN_PATCH_TICKET++;patches.forEach(p=>{const old=ADMIN_PATCH_OVERLAY.get(String(p.id))||{},logs=[...(old.logs||[]),...(p.logs||[])];ADMIN_PATCH_OVERLAY.set(String(p.id),{...old,...p,row:{...(old.row||{}),...(p.row||{})},logs:Array.from(new Map(logs.map(l=>[String(l.id),l])).values())});});}patches.forEach(p=>{const i=REPAIRS.findIndex(r=>String(r.repairId)===String(p.id));if(p.deleted){if(i>=0)REPAIRS.splice(i,1);return;}const row={...(i>=0?REPAIRS[i]:{}),...p.row},b=adminBounds(),date=parseAnyDate(row.date),from=parseInputDate_(b.from,false),to=parseInputDate_(b.to,true);if(date&&date>=from&&date<=to){if(i>=0)REPAIRS[i]=row;else REPAIRS.unshift(row);}else if(i>=0)REPAIRS.splice(i,1);
+ if(p.materials){CT_MATERIALS=CT_MATERIALS.filter(m=>String(m.repairId)!==String(p.id)).concat(p.materials.map(m=>({...m,repairId:p.id})));}if(p.services){CT_SERVICES=CT_SERVICES.filter(m=>String(m.repairId)!==String(p.id)).concat(p.services.map(m=>({...m,repairId:p.id})));}if(p.logs){const known=new Set(ADMIN_LOGS.map(l=>String(l.id)));ADMIN_LOGS=ADMIN_LOGS.concat(p.logs.filter(l=>!known.has(String(l.id))));}});hydrateAdminBranches();saveAdminWarm();if(typeof patchWarmBundles==='function')patchWarmBundles(patches);}
+function syncAdmin(force){if(ADMIN_SYNCING||!USER||(!force&&Date.now()-ADMIN_LAST_CHECK<30000))return Promise.resolve();ADMIN_SYNCING=true;ADMIN_LAST_CHECK=Date.now();const period=adminPeriodKey(),epoch=ADMIN_EPOCH,ticket=ADMIN_PATCH_TICKET;return adminBaseApiCall({action:'syncRepairs',scope:'admin',since:ADMIN_REVISION},{timeoutMs:28000}).then(res=>{if(period!==adminPeriodKey()||epoch!==ADMIN_EPOCH||ticket!==ADMIN_PATCH_TICKET)return;if(!res||!res.success)throw Error(res&&res.message||'Không đồng bộ được dữ liệu.');if(res.reset){ADMIN_SYNCING=false;return refreshAll();}if(res.changed){applyAdminPatches(res.patches||[]);openTab(ACTIVE_TAB);}ADMIN_REVISION=res.revision;saveAdminWarm();}).catch(e=>console.debug('Đồng bộ Admin:',e.message)).finally(()=>ADMIN_SYNCING=false);}
+if(typeof setInterval==='function')setInterval(()=>{if(USER&&(!document.visibilityState||document.visibilityState==='visible'))syncAdmin(false);},30000);
+
+let COST_PAGE=1;function changeCostPage(delta){COST_PAGE+=delta;renderCostTable();}
