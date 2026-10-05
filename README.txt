@@ -1,6 +1,9 @@
-POPOPHONE REPAIR 17.8
-Frontend và QuanLy.gs: 17.8. Sale.gs giữ nguyên bản đã test.
-Đọc HUONG_DAN_DEPLOY.txt để deploy và xem cách tải sẵn dữ liệu.
-Dự án Apps Script chung: Sale.gs + QuanLy.gs, một doPost/doGet và /exec.
-Tài khoản: kt / 123456; qlkt, cskh, qlch, admin / pocn113.
-Mật khẩu trong Script Properties được ưu tiên. QL kỹ thuật không có Tổng quan Admin.
+POPOPHONE REPAIR 17.10
+Cơ sở: REPAIR-main (14).zip. Frontend và QuanLy.gs cùng 17.10; Sale.gs giữ nguyên.
+- KT nhận dùng dữ liệu snapshot, không gọi API để mở form.
+- Chi tiết hiện thông tin đơn ngay; lịch sử tải nền, không chặn mở cửa sổ.
+- Tối đa 3 chi tiết mỗi batch tải trước. Tránh đọc cả sheet khi các đơn nằm rải rác.
+- getDetail quản lý dùng luồng đọc chi tiết vận hành, không đọc vật tư/doanh thu.
+- Lưu nhận máy chỉ ghi cache một đơn, không giải nén/nén toàn bộ danh sách dưới khóa ghi. Cache thiếu sẽ đọc lại DATA để bảo đảm đúng.
+- Bỏ Code.gs cũ trùng router và các file preview/mock/backup không dùng.
+Đọc HUONG_DAN_DEPLOY.txt trước khi cập nhật.

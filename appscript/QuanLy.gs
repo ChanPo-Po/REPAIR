@@ -66,7 +66,7 @@ const DEFAULTS = {
   CHAM_CONG_THO: [['Tháng', 'Kỹ thuật', 'Ngày', 'Trạng thái', 'Ghi chú', 'Ngày cập nhật', 'Người nhập']]
 };
 
-const API_VERSION = '17.8';
+const API_VERSION = '17.10';
 
 function canonicalAction_(value) {
   const raw = String(value || '').trim();
@@ -1464,15 +1464,9 @@ function sanitizeRepairForRole_(r,role){
  ['location','materialCost','laborCost','totalCost','actualRevenue','profit','ncc','billCode','paymentStatus'].forEach(function(k){delete x[k];});return x;
 }
 
-function getDetailForSession_(id, session) {
-  const d = getDetail(id);
-  if(d.success===false)return d;
-  d.logs=(d.logs||[]).filter(function(x){return /trạng thái|Bàn giao|Tiếp nhận|trả khách|nhận máy|báo khách/i.test(x.action||'');});
-  const role = String(session && session.role || '');
-  d.data = sanitizeRepairForRole_(d.data, role);
-  d.materials=[];d.services=[];d.data.tracking=getOpsTracking_(id);d.history=(d.logs||[]).map(publicOpsHistory_).reverse();
-  d.logs=[];d.services=readOpsServices_(id,d.data.repairService).map(function(x){return {name:x.name};});d.relatedRepairs=relatedOpsRepairs_(d.data);
-  return d;
+function getDetailForSession_(id,session){
+ const result=operationsDetails_({ids:[id]},session);
+ return result.success&&result.data.length?result.data[0]:{success:false,message:'Không tìm thấy đơn.'};
 }
 
 function parseV15Date_(v) {
@@ -1728,12 +1722,24 @@ function invalidateOpsData_(id,row,tracking,created){
  OPS_DATA_LOCAL_=null;OPS_TRACKING_LOCAL_=null;if(SALE_CREATE_ACTIVE_)return;
  const props=PropertiesService.getScriptProperties(),before=opsRevision_(),revision=Utilities.getUuid();
  if(!id||!row){props.setProperty('OPS_DATA_REV',revision);LAST_OPS_CHANGE_={revision:revision,reset:true};return;}
- const raw=readRawRepairRow_(id,row);let rows=readOpsCache_(before);if(rows&&raw){const old=rows.find(function(r){return String(r.repairId)===String(id);}),next=opsLeanRow_(raw,tracking);next.machineVisit=old&&old.machineVisit||null;rows=rows.filter(function(r){return String(r.repairId)!==String(id);});rows.push(next);stampMachineVisits_(rows);raw.machineVisit=next.machineVisit;rows.sort(function(a,b){return (b._dataRow||0)-(a._dataRow||0);});writeOpsCache_(revision,rows);}
+ const raw=readRawRepairRow_(id,row);
+ // Writers publish one lean row; decompressing the full dataset belongs to readers.
+ try{if(raw){const cache=CacheService.getScriptCache(),manifestText=cache.get('OPS_LIGHT_'+before),manifest=manifestText?JSON.parse(manifestText):{base:before,patches:[]};
+ if(cache.get('OPS178_'+manifest.base)){const patchKey='OPS_ROW_'+revision,next=opsLeanRow_(raw,tracking);cache.put(patchKey,JSON.stringify(next),300);manifest.patches=manifest.patches.filter(function(p){return p.id!==String(id);});manifest.patches.push({id:String(id),key:patchKey});if(manifest.patches.length<=40)cache.put('OPS_LIGHT_'+revision,JSON.stringify(manifest),300);}
+ }}catch(e){}
+
  let journal;try{journal=JSON.parse(props.getProperty('OPS_CHANGE_LOG')||'null');}catch(e){}if(!journal||!Array.isArray(journal.events))journal={base:before,events:[]};
  const event={from:before,revision:revision,id:String(id),row:row,created:!!created,logs:LAST_OPS_LOGS_.filter(function(l){return String(l.repairId)===String(id);}).map(function(l){return l.row;})};journal.events.push(event);while(journal.events.length>40||JSON.stringify(journal).length>7000){const dropped=journal.events.shift();journal.base=dropped.revision;}
  props.setProperty('OPS_CHANGE_LOG',JSON.stringify(journal));props.setProperty('OPS_DATA_REV',revision);LAST_OPS_CHANGE_={revision:revision,row:raw,id:String(id)};
 }
-function readOpsCache_(revision){try{const cache=CacheService.getScriptCache(),prefix='OPS178_'+revision,raw=cache.get(prefix);if(!raw)return null;const meta=JSON.parse(raw),keys=Array.from({length:meta.parts},function(_,i){return prefix+'_'+i;}),parts=cache.getAll(keys);if(!keys.every(function(k){return parts[k];}))return null;return JSON.parse(Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(keys.map(function(k){return parts[k];}).join('')))).getDataAsString());}catch(e){return null;}}
+function readOpsCache_(revision){try{
+ const cache=CacheService.getScriptCache(),prefix='OPS178_'+revision,raw=cache.get(prefix);
+ if(raw){const meta=JSON.parse(raw),keys=Array.from({length:meta.parts},function(_,i){return prefix+'_'+i;}),parts=cache.getAll(keys);if(!keys.every(function(k){return parts[k];}))return null;return JSON.parse(Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(keys.map(function(k){return parts[k];}).join('')))).getDataAsString());}
+ const text=cache.get('OPS_LIGHT_'+revision);if(!text)return null;const manifest=JSON.parse(text);if(manifest.base===revision||!Array.isArray(manifest.patches))return null;
+ const rows=readOpsCache_(manifest.base);if(!rows)return null;const keys=manifest.patches.map(function(p){return p.key;}),values=cache.getAll(keys);if(!keys.every(function(k){return values[k];}))return null;
+ const index=Object.create(null);rows.forEach(function(r,i){index[String(r.repairId)]=i;});manifest.patches.forEach(function(p){const next=JSON.parse(values[p.key]),i=index[p.id];if(i===undefined){index[p.id]=rows.length;rows.push(next);}else rows[i]=next;});stampMachineVisits_(rows);rows.sort(function(a,b){return (b._dataRow||0)-(a._dataRow||0);});return rows;
+ }catch(e){return null;}}
+
 function writeOpsCache_(revision,rows){try{const cache=CacheService.getScriptCache(),prefix='OPS178_'+revision,encoded=Utilities.base64Encode(Utilities.gzip(Utilities.newBlob(JSON.stringify(rows))).getBytes()),parts={};let n=0;for(let i=0;i<encoded.length;i+=80000)parts[prefix+'_'+n++]=encoded.slice(i,i+80000);if(n<20){cache.putAll(parts,300);cache.put(prefix,JSON.stringify({parts:n}),300);}}catch(e){}}
 
 function readOpsData_(fresh){
@@ -1741,7 +1747,7 @@ function readOpsData_(fresh){
  let cache,revision='0',prefix;
  try{
    cache=CacheService.getScriptCache();revision=PropertiesService.getScriptProperties().getProperty('OPS_DATA_REV')||'0';prefix='OPS178_'+revision;
-   if(!fresh){const raw=cache.get(prefix);if(raw){const meta=JSON.parse(raw),keys=Array.from({length:meta.parts},function(_,i){return prefix+'_'+i;}),parts=cache.getAll(keys);if(keys.every(function(k){return parts[k];})){const encoded=keys.map(function(k){return parts[k];}).join('');return OPS_DATA_LOCAL_=JSON.parse(Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(encoded))).getDataAsString());}}}
+   if(!fresh){const cached=readOpsCache_(revision);if(cached)return OPS_DATA_LOCAL_=cached;}
  }catch(e){}
  const sheet=sh(SHEETS.DATA),last=sheet.getLastRow(),width=sheet.getLastColumn();if(last<2)return OPS_DATA_LOCAL_=[];
  const headers=sheet.getRange(1,1,1,width).getValues()[0],map={};headers.forEach(function(h,i){const k=String(h||'').trim();if(k&&map[k]===undefined)map[k]=i;});
@@ -1836,7 +1842,7 @@ function readAdminPeriod_(body){
  const headers=sheet.getRange(1,1,1,width).getValues()[0],map={};headers.forEach(function(h,i){map[String(h).trim()]=i;});
  const aliases=[['Mã sửa chữa','Mã SC','Mã sửa','MA SUA CHUA'],['IMEI','IMEI/Serial','Serial'],['Ngày nhận','Ngày tiếp nhận','Dấu thời gian']],columns=[];aliases.forEach(function(a){periodColumns_(map,a).forEach(function(c){if(columns.indexOf(c)<0)columns.push(c);});});if(!columns.length)return [];
  const first=Math.min.apply(null,columns),end=Math.max.apply(null,columns),index=sheet.getRange(2,first+1,last-1,end-first+1).getValues().map(function(v,i){const sparse=[];columns.forEach(function(c){sparse[c]=v[c-first];});return {repairId:rowValue_(sparse,map,aliases[0]),imei:rowValue_(sparse,map,aliases[1]),date:rowValue_(sparse,map,aliases[2]),row:i+2};});stampMachineVisits_(index);
- const selected=Object.create(null),groups=[],out=[],tracking=readOpsTracking_();index.forEach(function(r){if(!r.repairId||!inV15Range_(r,body.from,body.to))return;selected[r.row]=r;let g=groups[groups.length-1];if(!g||r.row-g.end>8){g={start:r.row,end:r.row};groups.push(g);}g.end=r.row;});if(groups.length>8)groups.splice(0,groups.length,{start:groups[0].start,end:groups[groups.length-1].end});
+ const selected=Object.create(null),groups=[],out=[],tracking=readOpsTracking_();index.forEach(function(r){if(!r.repairId||!inV15Range_(r,body.from,body.to))return;selected[r.row]=r;let g=groups[groups.length-1];if(!g||r.row-g.end>8){g={start:r.row,end:r.row};groups.push(g);}g.end=r.row;});if(groups.length>8&&groups[groups.length-1].end-groups[0].start<200)groups.splice(0,groups.length,{start:groups[0].start,end:groups[groups.length-1].end});
  groups.forEach(function(g){sheet.getRange(g.start,1,g.end-g.start+1,width).getValues().forEach(function(v,i){const short=selected[g.start+i];if(!short)return;const r=rowToObj(v,map);if(body.branch&&r.branch!==body.branch)return;r.machineVisit=short.machineVisit;r.tracking=tracking[String(r.repairId)]||{};r.overdue=isOverdueOps_(r)?'Có':'Không';out.push(r);});});return out.reverse();
 }
 
@@ -1888,7 +1894,7 @@ function readObjectsByRepairs_(name,ids){
  const width=sheet.getLastColumn(),headers=sheet.getRange(1,1,1,width).getValues()[0].map(function(h){return String(h||'').trim();}),col=headers.indexOf('Mã sửa chữa');if(col<0)return [];
  const values=sheet.getRange(2,col+1,sheet.getLastRow()-1,1).getValues(),groups=[],out=[];
  values.forEach(function(v,i){if(!ids[String(v[0])])return;const row=i+2;let g=groups[groups.length-1];if(!g||row-g.end>8){g={start:row,end:row};groups.push(g);}g.end=row;});
- if(groups.length>8)groups.splice(0,groups.length,{start:groups[0].start,end:groups[groups.length-1].end});
+ if(groups.length>8&&groups[groups.length-1].end-groups[0].start<200)groups.splice(0,groups.length,{start:groups[0].start,end:groups[groups.length-1].end});
  groups.forEach(function(g){sheet.getRange(g.start,1,g.end-g.start+1,width).getValues().forEach(function(v){if(!ids[String(v[col])])return;const x={};headers.forEach(function(h,i){if(h)x[h]=v[i];});out.push(x);});});return out;
 }
 function operationsDetails_(body,session){

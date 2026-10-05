@@ -1,43 +1,7 @@
-BẢN 17.8 — CẬP NHẬT ĐÚNG ĐƠN THAY ĐỔI
-
-DEPLOY
-1. Thay QuanLy.gs bằng file trong appscript. Giữ Sale.gs đang dùng
-   (file Sale.gs kèm theo giữ nguyên nội dung đã test).
-2. Trong dự án Apps Script chung: Manage deployments > Edit > New version
-   > Deploy. Giữ nguyên /exec và Google Sheets DATA.
-3. Deploy thư mục REPAIR-main lên Netlify. Đăng xuất rồi đăng nhập lại.
-   Frontend/API đều là 17.8. Không cần deploy web Sale.
-
-CÁCH HOẠT ĐỘNG
-- Tải dữ liệu kỳ đang chọn một lần. Chuyển mục, lọc trạng thái/chi nhánh/
-  kỹ thuật/loại dịch vụ và phân trang dùng dữ liệu sẵn trong trình duyệt.
-- Lưu trạng thái, KT nhận, CH nhận, thông tin báo khách hoặc chi phí:
-  cập nhật đúng đơn đó và số đếm liên quan; không tải lại toàn bộ DATA.
-- Mỗi 30 giây khi trang đang hiển thị, kiểm tra mã phiên bản dữ liệu ở nền.
-  Không có thay đổi: không đọc lại Sheets. Có thay đổi từ tài khoản khác
-  hoặc Sale tạo đơn: chỉ lấy các đơn thay đổi, lịch sử mới và dữ liệu liên quan.
-- Giữ bộ dữ liệu tạm tối đa 30 phút, gắn với token, vai trò, phiên bản, kỳ.
-  Chuyển Admin/Theo dõi đơn dùng dữ liệu sẵn, rồi kiểm tra thay đổi ở nền.
-  Đăng xuất xóa dữ liệu tạm. Mật khẩu/quyền và quy trình vẫn giữ nguyên.
-- Admin đọc chỉ mục ID/IMEI/ngày nhận và dữ liệu đầy đủ của kỳ đã chọn;
-  bảng chi phí hiển thị 30 đơn mỗi trang. Vật tư/dịch vụ/lịch sử tải nền
-  dùng chung; dữ liệu mới lưu không bị lượt tải nền cũ ghi đè.
-- Theo dõi đơn tải nền chi tiết của 10 đơn đầu, sau đó các đơn đang hiển thị.
-  Chi tiết chưa tải xong có thể phải chờ request đang chạy.
-
-KHI CẦN TẢI LẠI
-- Đổi kỳ hoặc bấm Làm mới: tải lại dữ liệu theo yêu cầu.
-- Mở trang sang ngày mới: cập nhật lại tổng quan theo ngày.
-- Bỏ lỡ quá nhiều thay đổi (nhật ký tối đa 40 sự kiện, giới hạn dung lượng)
-  hoặc mất chuỗi phiên bản: tải lại để tránh thiếu dữ liệu.
-- Sửa trực tiếp trong Google Sheets không đi qua API: bấm Làm mới.
-  Cơ chế đồng bộ tự động theo dõi các cập nhật qua Sale/QuanLy trong bản này.
-
-KIỂM TRA VÀ GIỚI HẠN
-Đã kiểm tra bằng Node VM/Sheets mô phỏng: năm vai trò, Sale, lọc theo kỳ,
-đơn tồn, CH nhận, luồng 7 -> CH -> 8–11, lịch sử, phân trang, cache và
-đồng bộ. Với 6.000 đơn mô phỏng, kiểm tra không đổi đọc 0 ô Sheets;
-đồng bộ một đơn trạng thái thay đổi đọc dưới 300 ô trong tình huống test.
-Chưa đo thời gian trên Apps Script triển khai thật. Lần mở đầu vẫn phải
-đọc dữ liệu; Apps Script/Sheets và mạng vẫn ảnh hưởng thời gian chờ.
-Không đổi cấu trúc sheet và không tạo đơn thử trên DATA thật.
+BẢN 17.10 — KT NHẬN, CH NHẬN VÀ CHI TIẾT
+1. Trong dự án Apps Script đang dùng chung DATA, giữ Sale.gs và thay QuanLy.gs bằng bản này. Không để Code.gs cũ vì trùng router.
+2. Deploy > Manage deployments > Edit > New version > Deploy. Giữ URL /exec hiện tại.
+3. Deploy toàn bộ frontend lên Netlify. Frontend và API phải cùng 17.10. Tải lại trang để nhận JS mới.
+4. Sale.gs giữ nguyên. Không cần deploy lại frontend Sale.
+5. Kiểm tra KT nhận, CH nhận ở trạng thái 7, rồi cập nhật 8–11. Form hiện từ dữ liệu đã tải; xác nhận thành công chỉ sau khi server lưu xong.
+6. Chi tiết hiện thông tin máy ngay; lịch sử tiếp tục tải nền. Lần đầu chưa có dữ liệu hoặc Apps Script khởi động vẫn có thời gian chờ.
